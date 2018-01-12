@@ -4,7 +4,7 @@ DAG for Waze Data to move to SQL Data Warehouse from Amazon S3
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from datetime import datetime, timedelta
-
+"""
 
 default_args = {
     'owner': 'airflow',
@@ -28,7 +28,7 @@ t1 = S3KeySensor(
     poke_interval=0,
     timeout=10,
     soft_fail=True,
-    bucket_key='s3://scripted-waze-data-525978535215-test/' +   ,
+    bucket_key='s3://scripted-waze-data-525978535215-test/',
     bucket_name=None,
 dag=dag)
 
@@ -40,3 +40,4 @@ t2 = BashOperator(
 
 
 t2.set_upstream(t1)
+"""
