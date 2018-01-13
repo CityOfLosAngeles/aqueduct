@@ -1,0 +1,10 @@
+name: sewer
+
+dependencies:
+  - python=3.6
+  - pandas
+  - requests
+  - xlrd
+  - pip:
+    - flask
+    - airflow
