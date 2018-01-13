@@ -30,7 +30,7 @@ def download_google_sheet(ds, **kwargs):
     print("running google sheet")
     df = pd.read_csv('https://docs.google.com/spreadsheets/d/1vYg2lvDL9Q4ddzUgKVTvTyCUcF2EgnNsxNwffHo28lo/export?gid=0&format=csv')
     execution_date = kwargs['execution_date'].date()
-    df.to_csv('~/Desktop/' + str(execution_date) + '.csv')
+    df.to_csv('~/shelters-' + str(execution_date) + '.csv')
     return df 
 
 run_this = PythonOperator(
