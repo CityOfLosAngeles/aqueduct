@@ -20,6 +20,6 @@ If you don't have postgres installed
 
 6. `airflow initdb`
 
-7. Edit airflow.cfg file to include location of Sewer repo for DAG bags 
+7. Edit ``~/airflow/airflow.cfg` file to include location of Sewer repo for DAG bags 
 
-8. Run `airflow webserver` to start the airflow server or `airflow test {dag tame} {task name} {time}` to test a DAG. 
+8. Run `airflow webserver` to start the airflow server or `airflow test {dag tame} {task name} {time}` to test a specfic DAG. 
