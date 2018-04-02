@@ -16,7 +16,7 @@ A shared pipeline for building ETLs and batch jobs that we run at the City of LA
 If you don't have postgres installed
 4.`brew install postgres` If MacOSX, `sudo apt-get install postgresql`  Ubuntu
 
-5. `pip install apache-airflow[s3] apache-airflow[postgres]`
+5. Create conda env `conda env create --name sewer --file environment.yml` or update conda env `conda env update --name sewer --file environment.yml`
 
 6. `airflow initdb`
 
