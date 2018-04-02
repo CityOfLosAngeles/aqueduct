@@ -8,3 +8,5 @@ dependencies:
   - pip:
     - flask
     - airflow
+    - airflow[s3]
+    - airflow[postgres]
