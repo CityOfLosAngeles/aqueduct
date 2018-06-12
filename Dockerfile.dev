@@ -1,5 +1,5 @@
 FROM python:2-slim
-MAINTAINER Jannis Leidel <jezdez@mozilla.com>
+MAINTAINER Hunter Owens <hunter.owens@lacity.org> 
 
 ENV PYTHONUNBUFFERED=1 \
     AWS_REGION=us-west-2 \
