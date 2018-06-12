@@ -116,23 +116,7 @@ sed -i "s/10001/$(id -u)/g" Dockerfile.dev
 
 ```
 
-### Testing Dev Changes
-
-*Note: This only works for `telemetry-batch-view` and `telemetry-streaming` jobs*
-
-A dev changes can be run by simply changing the `DEPLOY_TAG` environment variable
-to whichever upstream branch you've pushed your local changes to.
-
-Afterwards, you're going to need to rebuild: `make build`
-
-From there, you can either set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` in the 
-Dockerfile and run `make up` to get a local UI and run from there, or you can follow the
-testing instructions above and use `make run`.
-
 ### Production Setup
-
-Note: the canonical reference for production environment variables lives
-in [a private repository](https://github.com/mozilla-services/cloudops-deployment/blob/master/projects/data/puppet/yaml/app/data.prod.wtmo.yaml).
 
 When deploying to production make sure to set up the following environment
 variables:
@@ -235,3 +219,17 @@ docker volume rm $(docker volume ls -qf dangling=true)
 - Log in to one of the docker containers using `docker exec -it <container_id> bash`. The web server instance is a good choice.
 - Run the desired backfill command, something like `$ airflow backfill main_summary -s 2018-05-20 -e 2018-05-26`
 
+## Install Issues
+
+1. Installing on a network with a proxy (such as LA City) may require setting proxy settings for these applications. Your proxy server address can be found in your system settings or by asking your network admin. 
+
+1a. Anaconda: (Reference: https://conda.io/docs/user-guide/configuration/use-winxp-with-proxy.html )
+Edit the file .condarc (in Windows: \users\{username}\ )
+and add these 3 lines (with proxy and port address filled in):
+proxy_servers:
+    http: http://proxy:port
+    https: https://proxy:port
+    
+1b. Set pip and python proxies by setting the http_proxy and https_proxy system variables to your proxy server. 
+
+1c. Anaconda may call pip to install some modules, but it may not work with the pip proxies you setup. One way around this is to run pip install with proxy options from the command line. After conda failed to pip install flask, run this command line: `pip install --proxy=http://proxy:port flask` and then run the conda line again.
