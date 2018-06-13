@@ -1,2 +1,5 @@
+newrelic
+redis
+hiredis
 boto3
 apache-airflow[celery,postgres,hive,hdfs,jdbc,async,password,crypto,github_enterprise,datadog,statsd,s3]
