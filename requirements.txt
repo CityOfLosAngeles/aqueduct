@@ -1,5 +1,6 @@
 newrelic
 redis
 hiredis
+arcgis
 boto3
 apache-airflow[celery,postgres,hive,hdfs,jdbc,async,password,crypto,github_enterprise,datadog,statsd,s3]
