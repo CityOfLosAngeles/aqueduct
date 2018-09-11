@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.6
 MAINTAINER Hunter Owens <hunter.owens@lacity.org>
 
 ENV PYTHONUNBUFFERED=1 \
