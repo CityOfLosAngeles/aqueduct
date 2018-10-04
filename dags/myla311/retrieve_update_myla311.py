@@ -15,6 +15,7 @@ import os
 # from config import MY_APP_TOKEN, USERNAME, PASSWORD, CONNECTION_ID, BUCKET_NAME # please setup as Environment Variables
 
 
+
 def retrieve_data(**kwargs):
     # Using Authenticated Client:
     # API Document: https://dev.socrata.com/foundry/data.lacity.org/aub4-z9pc
@@ -27,8 +28,8 @@ def retrieve_data(**kwargs):
     row_count = client.get("aub4-z9pc", select="count(srnumber)")
     row_count = pd.DataFrame.from_records(row_count)
     row_count = row_count.count_srnumber[0]
-    
-    # row_count = 1000
+
+    # row_count = 1000 # for test purpose only
 
     logging.info("The number of rows is read successfully.")
 
@@ -49,6 +50,7 @@ def upload_to_s3(**kwargs):
 
     # saving to s3 bucket
     bucket_name = BUCKET_NAME
+
     key = './myla311.csv'
     output_name = "myla311.csv"
 
