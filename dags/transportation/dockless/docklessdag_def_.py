@@ -40,7 +40,10 @@ end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 for provider in cfg.provider:
     for feed in ['trips', 'status_changes']:
 
-        # Task 1: Get provider data
+        # Task 1: Validate
+
+
+        # Task 2: Get provider data
         t1 = PythonOperator(
             task_id = 'e_{}_{}'.format(provider, feed),
             provide_context = True, 
@@ -65,4 +68,6 @@ for provider in cfg.provider:
                 'end_time': end_time},
             dag = dag)
 
-        t1 >> t2
+        t1 >> t3
+
+# TODO: Set order of all tasks after some initial task.
