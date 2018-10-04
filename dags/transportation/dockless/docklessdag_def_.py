@@ -6,6 +6,10 @@ from airflow.operators.bash_operator import BashOperator
 from datetime import datetime, timedelta
 # Import configuration file
 from config import config as cfg
+import datetime, time, pytz
+# Import functions
+import data_import
+import data_load
 
 
 default_args = {
@@ -16,7 +20,7 @@ default_args = {
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=15),
+    'retry_delay': timedelta(minutes=15)
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -27,47 +31,38 @@ dag = DAG(
     dag_id = 'dockless-elt',
     default_args=default_args)
 
+# Testing Time Range: Sept 15 @ 1pm - 3pm
+tz = pytz.timezone("US/Pacific")
+start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
+end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 
-# Task 1: Get provider data
-t1 = PythonOperator(
-    task_id='e_provider',
-    provide_context=True, # what does this mean?
-    python_callable=get_provider_data,
-    op_kwargs={
-        'provider': provider,
-        'feed': feed,
-        'start_time': start_time,
-        'end_time': end_time},
-    dag=dag
-    )
+# Create task for each provider / feed
+for provider in cfg.provider:
+    for feed in ['trips', 'status_changes']:
 
-# Task 2: Upload provider data to db
-t2 = PythonOperator(
-    task_id='tl_provider',
-    provide_context=True,
-    python_callable=load_json,
-    op_kwargs={
-        'provider': provider,
-        'feed': feed,
-        'start_time': start_time,
-        'end_time': end_time},
-    dag=dag)
+        # Task 1: Get provider data
+        t1 = PythonOperator(
+            task_id = 'e_{}_{}'.format(provider, feed),
+            provide_context = True, 
+            python_callable = data_import.get_provider_data,
+            op_kwargs = {
+                'provider': provider,
+                'feed': feed,
+                'start_time': start_time,
+                'end_time': end_time},
+            dag = dag
+            )
 
-# TODO: Create fun to loop through providers
-# and create task for each
+        # Task 2: Upload provider data to db
+        t2 = PythonOperator(
+            task_id = 'tl_{}_{}'.format(provider, feed),
+            provide_context = True,
+            python_callable = data_load.load_json,
+            op_kwargs = {
+                'provider': provider,
+                'feed': feed,
+                'start_time': start_time,
+                'end_time': end_time},
+            dag = dag)
 
-
-# interesting...
-t1 = S3KeySensor(
-    task_id='s3_file_test',
-    poke_interval=0,
-    timeout=10,
-    soft_fail=True,
-    bucket_key='s3://scripted-waze-data-525978535215-test/',
-    bucket_name=None,
-    dag=dag)
-
-
-t1 >> t2
-
-
+        t1 >> t2
