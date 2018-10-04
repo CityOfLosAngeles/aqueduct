@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# config files
+dags/transportation/dockless/config.yml
+
 # C extensions
 *.so
 
