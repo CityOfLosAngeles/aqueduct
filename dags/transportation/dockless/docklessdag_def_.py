@@ -4,12 +4,13 @@ DAG for ETL Processing of Dockless Mobility Provider Data
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from datetime import datetime, timedelta
+import datetime, time, pytz
 # Import configuration file
 from config import config as cfg
-import datetime, time, pytz
 # Import functions
 import data_import
 import data_load
+import make_tables
 
 
 default_args = {
@@ -36,15 +37,23 @@ tz = pytz.timezone("US/Pacific")
 start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
 end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 
+# Task 1: Create tables if not exists
+t1 = PythonOperator(
+    task_id = 'make_provider_tables',
+    provide_context = True,
+    python_callable = make_tables.make_tables,
+    dag = dag
+    )
+
 # Create task for each provider / feed
 for provider in cfg.provider:
     for feed in ['trips', 'status_changes']:
 
-        # Task 1: Validate
+        # Task 2: Validate
 
 
-        # Task 2: Get provider data
-        t1 = PythonOperator(
+        # Task 3: Get provider data
+        t2 = PythonOperator(
             task_id = 'e_{}_{}'.format(provider, feed),
             provide_context = True, 
             python_callable = data_import.get_provider_data,
@@ -56,8 +65,8 @@ for provider in cfg.provider:
             dag = dag
             )
 
-        # Task 2: Upload provider data to db
-        t2 = PythonOperator(
+        # Task 4: Upload provider data to db
+        t3 = PythonOperator(
             task_id = 'tl_{}_{}'.format(provider, feed),
             provide_context = True,
             python_callable = data_load.load_json,
@@ -68,6 +77,4 @@ for provider in cfg.provider:
                 'end_time': end_time},
             dag = dag)
 
-        t1 >> t3
-
-# TODO: Set order of all tasks after some initial task.
+        t1 >> t2 >> t3
