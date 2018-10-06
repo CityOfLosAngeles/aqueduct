@@ -1,9 +1,9 @@
-# Non-AWS modules
 import requests
 import yaml
 import os
 import json
 import datetime, time, pytz
+# Config files
 from config import config as cfg
 # AWS
 # create a new bucket
@@ -85,4 +85,4 @@ if __name__ == '__main__':
     start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
     end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 
-    get_provider_data(provider = 'lime', feed = 'status_changes', start_time = start_time, end_time = end_time)
+    get_provider_data(provider = 'lime', feed = 'trips', start_time = start_time, end_time = end_time)
