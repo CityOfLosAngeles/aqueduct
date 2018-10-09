@@ -6,7 +6,6 @@ postgresql:
   db: db
 provider:
     lime:
-        trips: https://lime.bike/api/partners/v1/mds/los_angeles/trips
-        status_updates: https://lime.bike/api/partners/v1/mds/los_angeles/status_changes
-        auth: Bearer token
+        baseurl: https://lime.bike/api/partners/v1/mds/los_angeles
+        token: [token]
         
