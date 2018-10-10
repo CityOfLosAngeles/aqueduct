@@ -86,9 +86,15 @@ def make_tables(testing = True):
         start_time DOUBLE PRECISION NOT NULL,
         end_time DOUBLE PRECISION NOT NULL,
         parking_verification_url TEXT,
-        standard_cost INTEGER,
-        actual_cost INTEGER,
+        standard_cost DOUBLE PRECISION,
+        actual_cost DOUBLE PRECISION,
         route geometry(LINESTRING, 4326)
+    );
+
+    CREATE TABLE IF NOT EXISTS trip_routes (
+        trip_id TEXT NOT NULL,
+        time_update DOUBLE PRECISION,
+        geom geometry(POINT, 4326)
     );
     """
 
