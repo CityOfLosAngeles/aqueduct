@@ -12,8 +12,9 @@ from airflow.operators.postgres_operator import PostgresOperator
 import boto3
 import botocore
 import os
-# from config import MY_APP_TOKEN, USERNAME, PASSWORD, CONNECTION_ID, BUCKET_NAME # please setup as Environment Variables
 
+## please setup the followings as Environment Variables
+# from config import MY_APP_TOKEN, USERNAME, PASSWORD, CONNECTION_ID 
 
 
 def retrieve_data(**kwargs):
@@ -28,8 +29,8 @@ def retrieve_data(**kwargs):
     row_count = client.get("aub4-z9pc", select="count(srnumber)")
     row_count = pd.DataFrame.from_records(row_count)
     row_count = row_count.count_srnumber[0]
-
-    # row_count = 1000 # for test purpose only
+    
+    # row_count = 1000
 
     logging.info("The number of rows is read successfully.")
 
@@ -42,36 +43,18 @@ def retrieve_data(**kwargs):
     return pd.DataFrame.from_records(dataset)
 
 
-def upload_to_s3(**kwargs):
+def save_data(**kwargs):
     dataset = retrieve_data()
     filename = './myla311.csv'
+    import os
+    if os.path.exists(filename):
+      logging.info(filename + " already exist. Removing it").
+      os.remove(filename)
+    else:
+      logging.info(filename + " does not exist")
     dataset.to_csv(filename, index=False)
     logging.info("the dataset is saved locally as " + os.path.abspath(filename))
 
-    # saving to s3 bucket
-    bucket_name = BUCKET_NAME
-
-    key = './myla311.csv'
-    output_name = "myla311.csv"
-
-    s3 = boto3.client('s3')
-    s3.upload_file(key, bucket_name, output_name)
-
-
-def download_from_s3(**kwargs):
-    bucket_name = BUCKET_NAME
-    key = "myla311.csv"
-    output_name = './myla311.csv'
-
-    s3 = boto3.resource('s3')
-
-    try:
-        s3.Bucket(bucket_name).download_file(key, output_name)
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "404":
-            print("The object does not exist.")
-        else:
-            raise
 
 # sql commands
 sql_create_main = \
@@ -217,34 +200,27 @@ task1 = PostgresOperator(
     )
 
 task2 = PythonOperator(
-    task_id='download_upload_to_s3',
+    task_id='save_data',
     provide_context=True,
-    python_callable=upload_to_s3,
+    python_callable=save_data,
     dag=dag
     )
 
-task3 = PythonOperator(
-    task_id='download_from_s3',
-    provide_context=True,
-    python_callable=download_from_s3,
-    dag=dag
-    )
-
-task4 = PostgresOperator(
+task3 = PostgresOperator(
     task_id='insert_into_staging_table',
     sql=sql_insert_into_staging ,
     postgres_conn_id=CONNECTION_ID,
     dag=dag
     )
 
-task5 = PostgresOperator(
+task4 = PostgresOperator(
     task_id='rename_staging_to_main',
     sql=sql_rename_staging_to_main,
     postgres_conn_id=CONNECTION_ID,
     dag=dag
     )
 
-task6 = PostgresOperator(
+task5 = PostgresOperator(
     task_id='delete_main_old',
     sql=sql_delete_main_old,
     postgres_conn_id=CONNECTION_ID,
@@ -252,4 +228,4 @@ task6 = PostgresOperator(
     )
 
 # task sequence
-task0 >> task1 >> task2 >> task3 >> task4 >> task5 >> task6
+task0 >> task1 >> task2 >> task3 >> task4 >> task5
