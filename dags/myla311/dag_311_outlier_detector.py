@@ -308,25 +308,6 @@ def make_html_content(alert, message):
 def remove_graph_png(**kwargs):
     task_instance = kwargs['task_instance']
     alert = task_instance.xcom_pull(task_ids='detect_outliers')
-    alert = {'Illegal Dumping Pickup': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Illegal-Dumping-Pickup.png'],
-         'Illegal Dumping in Progress': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Illegal-Dumping-in-Progress.png'],
-         'Median Island Maintenance': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Median-Island-Maintenance.png'],
-         'Park Fields/Buildings/Repairs': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Park-Fields-Buildings-Repairs.png'],
-         'Park Graffiti/Trash': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Park-Graffiti-Trash.png'],
-         'Park Homelessness and Security': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Park-Homelessness-and-Security.png'],
-         'Tables and Chairs Obstructing': ['HIGH INDIVIDUAL REQUEST TYPE OUTLIER',
-          'chart-Tables-and-Chairs-Obstructing.png'],
-         'srnumber: 1-1197288301': ['HIGH PROCESS TIME OUTLIER, Dead Animal Removal, 44.53527777777778 hrs',
-          'chart-Proc-Time-Dead-Animal-Removal-SRNUMBER:1-1197288301.png'],
-         'srnumber: 1-1197458141': ['HIGH PROCESS TIME OUTLIER, Dead Animal Removal, 46.02111111111111 hrs',
-          'chart-Proc-Time-Dead-Animal-Removal-SRNUMBER:1-1197458141.png']}
-    
     for key, value in alert.items():
         file = value[1]
         if os.path.exists(file):
