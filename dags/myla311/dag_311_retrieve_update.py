@@ -9,12 +9,19 @@ from sodapy import Socrata
 from datetime import timedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from airflow.models import Variable
 import boto3
 import botocore
 import os
 
-## please setup the followings as Environment Variables
-# from config import MY_APP_TOKEN, USERNAME, PASSWORD, CONNECTION_ID 
+# The folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
+#   MY_APP_TOKEN, USERNAME, PASSWORD 
+
+filename = '/tmp/myla311.csv'
+
+MY_APP_TOKEN = Variable.get('MY_APP_TOKEN')
+USERNAME = Variable.get('USERNAME')
+PASSWORD = Variable.get('PASSWORD')
 
 
 def retrieve_data(**kwargs):
@@ -45,13 +52,11 @@ def retrieve_data(**kwargs):
 
 def save_data(**kwargs):
     dataset = retrieve_data()
-    filename = './myla311.csv'
-    import os
     if os.path.exists(filename):
-      logging.info(filename + " already exist. Removing it").
+      logging.info(filename + " already exist. Overwriting it")
       os.remove(filename)
     else:
-      logging.info(filename + " does not exist")
+      logging.info( "Writing new file " + filename)
     dataset.to_csv(filename, index=False)
     logging.info("the dataset is saved locally as " + os.path.abspath(filename))
 
@@ -150,7 +155,7 @@ sql_insert_into_staging = \
     """
     COPY myla311_staging
     FROM '{}' WITH CSV HEADER delimiter ',';
-    """.format(os.path.abspath('./myla311.csv'))
+    """
 
 sql_rename_staging_to_main = \
     """
@@ -169,10 +174,12 @@ sql_delete_main_old = \
 
 # airflow DAG arguments
 args = {
-    'owner': 'airflow',
+    'owner': 'hunterowens',
     'start_date': airflow.utils.dates.days_ago(7),
     'provide_context': True,
-    # 'retries': 2, # will be set after testing
+    'email': ['hunter.owens@lacity.org','ITADATA@lacity.org'],
+    'email_on_failure': False,
+    'retries': 1, 
     'retry_delay': timedelta(minutes=5)
     }
 
@@ -188,14 +195,14 @@ dag = airflow.DAG(
 task0 = PostgresOperator(
     task_id='create_main_table_if_not_exist',
     sql=sql_create_main,
-    postgres_conn_id=CONNECTION_ID,
+    postgres_conn_id='postgres_default',
     dag=dag
     )
 
 task1 = PostgresOperator(
     task_id='create_staging_table',
     sql=sql_create_staging,
-    postgres_conn_id=CONNECTION_ID,
+    postgres_conn_id='postgres_default',
     dag=dag
     )
 
@@ -208,22 +215,22 @@ task2 = PythonOperator(
 
 task3 = PostgresOperator(
     task_id='insert_into_staging_table',
-    sql=sql_insert_into_staging ,
-    postgres_conn_id=CONNECTION_ID,
+    sql=sql_insert_into_staging.format(filename),
+    postgres_conn_id='postgres_default',
     dag=dag
     )
 
 task4 = PostgresOperator(
     task_id='rename_staging_to_main',
     sql=sql_rename_staging_to_main,
-    postgres_conn_id=CONNECTION_ID,
+    postgres_conn_id='postgres_default',
     dag=dag
     )
 
 task5 = PostgresOperator(
     task_id='delete_main_old',
     sql=sql_delete_main_old,
-    postgres_conn_id=CONNECTION_ID,
+    postgres_conn_id='postgres_default',
     dag=dag
     )
 

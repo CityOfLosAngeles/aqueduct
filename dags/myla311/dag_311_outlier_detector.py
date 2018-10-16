@@ -17,8 +17,7 @@
 #   and access from less secure apps should be allowed.
 #
 # Environment Variables:
-#   the following variables need to be setup as environment variables
-#     CONNECTION_ID = "postgres_default" # postgres connection id
+#   the following variables need to be setup in airflow.cfg
 #     smtp_host = 'smtp.gmail.com'
 #     smtp_starttls = True
 #     smtp_ssl = True
@@ -26,8 +25,9 @@
 #     smtp_password = 'email account password'
 #     smtp_port = '587'
 #     smtp_mail_from = 'email address to send from'
-#     email_to = ['address1', 'address2',..] # can add more receipients
-#     email_cc = ['address3', 'address4',..]
+#   the folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
+#     email_to = 'address1, address2' 
+#     email_cc = 'address3, address4'
 
 import os
 import logging
@@ -38,23 +38,21 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from config import *
+from airflow.utils.email import send_email
+from airflow.models import Variable
 import matplotlib.pyplot as plt
 from matplotlib import *
 import seaborn as sns
 import altair as alt
 
 # a csv file with this filename will be saved from a copy of postgres table
-filename = "./myla311.csv"
+filename = "/tmp/myla311.csv"
+prefix = "/tmp/"
 
 # email parameters
-message = "This last week's Outliers:"
-email_to = ', '.join(email_to) # should be setup as environment variable, e.g. email_to = ['address1', 'address2']
-email_cc = ', '.join(email_cc) # same as above
+message = "Example Email using airflow send_email()<br/> This last week's Outliers:"
+email_to = Variable.get('email_to') #', '.join(Variable.get('email_to')) # should be setup as environment variable, e.g. email_to = ['address1', 'address2']
+email_cc = Variable.get('email_cc') #', '.join(Variable.get('email_cc')) # same as above
 subject = '[Alert] MyLA311 Data Outliers'
 
 # outlier type identifiers
@@ -244,53 +242,24 @@ def detect_outliers(filename, **kwargs):
     return alert
 
 
-def sendemail(from_addr, to_addr_list, cc_addr_list, subject,
-              message, login, password, smtpserver, **kwargs):
+def sendemail(to_addr_list, cc_addr_list, subject,
+              message, **kwargs):
     # xcom_pull alert from last task's return value
     task_instance = kwargs['task_instance']
     alert = task_instance.xcom_pull(task_ids='detect_outliers')
-
+              
     # if no outliers found, skip sending email
     if bool(alert):
         # prepare email body
         logging.info(alert)
 
-        #************************************************************************
-        msgRoot = MIMEMultipart('related')
-        msgRoot['Subject'] = subject
-        msgRoot['From'] = from_addr
-        msgRoot['To'] = to_addr_list
-        msgRoot.preamble = 'This is a multi-part message in MIME format.'
-
-        # Encapsulate the plain and HTML versions of the message body in an
-        # 'alternative' part, so message agents can decide which they want to display.
-        msgAlternative = MIMEMultipart('alternative')
-        msgRoot.attach(msgAlternative)
-
-        msgText = MIMEText('Please review this email on a computer in order to read HTML content')
-        msgAlternative.attach(msgText)
-
-        # We reference the image in the IMG SRC attribute by the ID we give it below
-        html_content = make_html_content(alert, message)
-
-        msgText1 = MIMEText(html_content, 'html')
-        msgAlternative.attach(msgText1)
-        
-        # This example assumes the image is in the current directory
-        count=1
+        files = []
         for key, value in alert.items():
-            fp = open(value[1], 'rb')
-            msgImage = MIMEImage(fp.read())
-            fp.close()
-            msgImage.add_header('Content-ID', '<image'+ str(count) +'>')
-            msgRoot.attach(msgImage)
-            count += 1
-        #************************************************************************
-        server = smtplib.SMTP(smtpserver)
-        server.starttls()
-        server.login(login, password)
-        server.sendmail(from_addr, [to_addr_list, cc_addr_list], msgRoot.as_string())
-        server.quit()
+            files.append(prefix+value[1])
+
+        html_content = make_html_content(alert, message)
+        send_email(to_addr_list, subject, html_content,
+               files=files,  cc=cc_addr_list)
         return "Outliers founded. Alert Email sent. Success!"
 
     return "No alert generated. Email not sent."
@@ -299,8 +268,8 @@ def make_html_content(alert, message):
     count = 1
     c = message.join(['<br><b>', '</b></br><br />'])
     for key, value in alert.items():
-        c += str(count) + '. ' + value[0] + ': ' + key
-        c += '<br><img src="cid:image' + str(count) + '"><br>'
+        c += "{}. {}:{}<br/>".format(str(count),value[0],key)
+        # c += '<br><img src="cid:image' + str(count) + '"><br>'
         count += 1
     return c
 
@@ -310,22 +279,24 @@ def remove_graph_png(**kwargs):
     alert = task_instance.xcom_pull(task_ids='detect_outliers')
     for key, value in alert.items():
         file = value[1]
-        if os.path.exists(file):
-          os.remove(file)
+        if os.path.exists(prefix + file):
+          os.remove(prefix + file)
         else:
           print("The file "+ file + " does not exist. Skipping to the next graph png")
 
 sql_pull_data = \
     """
     COPY myla311_main TO '{}' DELIMITER ',' CSV HEADER;
-    """.format(os.path.abspath(filename))
+    """
 
 # airflow DAG arguments
-args = {'owner': 'airflow',
+args = {'owner': 'hunterowens',
     'start_date': airflow.utils.dates.days_ago(7),
     'provide_context': True,
-    # 'retries': 2, # will be set after testing
-    # 'retry_delay': timedelta(minutes=5)
+    'email': ['hunter.owens@lacity.org','ITADATA@lacity.org'],
+    'email_on_failure': False,
+    'retries': 1, 
+    'retry_delay': timedelta(minutes=5)
     }
 
 # initiating the DAG
@@ -338,7 +309,7 @@ dag = airflow.DAG(
 task0 = PostgresOperator(
     task_id='pull_data_from_postgres',
     sql=sql_pull_data.format(filename),
-    postgres_conn_id=CONNECTION_ID,
+    postgres_conn_id='postgres_default',
     dag=dag)
 
 task1 = PythonOperator(
@@ -352,8 +323,7 @@ task2 = PythonOperator(
     task_id='send_email_if_outliers',
     provide_context=True,
     # all the variable used below should be setup as environment variable
-    op_args=[smtp_mail_from, email_to, email_cc, subject, message,
-             smtp_user, smtp_password, smtp_host + ':' + smtp_port],
+    op_args=[email_to, email_cc, subject, message],
     python_callable=sendemail,
     dag=dag)
 
