@@ -32,7 +32,6 @@
 import os
 import logging
 import airflow
-import smtplib
 import pandas as pd
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -51,8 +50,8 @@ prefix = "/tmp/"
 
 # email parameters
 message = "Example Email using airflow send_email()<br/> This last week's Outliers:"
-email_to = Variable.get('email_to') #', '.join(Variable.get('email_to')) # should be setup as environment variable, e.g. email_to = ['address1', 'address2']
-email_cc = Variable.get('email_cc') #', '.join(Variable.get('email_cc')) # same as above
+email_to = Variable.get('email_to') 
+email_cc = Variable.get('email_cc') 
 subject = '[Alert] MyLA311 Data Outliers'
 
 # outlier type identifiers
@@ -269,7 +268,6 @@ def make_html_content(alert, message):
     c = message.join(['<br><b>', '</b></br><br />'])
     for key, value in alert.items():
         c += "{}. {}:{}<br/>".format(str(count),value[0],key)
-        # c += '<br><img src="cid:image' + str(count) + '"><br>'
         count += 1
     return c
 

@@ -10,8 +10,6 @@ from datetime import timedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.models import Variable
-import boto3
-import botocore
 import os
 
 # The folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
@@ -170,7 +168,6 @@ sql_delete_main_old = \
     """
     DROP TABLE myla311_main_old;
     """
-
 
 # airflow DAG arguments
 args = {
