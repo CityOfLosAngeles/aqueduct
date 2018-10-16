@@ -18,8 +18,8 @@ import os
 filename = '/tmp/myla311.csv'
 
 MY_APP_TOKEN = Variable.get('MY_APP_TOKEN')
-USERNAME = Variable.get('USERNAME')
-PASSWORD = Variable.get('PASSWORD')
+USERNAME = Variable.get('SOCRATA_USERNAME')
+PASSWORD = Variable.get('SOCRATA_PASSWORD')
 
 
 def retrieve_data(**kwargs):
