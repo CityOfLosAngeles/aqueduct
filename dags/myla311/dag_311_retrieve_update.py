@@ -10,6 +10,7 @@ from datetime import timedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.models import Variable
+import csv
 import os
 
 # The folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
@@ -22,7 +23,7 @@ USERNAME = Variable.get('SOCRATA_USERNAME')
 PASSWORD = Variable.get('SOCRATA_PASSWORD')
 
 
-def retrieve_data(**kwargs):
+def retrieve_save_data(**kwargs):
     # Using Authenticated Client:
     # API Document: https://dev.socrata.com/foundry/data.lacity.org/aub4-z9pc
 
@@ -40,23 +41,24 @@ def retrieve_data(**kwargs):
     logging.info("The number of rows is read successfully.")
 
     # Retrieving dataset using API, limit=row_count is to specify we are retrieving all the rows
-    dataset = client.get("aub4-z9pc", limit=row_count)
-
+    dataset = client.get("aub4-z9pc", content_type="csv", limit=row_count)
+    
     logging.info("the dataset is pulled successfully.")
 
-    # Convert to pandas DataFrame
-    return pd.DataFrame.from_records(dataset)
-
-
-def save_data(**kwargs):
-    dataset = retrieve_data()
+    # Remove prev file if exist
     if os.path.exists(filename):
-      logging.info(filename + " already exist. Overwriting it")
-      os.remove(filename)
-    else:
-      logging.info( "Writing new file " + filename)
-    dataset.to_csv(filename, index=False)
-    logging.info("the dataset is saved locally as " + os.path.abspath(filename))
+        logging.info(filename + " already exist. Overwriting it")
+        os.remove(filename)
+
+    # Writing new file
+    with open(filename, 'w') as writeFile:
+        writer = csv.writer(writeFile)
+        writer.writerows(dataset)
+    
+    writeFile.close()
+
+    logging.info("the dataset is saved successfully, locally at {}.").format(filename)
+
 
 
 # sql commands
@@ -204,9 +206,9 @@ task1 = PostgresOperator(
     )
 
 task2 = PythonOperator(
-    task_id='save_data',
+    task_id='retrieve_save_data',
     provide_context=True,
-    python_callable=save_data,
+    python_callable=retrieve_save_data,
     dag=dag
     )
 
