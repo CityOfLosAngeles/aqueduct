@@ -3,7 +3,7 @@ import yaml
 import os
 import json
 import datetime, time, pytz
-# AWS: Create bucket
+import boto3
 
 # Load config file
 with open('config.yml', 'r') as ymlfile:
@@ -45,9 +45,9 @@ class MDSProviderApi:
             header = {'Authorization': auth}
         return header
     
-    def get_data(self, feed, testing=True, **kwargs):
-
+    def get_data(self, feed, testing, **kwargs):
         # Set url, params
+        print('hello!')
         if feed == 'trips':
             url = self.baseurl + '/trips'
         elif feed == 'status_changes':
@@ -62,38 +62,54 @@ class MDSProviderApi:
         if r.status_code != requests.codes.ok:
             print(r.status_code)
             return None
+        print('firstpage')
         first_page = r.json()
-        provider_data = first_page['data']
+        provider_data = first_page['data'][feed]
+        print(provider_data)
         if 'links' not in first_page.keys():
+            print('links not there!')
             return provider_data
+
+        print(testing)
         
         # Paginate, if applicable
         if testing == True:
+            print('testing=true!')
             i = 0
             next_url = first_page['links']['next']
-            while i < 3:
-                r = requests.get(next_url, headers = headers, params = params)
+            print(next_url)
+            while i < 5:
+                r = requests.get(next_url, headers=self.headers, params=params)
                 if r.status_code != requests.codes.ok:
                     print(r.status_code)
                     return None
                 next_page = r.json()
                 next_url = next_page['links']['next']
-                for record in next_page['data']:
+                for record in next_page['data'][feed]:
                     provider_data.append(record)
                 i += 1
         # Paginate, if applicable
         if testing == False:
+            print('testing=false!')
             next_url = first_page['links']['next']
             while next_url is not None:
-                r = requests.get(next_url, headers = headers, params = params)
+                r = requests.get(next_url, headers = self.headers, params = params)
                 if r.status_code != requests.codes.ok:
                     print(r.status_code)
                     return None
                 next_page = r.json()
                 next_url = next_page['links']['next']
-                for record in next_page['data']:
+                for record in next_page['data'][feed]:
                     provider_data.append(record)
         return provider_data
+
+def connect_aws_s3():
+    """ Connect to AWS """
+    session = boto3.Session(
+    aws_access_key_id=cfg['aws']['key_id'],
+    aws_secret_access_key=cfg['aws']['key'])
+    s3 = session.resource('s3')
+    return s3
 
 def get_provider_data(provider_name, feed, start_time=None, end_time=None, testing=True, **kwargs):
     """ Query provider API
@@ -116,24 +132,28 @@ def get_provider_data(provider_name, feed, start_time=None, end_time=None, testi
         if timeval is not None:
             unix_secs = time.mktime(timeval.timetuple())
             params[lbl] = unix_secs
-    provider_data = provider.get_data(feed, params)
+    provider_data = provider.get_data(feed, testing, params=params)
     
-    # TODO: Dump data to S3 bucket
     # Format filename by time quey params
     start_str = "{:04}{:02}{:02}{:02}{:02}".format(*start_time.timetuple()[0:5])
     end_str = "{:04}{:02}{:02}{:02}{:02}".format(*end_time.timetuple()[0:5])
-    fname = "{}-{}-{}-{}.json".format(start_str, end_str, provider, feed)
-    fpath = os.path.join(os.path.dirname(__file__), fname)
-    with open(fname, 'w') as outputfile:
-        json.dump(provider_data, outputfile)
+    fname = "{}-{}-{}-{}.json".format(start_str, end_str, provider_name, feed)
+    
+    # For local download
+    # fpath = os.path.join(os.path.dirname(__file__), fname)
+    # with open(fname, 'w') as outputfile:
+    #     json.dump(provider_data, outputfile)
 
-
+    # Connect to S3 bucket
+    s3 = connect_aws_s3()
+    obj = s3.Object('dockless-raw-test', fname)
+    obj.put(Body=json.dumps(provider_data))
 
 if __name__ == '__main__':
 
     # Testing Time Range: Sept 15 @ 1pm - 3pm
     tz = pytz.timezone("US/Pacific")
-    start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
-    end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
+    start_time = tz.localize(datetime.datetime(2018, 9, 15, 17))
+    end_time = tz.localize(datetime.datetime(2018, 9, 15, 18))
 
-    get_provider_data(provider = 'lime', feed = 'trips', start_time = start_time, end_time = end_time)
+    get_provider_data(provider_name='lime', feed='status_changes', start_time=start_time, end_time=end_time)
