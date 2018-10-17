@@ -103,7 +103,11 @@ def detect_outliers(filename, **kwargs):
     """
 
     # Retrieve data
+    logging.info("Data is being read from {}".format(filename))
     df = pd.read_csv(filename, index_col=False)
+    logging.info("Data is read from {}. Performing outlier detection".format(filename))
+
+    df.drop(columnes=['location_address, location_city,location_state,location_zip'], inplace=True)
 
     # change data type from object to datatime
     df['createddate'] = pd.to_datetime(df['createddate'], errors='coerce')
