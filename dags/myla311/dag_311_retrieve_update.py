@@ -185,7 +185,7 @@ args = {
 # initiating the DAG
 dag = airflow.DAG(
     'retrieve_update_from_myla311',
-    schedule_interval="@weekly",
+    schedule_interval="@daily",
     default_args=args,
     max_active_runs=1)
 
