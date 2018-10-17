@@ -109,6 +109,7 @@ def detect_outliers(filename, **kwargs):
 
     df.drop(columns=['location_address', 'location_city','location_state','location_zip'], inplace=True)
 
+
     # change data type from object to datatime
     df['createddate'] = pd.to_datetime(df['createddate'], errors='coerce')
     df['closeddate'] = pd.to_datetime(df['closeddate'], errors='coerce')

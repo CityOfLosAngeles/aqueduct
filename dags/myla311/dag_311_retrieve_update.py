@@ -38,7 +38,7 @@ def retrieve_save_data(**kwargs):
     
     # row_count = 1000
 
-    logging.info("The number of rows is read successfully.")
+    logging.info("The number of rows is read successfully. Now it's pulling data.")
 
     # Retrieving dataset using API, limit=row_count is to specify we are retrieving all the rows
     dataset = client.get("aub4-z9pc", content_type="csv", limit=row_count)
@@ -57,7 +57,8 @@ def retrieve_save_data(**kwargs):
     
     writeFile.close()
 
-    logging.info("the dataset is saved successfully, locally at {}.").format(filename)
+    logging.info("the dataset is saved successfully, locally at {}.".format(filename))
+
 
 
 
@@ -82,6 +83,10 @@ sql_create_main = \
         housenumber text,
         latitude text,
         location text,
+        location_address text,
+        location_city text,
+        location_state text,
+        location_zip text,
         longitude text,
         mobileos text,
         nc text,
@@ -127,6 +132,10 @@ sql_create_staging = \
         housenumber text,
         latitude text,
         location text,
+        location_address text,
+        location_city text,
+        location_state text,
+        location_zip text,
         longitude text,
         mobileos text,
         nc text,
