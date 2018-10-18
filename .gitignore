@@ -5,8 +5,7 @@ __pycache__/
 
 # dockless config, sample data
 dags/transportation/dockless/config.yml
-dags/transportation/dockless/201809151300-201809151500-lime-status_changes.json
-dags/transportation/dockless/201809151300-201809151500-lime-trips.json
+dags/transportation/dockless/data/
 
 # C extensions
 *.so
