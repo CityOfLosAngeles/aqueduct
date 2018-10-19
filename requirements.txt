@@ -10,3 +10,4 @@ seaborn
 altair
 sodapy
 pandas
+geoalchemy2
