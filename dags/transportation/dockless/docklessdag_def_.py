@@ -35,15 +35,10 @@ dag = DAG(
     schedule_interval='@daily'
     )
 
-# # Testing Time Range: Sept 15 @ 1pm - 3pm
-# tz = pytz.timezone("US/Pacific")
-# start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
-# end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 
 # Task 1: Create tables if not exists
 t1 = PythonOperator(
     task_id = 'make_provider_tables',
-    provide_context = True,
     python_callable = make_tables.make_tables,
     dag = dag
     )
