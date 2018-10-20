@@ -138,11 +138,11 @@ def get_provider_data(provider_name, feed, end_time_gte=None, end_time_lte=None,
     provider_data = provider.get_data(feed, testing, params=params)
     
     # Write to S3 bucket
-    fname = "{}-{}-{}-{}.json".format(int(start_str), int(end_str), provider_name, feed)
+    fname = "{}-{}-{}-{}.json".format(int(period_begin), int(period_end), provider_name, feed)
     s3 = connect_aws_s3()
     obj = s3.Object('dockless-raw-test', fname)
     obj.put(Body=json.dumps(provider_data))
 
 if __name__ == '__main__':
 
-    get_provider_data(provider_name='jump', feed='trips', end_time_gte=start_time, end_time_lte=end_time)
+    get_provider_data(provider_name='lemon', feed='trips')
