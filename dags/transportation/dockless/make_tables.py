@@ -1,15 +1,18 @@
 import sqlalchemy
-# Config files
-from config import config as cfg
+import yaml
+
+# Load config file
+with open('config.yml', 'r') as ymlfile:
+    cfg = yaml.load(ymlfile)
 
 def connect_db():
     """ Establish db connection """
     url = 'postgresql://{}:{}@{}:{}/{}'
-    url = url.format(cfg.postgresql['user'],
-                     cfg.postgresql['pass'],
-                     cfg.postgresql['host'],
-                     cfg.postgresql['port'],
-                     cfg.postgresql['db'])
+    url = url.format(cfg['postgresql']['user'],
+                     cfg['postgresql']['pass'],
+                     cfg['postgresql']['host'],
+                     cfg['postgresql']['port'],
+                     cfg['postgresql']['db'])
     engine = sqlalchemy.create_engine(url)
     return engine
 
@@ -56,6 +59,7 @@ def make_tables(testing = True):
     # status_changes: Removing device_id UUID resriction & event_time NOT NULL restriction
     # trips: Removing device_id, trip_id UUID restriction 
     # trips: Removing event_time NOT NULL restriction
+    # trips: Removed restriction geometry(LINESTRING, 4326)
     create_tables_querystring_testing = """
     CREATE TABLE IF NOT EXISTS status_changes (
         provider_id UUID NOT NULL,
@@ -88,7 +92,7 @@ def make_tables(testing = True):
         parking_verification_url TEXT,
         standard_cost DOUBLE PRECISION,
         actual_cost DOUBLE PRECISION,
-        route geometry(LINESTRING, 4326)
+        route geometry
     );
 
     CREATE TABLE IF NOT EXISTS trip_routes (

@@ -3,10 +3,11 @@ DAG for ETL Processing of Dockless Mobility Provider Data
 """
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
-import datetime, time, pytz
+import time, pytz
 # Import configuration file
-from config import config as cfg
+# from config import config as cfg
 # Import functions
 import data_import
 import data_load
@@ -16,7 +17,7 @@ import make_tables
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2017, 12, 12), # First full day of Waze Data
+    'start_date': datetime(2018, 10, 9), 
     'email': ['airflow@example.com'],
     'email_on_failure': True,
     'email_on_retry': False,
@@ -30,12 +31,14 @@ default_args = {
 
 dag = DAG(
     dag_id = 'dockless-elt',
-    default_args=default_args)
+    default_args=default_args,
+    schedule_interval='@daily'
+    )
 
-# Testing Time Range: Sept 15 @ 1pm - 3pm
-tz = pytz.timezone("US/Pacific")
-start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
-end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
+# # Testing Time Range: Sept 15 @ 1pm - 3pm
+# tz = pytz.timezone("US/Pacific")
+# start_time = tz.localize(datetime.datetime(2018, 9, 15, 13))
+# end_time = tz.localize(datetime.datetime(2018, 9, 15, 15))
 
 # Task 1: Create tables if not exists
 t1 = PythonOperator(
@@ -45,27 +48,26 @@ t1 = PythonOperator(
     dag = dag
     )
 
+# TODO: Add clear data task for idempotent constraint
+
 # Create task for each provider / feed
-for provider in cfg.provider:
-    for feed in ['trips', 'status_changes']:
+# for provider in cfg.provider:
+#     for feed in ['trips', 'status_changes']:
+provider = 'lemon'
+feed = 'trips'
 
-        # Task 2: Validate
-
-
-        # Task 3: Get provider data
+        # Task 2: Get provider data
         t2 = PythonOperator(
             task_id = 'e_{}_{}'.format(provider, feed),
             provide_context = True, 
             python_callable = data_import.get_provider_data,
             op_kwargs = {
                 'provider': provider,
-                'feed': feed,
-                'start_time': start_time,
-                'end_time': end_time},
+                'feed': feed},
             dag = dag
             )
 
-        # Task 4: Upload provider data to db
+        # Task 3: Upload provider data to db
         t3 = PythonOperator(
             task_id = 'tl_{}_{}'.format(provider, feed),
             provide_context = True,
@@ -77,4 +79,4 @@ for provider in cfg.provider:
                 'end_time': end_time},
             dag = dag)
 
-        t1 >> t2 >> t3
+        t3 >> t2 >> t1
