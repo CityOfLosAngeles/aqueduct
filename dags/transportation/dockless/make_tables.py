@@ -22,6 +22,8 @@ def make_tables(testing = True):
     create_types_querystring = """
     DO $$
     BEGIN
+        CREATE EXTENSION IF NOT EXISTS postgis;
+
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'event_type') THEN
             CREATE TYPE event_type AS ENUM (
                 'available',
