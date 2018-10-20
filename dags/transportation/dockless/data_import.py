@@ -114,7 +114,7 @@ def connect_aws_s3():
     s3 = session.resource('s3')
     return s3
 
-def get_provider_data(provider_name, feed, end_time_gte, end_time_lte, testing=True, **context):
+def get_provider_data(provider_name, feed, end_time_gte=None, end_time_lte=None, testing=True, **context):
     """ Query provider API
 
     Args:
@@ -125,7 +125,7 @@ def get_provider_data(provider_name, feed, end_time_gte, end_time_lte, testing=T
         **context: Additional query parameters for API endpoint
 
     Returns:
-        JSON dump in directory
+        JSON dump in aws S3 bucket
 
     """
     # Set params, currently for daily pull
@@ -134,34 +134,15 @@ def get_provider_data(provider_name, feed, end_time_gte, end_time_lte, testing=T
     period_end = period_begin + 86400
     params = {'end_time_gte': period_begin, 'end_time_lte': period_end}
 
-    # if testing==True:
-    #     with open('testdata.json', 'r') as inputfile:
-    #         provider_data = json.load(inputfile)
-    # elif testing==False:
+    # Get provider data
     provider_data = provider.get_data(feed, testing, params=params)
     
-    # Format filename by time quey params
-    start_str = "{:04}{:02}{:02}{:02}{:02}".format(*start_time.timetuple()[0:5])
-    end_str = "{:04}{:02}{:02}{:02}{:02}".format(*end_time.timetuple()[0:5])
-    fname = "{}-{}-{}-{}.json".format(start_str, end_str, provider_name, feed)
-    
-    # For local download
-    # fpath = os.path.join(os.path.dirname(__file__), fname)
-    # with open(fname, 'w') as outputfile:
-    #     json.dump(provider_data, outputfile)
-
-    # Connect to S3 bucket
+    # Write to S3 bucket
+    fname = "{}-{}-{}-{}.json".format(int(start_str), int(end_str), provider_name, feed)
     s3 = connect_aws_s3()
     obj = s3.Object('dockless-raw-test', fname)
     obj.put(Body=json.dumps(provider_data))
 
 if __name__ == '__main__':
 
-    # # Testing Time Range: Oct 8-12 2018 PDT
-    # tz = pytz.timezone("US/Pacific")
-    # start_time = tz.localize(datetime.datetime(2018, 10, 9))
-    # end_time = tz.localize(datetime.datetime(2018, 10, 10))
-
-    # For testing only
-    # get_provider_data(provider_name='lemon', feed='trips', start_time=start_time, end_time=end_time)
     get_provider_data(provider_name='jump', feed='trips', end_time_gte=start_time, end_time_lte=end_time)
