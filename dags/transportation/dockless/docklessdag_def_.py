@@ -12,6 +12,7 @@ import time, pytz
 import data_import
 import data_load
 import make_tables
+import clear_data
 
 
 default_args = {
@@ -62,8 +63,19 @@ feed = 'trips'
             dag = dag
             )
 
-        # Task 3: Upload provider data to db
+        # Task 3: Clear provider data for time period
         t3 = PythonOperator(
+            task_id = 'clear_{}_{}'.format(provider, feed),
+            provide_context = True, 
+            python_callable = clear_data.clear_data,
+            op_kwargs = {
+                'provider_name': provider,
+                'feed': feed},
+            dag = dag
+            )
+
+        # Task 3: Upload provider data to db
+        t4 = PythonOperator(
             task_id = 'tl_{}_{}'.format(provider, feed),
             provide_context = True,
             python_callable = data_load.load_json,
@@ -72,4 +84,4 @@ feed = 'trips'
                 'feed': feed},
             dag = dag)
 
-        t1 >> t2 >> t3
+        t1 >> t2 >> t3 >> t4
