@@ -57,7 +57,7 @@ feed = 'trips'
             provide_context = True, 
             python_callable = data_import.get_provider_data,
             op_kwargs = {
-                'provider': provider,
+                'provider_name': provider,
                 'feed': feed},
             dag = dag
             )
@@ -68,10 +68,8 @@ feed = 'trips'
             provide_context = True,
             python_callable = data_load.load_json,
             op_kwargs = {
-                'provider': provider,
-                'feed': feed,
-                'start_time': start_time,
-                'end_time': end_time},
+                'provider_name': provider,
+                'feed': feed},
             dag = dag)
 
-        t3 >> t2 >> t1
+        t1 >> t2 >> t3

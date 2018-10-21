@@ -35,17 +35,17 @@ def connect_aws_s3():
     s3 = session.resource('s3')
     return s3
 
-def compose_filename(provider, feed, start_time, end_time):
-    """ Compose a filename for loading json file """
+# def compose_filename(provider, feed, start_time, end_time):
+#     """ Compose a filename for loading json file """
 
-    start_str = "{:04}{:02}{:02}{:02}{:02}".format(*start_time.timetuple()[0:5])
-    end_str = "{:04}{:02}{:02}{:02}{:02}".format(*end_time.timetuple()[0:5])
-    fname = "{}-{}-{}-{}.json".format(start_str, end_str, provider, feed)
-    return fname
+#     period_begin = time.mktime(context['execution_date'].timetuple())
+#     period_end = period_begin + 86400
+#     fname = "{}-{}-{}-{}.json".format(int(period_begin), int(period_end), provider_name, feed)
+#     return fname
 
-    # For local access
-    # fpath = os.path.join(os.path.dirname(__file__), fname)
-    # return fpath
+#     # For local access
+#     # fpath = os.path.join(os.path.dirname(__file__), fname)
+#     # return fpath
 
 
 def build_linestring(geojson):
@@ -70,7 +70,6 @@ def format_trips(json_data, testing=True):
     # Format trips JSON
     # print(json_data)
     for row in json_data:
-        print(row)
         row['provider_id'] = UUID(row['provider_id'])
         row['provider_name'] = str(row['provider_name'])
         row['device_id'] = UUID(row['device_id'])
@@ -116,7 +115,6 @@ def format_trips(json_data, testing=True):
 def format_status_changes(json_data, testing=True):
     """ Format status changes JSON object to DF """
 
-    print(json_data)
     # Format status changes JSON
     for row in json_data:
         #print(row)
@@ -142,7 +140,6 @@ def format_status_changes(json_data, testing=True):
 
     # JSON to DF
     status_changes_df = pd.DataFrame(json_data)
-    print(status_changes_df.shape[0])
     write_status_changes(status_changes_df)
 
 def write_trips(trips_df, route_df):
@@ -186,26 +183,21 @@ def write_status_changes(status_changes_df):
     status_changes_df.to_sql('status_changes', engine, if_exists='append', index=False, dtype=dtypes)
     print('Successfully committed trips to db.')
 
-def load_json(provider, feed, start_time, end_time, testing=False):
+def load_json(provider_name, feed, testing=False, **context):
     """ Load JSON dump to db
 
     Args:
         provider (str): Name of mobility provider Ex. 'lime'
         feed (str): API Feed. Ex. 'trips', 'status_changes'
-        start_time (obj): Python datetime object in PDT tz 
-        end_time (obj): Python datetime object in PDT tz 
 
     Returns:
         Commits clean table to Postgresql db
 
     """
-
-    # Open file
-    fname = compose_filename(provider, feed, start_time, end_time)
-
-    # # For local file access
-    # with open(fname, 'r') as inputfile:
-    #     json_data = json.load(inputfile)
+    # Compose filename
+    period_begin = time.mktime(context['execution_date'].timetuple())
+    period_end = period_begin + 86400
+    fname = "{}-{}-{}-{}.json".format(int(period_begin), int(period_end), provider_name, feed)
 
     # Connect to S3 bucket
     s3 = connect_aws_s3()
@@ -214,16 +206,15 @@ def load_json(provider, feed, start_time, end_time, testing=False):
     json_data = json.loads(json_file)
 
     # Transform, Load
-    if feed == 'trips':
-        format_trips(json_data)
-    if feed == 'status_changes':
-        format_status_changes(json_data)
+    if len(json_data) > 0:
+        if feed == 'trips':
+            format_trips(json_data)
+        if feed == 'status_changes':
+            format_status_changes(json_data)
 
 if __name__ == '__main__':
 
-    # Testing Time Range: Oct 8-12 2018 PDT
-    tz = pytz.timezone("US/Pacific")
-    start_time = tz.localize(datetime.datetime(2018, 10, 9))
-    end_time = tz.localize(datetime.datetime(2018, 10, 10))
-
-    load_json(provider='lemon', feed='trips', start_time=start_time, end_time=end_time)
+    # testing vars
+    provider_name = 'lemon'
+    feed = 'trips'
+    load_json(provider_name, feed)
