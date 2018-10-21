@@ -17,16 +17,20 @@ def connect_db():
     engine = sqlalchemy.create_engine(url)
     return engine
 
-def clear_data(testing, end_time_gte, end_time_lte):
+def clear_data(provider_name, feed, **context):
     """ Clear dockless data within time range"""
 
+    period_begin = time.mktime(context['execution_date'].timetuple())
+    period_end = period_begin + 86400
+
     clear_data_querystring = """
-    DELETE FROM trips 
-    WHERE end_time > {} AND end_time < {};
-    """.format(end_time_gte, end_time_lte)
+    DELETE FROM {}
+    WHERE provider_name = '{}' AND
+    end_time > {} AND end_time < {};
+    """.format(feed, provider_name, period_begin, period_end)
 
-    # TODO: Need to clear trip_routs as well
-
+    # TODO: Need to clear trip_routes as well
+    # or just setup cascade delete in SQL
     engine = connect_db()
     conn = engine.connect()
     conn.execute(clear_data_querystring)
@@ -34,13 +38,6 @@ def clear_data(testing, end_time_gte, end_time_lte):
 
 if __name__ == '__main__':
     
-    # Testing Time Range: Oct 8-12 2018 PDT
-    tz = pytz.timezone("US/Pacific")
-    start_time = tz.localize(datetime.datetime(2018, 10, 9))
-    start_time = time.mktime(start_time.timetuple())
-    end_time = tz.localize(datetime.datetime(2018, 10, 10))
-    end_time = time.mktime(end_time.timetuple())
-
-    testing = True
-
-    clear_data(testing, start_time, end_time)
+    provider_name = 'lemon'
+    feed = 'trips'
+    clear_data(provider_name, feed)
