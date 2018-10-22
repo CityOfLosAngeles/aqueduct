@@ -2,11 +2,20 @@ import sqlalchemy
 import yaml
 
 # Load config file
-with open('config.yml', 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
+# with open('config.yml', 'r') as ymlfile:
+#     cfg = yaml.load(ymlfile)
 
 def connect_db():
     """ Establish db connection """
+    url = 'postgresql://{}:{}@{}:{}/{}'
+    url = url.format(pg_conn.login,
+                     pg_conn.password,
+                     pg_conn.host,
+                     pg_conn.port,
+                     pg_conn.schema)
+    engine = sqlalchemy.create_engine(url)
+    return engine
+
     url = 'postgresql://{}:{}@{}:{}/{}'
     url = url.format(cfg['postgresql']['user'],
                      cfg['postgresql']['pass'],

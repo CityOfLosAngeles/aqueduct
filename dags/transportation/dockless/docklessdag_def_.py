@@ -4,6 +4,7 @@ DAG for ETL Processing of Dockless Mobility Provider Data
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
+from airflow.hooks.base_hook import BaseHook
 from datetime import datetime, timedelta
 import time, pytz
 # Import configuration file
@@ -14,6 +15,9 @@ import data_load
 import make_tables
 import clear_data
 
+pg_conn = BaseHook.get_connection('postgres_default') 
+aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
+provider_conn = BaseHook.get_connection('provider').extra_dejson
 
 default_args = {
     'owner': 'airflow',
@@ -35,7 +39,6 @@ dag = DAG(
     default_args=default_args,
     schedule_interval='@daily'
     )
-
 
 # Task 1: Create tables if not exists
 t1 = PythonOperator(
