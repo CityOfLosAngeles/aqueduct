@@ -25,7 +25,7 @@ Conn Id: aws_default
 Extra: {"aws_access_key_id":"[id]","aws_secret_access_key":"[key]"}  
 
 #### Variables
-Information needed to connect to Provider APIs are stored within a `provider` variable in Airflow. The value is set to a JSON dictionary with all necessary connection information for that provider API. At a minimum, that dictionary should contain the baseurl to access the provider API, and the token to access the resource if authentication is required.
+Information needed to connect to Provider APIs are stored within a `provider` variable in Airflow. The value is set to a JSON dictionary with all necessary connection information for that provider API. At a minimum, that dictionary should contain the [baseurl](https://github.com/CityOfLosAngeles/mobility-data-specification/blob/dev/providers.csv) to access the provider API and the token if authentication is required.  
 *Example*  
 Key: provider  
 Val: {"lemon": {"baseurl": "localhost", "token": "None"}}  
