@@ -7,6 +7,8 @@ import boto3
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
 
+provider_conn = Variable.get("provider", deserialize_json=True)
+
 class MDSProviderApi: 
     """ Class representing an MDS provider API """
     def __init__(self, name):
@@ -18,7 +20,6 @@ class MDSProviderApi:
 
     def set_name(self, name):
         name = name.lower()
-        provider_conn = Variable.get("provider", deserialize_json=True)
         if name not in provider_conn.keys():
             raise KeyError("Provider {} not in list of providers.".format(name))
         return name

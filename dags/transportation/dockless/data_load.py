@@ -10,43 +10,28 @@ from shapely import geometry, wkt
 from uuid import UUID
 import yaml
 import boto3
-
-# Load config file
-with open('config.yml', 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
+from airflow.hooks.base_hook import BaseHook
 
 def connect_db():
     """ Establish db connection """
-
+    pg_conn = BaseHook.get_connection('postgres_default') 
     url = 'postgresql://{}:{}@{}:{}/{}'
-    url = url.format(cfg['postgresql']['user'],
-                     cfg['postgresql']['pass'],
-                     cfg['postgresql']['host'],
-                     cfg['postgresql']['port'],
-                     cfg['postgresql']['db'])
+    url = url.format(pg_conn.login,
+                     pg_conn.password,
+                     pg_conn.host,
+                     pg_conn.port,
+                     pg_conn.schema)
     engine = sqlalchemy.create_engine(url)
     return engine
 
 def connect_aws_s3():
     """ Connect to AWS """
+    aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
     session = boto3.Session(
-    aws_access_key_id=cfg['aws']['key_id'],
-    aws_secret_access_key=cfg['aws']['key'])
+    aws_access_key_id=aws_conn['aws_access_key_id'],
+    aws_secret_access_key=aws_conn['aws_secret_access_key'])
     s3 = session.resource('s3')
     return s3
-
-# def compose_filename(provider, feed, start_time, end_time):
-#     """ Compose a filename for loading json file """
-
-#     period_begin = time.mktime(context['execution_date'].timetuple())
-#     period_end = period_begin + 86400
-#     fname = "{}-{}-{}-{}.json".format(int(period_begin), int(period_end), provider_name, feed)
-#     return fname
-
-#     # For local access
-#     # fpath = os.path.join(os.path.dirname(__file__), fname)
-#     # return fpath
-
 
 def build_linestring(geojson):
     """ Compose a linestring from a geojson point feature collection """

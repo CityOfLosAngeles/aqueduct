@@ -5,11 +5,9 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.hooks.base_hook import BaseHook
+from airflow.models import Variable
 from datetime import datetime, timedelta
 import time, pytz
-# Import configuration file
-# from config import config as cfg
-# Import functions
 import data_import
 import data_load
 import make_tables
@@ -17,7 +15,6 @@ import clear_data
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
-provider_conn = BaseHook.get_connection('provider').extra_dejson
 
 default_args = {
     'owner': 'airflow',
@@ -47,13 +44,12 @@ t1 = PythonOperator(
     dag = dag
     )
 
-# TODO: Add clear data task for idempotent constraint
+providers = ['lemon']
+feeds = ['trips'] # Add 'status_changes' when ready
 
 # Create task for each provider / feed
-# for provider in cfg.provider:
-#     for feed in ['trips', 'status_changes']:
-provider = 'lemon'
-feed = 'trips'
+for provider in providers:
+    for feed in feeds:
 
         # Task 2: Get provider data
         t2 = PythonOperator(
@@ -77,7 +73,7 @@ feed = 'trips'
             dag = dag
             )
 
-        # Task 3: Upload provider data to db
+        # Task 4: Upload provider data to db
         t4 = PythonOperator(
             task_id = 'tl_{}_{}'.format(provider, feed),
             provide_context = True,
