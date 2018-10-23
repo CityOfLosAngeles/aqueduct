@@ -4,10 +4,8 @@ import os
 import json
 import datetime, time, pytz
 import boto3
-
-# Load config file
-with open('config.yml', 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
+from airflow.hooks.base_hook import BaseHook
+from airflow.models import Variable
 
 class MDSProviderApi: 
     """ Class representing an MDS provider API """
@@ -16,24 +14,25 @@ class MDSProviderApi:
         self.baseurl = self.set_url()
         self.token = self.set_token()
         self.headers = self.compose_header()
-        self.paginate = False #hmm
+        self.paginate = False
 
     def set_name(self, name):
         name = name.lower()
-        if name not in cfg['provider'].keys():
+        provider_conn = Variable.get("provider", deserialize_json=True)
+        if name not in provider_conn.keys():
             raise KeyError("Provider {} not in list of providers.".format(name))
         return name
 
     def set_url(self):
-        if 'baseurl' not in cfg['provider'][self.name].keys():
+        if 'baseurl' not in provider_conn[self.name].keys():
             raise KeyError("No base url defined for provider {}.".format(self.name))
-        baseurl = cfg['provider'][self.name]['baseurl']
+        baseurl = provider_conn[self.name]['baseurl']
         return baseurl
 
     def set_token(self):
-        if 'token' not in cfg['provider'][self.name].keys():
+        if 'token' not in provider_conn[self.name].keys():
             raise KeyError("No token defined for provider {}.".format(self.name))
-        token = cfg['provider'][self.name]['token']
+        token = provider_conn[self.name]['token']
         return token
 
     def compose_header(self):
@@ -108,9 +107,10 @@ class MDSProviderApi:
 
 def connect_aws_s3():
     """ Connect to AWS """
+    aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
     session = boto3.Session(
-    aws_access_key_id=cfg['aws']['key_id'],
-    aws_secret_access_key=cfg['aws']['key'])
+    aws_access_key_id=aws_conn["aws_access_key_id"],
+    aws_secret_access_key=aws_conn["aws_secret_access_key"])
     s3 = session.resource('s3')
     return s3
 
