@@ -1,27 +1,16 @@
 import sqlalchemy
 import yaml
-
-# Load config file
-# with open('config.yml', 'r') as ymlfile:
-#     cfg = yaml.load(ymlfile)
+from airflow.hooks.base_hook import BaseHook
 
 def connect_db():
     """ Establish db connection """
+    pg_conn = BaseHook.get_connection('postgres_default') 
     url = 'postgresql://{}:{}@{}:{}/{}'
     url = url.format(pg_conn.login,
                      pg_conn.password,
                      pg_conn.host,
                      pg_conn.port,
                      pg_conn.schema)
-    engine = sqlalchemy.create_engine(url)
-    return engine
-
-    url = 'postgresql://{}:{}@{}:{}/{}'
-    url = url.format(cfg['postgresql']['user'],
-                     cfg['postgresql']['pass'],
-                     cfg['postgresql']['host'],
-                     cfg['postgresql']['port'],
-                     cfg['postgresql']['db'])
     engine = sqlalchemy.create_engine(url)
     return engine
 
