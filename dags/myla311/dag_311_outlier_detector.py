@@ -239,7 +239,7 @@ def detect_outliers(filename, **kwargs):
                 alert['srnumber: ' + row['srnumber']] = [LOW_PROCESS_TIME_OUTLIER + ", " + row['request_type'] + ", "                                       + str(row['process_time']) +" hrs"]
                 flag = True
             if flag:
-                filename = make_save_boxplot(df_temp['process_time'], row['process_time'], req_type + ' SRNUMBER:' + row['srnumber'])
+                filename = make_save_boxplot(df_temp['process_time'], row['process_time'], req_type + ' SRNUMBER ' + row['srnumber'])
                 alert['srnumber: ' + row['srnumber']].append(filename)
 
     logging.info('Alert: ' + str(alert))
