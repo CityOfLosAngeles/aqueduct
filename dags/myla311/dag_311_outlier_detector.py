@@ -49,7 +49,7 @@ filename = "/tmp/myla311.csv"
 prefix = "/tmp/"
 
 # email parameters
-message = "Example Email using airflow send_email()<br/> This last week's Outliers:"
+message = "This last week's Outliers:"
 email_to = "hunter.owens@lacity.org,donna.arrechea@lacity.org" 
 email_cc = "lei.cao@lacity.org"
 subject = '[Alert] MyLA311 Data Outliers'
