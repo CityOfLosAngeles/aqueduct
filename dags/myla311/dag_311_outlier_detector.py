@@ -73,8 +73,8 @@ def make_save_graph(df, col, title):
     alt.Y('average({})'.format(col)),
     size=alt.value(1))
     graph = line + rule
-    filename = prefix + 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
-    graph.save(filename)
+    filename = 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
+    graph.save(prefix + filename)
     return filename
 
 
@@ -86,8 +86,8 @@ def make_save_boxplot(df,point,title):
     plot1 = sns.boxplot(ax=ax, x=df, linewidth=1, color='lightblue')
     plot2 = plt.scatter(point, 0, marker='o', s=100, c='red', linewidths=5,label='Outlier')
     ax.legend()
-    filename = prefix + 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
-    plt.savefig(filename)
+    filename = 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
+    plt.savefig(prefix + filename)
     plt.close()
     return filename
 
@@ -239,7 +239,7 @@ def detect_outliers(filename, **kwargs):
                 alert['srnumber: ' + row['srnumber']] = [LOW_PROCESS_TIME_OUTLIER + ", " + row['request_type'] + ", "                                       + str(row['process_time']) +" hrs"]
                 flag = True
             if flag:
-                filename = make_save_boxplot(df_temp['process_time'], row['process_time'], req_type + ' SRNUMBER ' + row['srnumber'])
+                filename = make_save_boxplot(df_temp['process_time'], row['process_time'], req_type + ' SRNUMBER_' + row['srnumber'])
                 alert['srnumber: ' + row['srnumber']].append(filename)
 
     logging.info('Alert: ' + str(alert))
