@@ -165,7 +165,7 @@ def detect_outliers(filename, **kwargs):
             alert[x] = [INDIV_LOW_OUTLIER]    
             flag = True
         if flag:
-            filename = make_save_graph(df_last_whole_yr, x, 'Indiv Req Type Outlier' + ' SRNUMBER:' + row['srnumber'])
+            filename = make_save_graph(df_last_whole_yr, x, 'Indiv Req Type Outlier')
             alert[x].append(filename)
 
     # Get weekly total outliers
@@ -180,7 +180,7 @@ def detect_outliers(filename, **kwargs):
         alert[col] = [TOTAL_LOW_OUTLIER]
         flag = True
     if flag:
-        filename = make_save_graph(df_last_whole_yr, col, col+' Outlier' + ' SRNUMBER:' + row['srnumber'])
+        filename = make_save_graph(df_last_whole_yr, col, col+' Outlier')
         alert[col].append(filename)
 
     # Get Diff of weekly total outliers
@@ -200,7 +200,7 @@ def detect_outliers(filename, **kwargs):
         alert[col] = [DIFF_LOW_OUTLIER]
         flag = True
     if flag:
-        filename = make_save_graph(df_last_whole_yr, col, 'Weekly Diff Outlier' + ' SRNUMBER:' + row['srnumber'])
+        filename = make_save_graph(df_last_whole_yr, col, 'Weekly Diff Outlier')
         alert[col].append(filename)
 
     # Get process time outliers
