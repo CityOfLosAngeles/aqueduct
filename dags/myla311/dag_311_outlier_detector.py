@@ -73,7 +73,7 @@ def make_save_graph(df, col, title):
     alt.Y('average({})'.format(col)),
     size=alt.value(1))
     graph = line + rule
-    filename = 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
+    filename = prefix + 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
     graph.save(filename)
     return filename
 
@@ -86,8 +86,9 @@ def make_save_boxplot(df,point,title):
     plot1 = sns.boxplot(ax=ax, x=df, linewidth=1, color='lightblue')
     plot2 = plt.scatter(point, 0, marker='o', s=100, c='red', linewidths=5,label='Outlier')
     ax.legend()
-    filename = 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
+    filename = prefix + 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
     plt.savefig(filename)
+    plt.close()
     return filename
 
 
