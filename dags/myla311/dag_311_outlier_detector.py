@@ -73,7 +73,7 @@ def make_save_graph(df, col, title):
     alt.Y('average({})'.format(col)),
     size=alt.value(1))
     graph = line + rule
-    filename = 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
+    filename = prefix + 'chart-{}.png'.format(col.replace('/', '-').replace(' ','-'))
     graph.save(filename)
     return filename
 
@@ -86,8 +86,9 @@ def make_save_boxplot(df,point,title):
     plot1 = sns.boxplot(ax=ax, x=df, linewidth=1, color='lightblue')
     plot2 = plt.scatter(point, 0, marker='o', s=100, c='red', linewidths=5,label='Outlier')
     ax.legend()
-    filename = 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
+    filename = prefix + 'chart-Proc-Time-{}.png'.format(title.replace('/', '-').replace(' ','-'))
     plt.savefig(filename)
+    plt.close()
     return filename
 
 
@@ -165,7 +166,7 @@ def detect_outliers(filename, **kwargs):
             alert[x] = [INDIV_LOW_OUTLIER]    
             flag = True
         if flag:
-            filename = make_save_graph(df_last_whole_yr, x, 'Indiv Req Type Outlier')
+            filename = make_save_graph(df_last_whole_yr, x, 'Indiv Req Type Outlier' + ' SRNUMBER:' + row['srnumber'])
             alert[x].append(filename)
 
     # Get weekly total outliers
@@ -180,7 +181,7 @@ def detect_outliers(filename, **kwargs):
         alert[col] = [TOTAL_LOW_OUTLIER]
         flag = True
     if flag:
-        filename = make_save_graph(df_last_whole_yr, col, col+' Outlier')
+        filename = make_save_graph(df_last_whole_yr, col, col+' Outlier' + ' SRNUMBER:' + row['srnumber'])
         alert[col].append(filename)
 
     # Get Diff of weekly total outliers
@@ -200,7 +201,7 @@ def detect_outliers(filename, **kwargs):
         alert[col] = [DIFF_LOW_OUTLIER]
         flag = True
     if flag:
-        filename = make_save_graph(df_last_whole_yr, col, 'Weekly Diff Outlier')
+        filename = make_save_graph(df_last_whole_yr, col, 'Weekly Diff Outlier' + ' SRNUMBER:' + row['srnumber'])
         alert[col].append(filename)
 
     # Get process time outliers
