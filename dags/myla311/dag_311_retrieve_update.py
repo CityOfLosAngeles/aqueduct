@@ -164,7 +164,7 @@ sql_create_staging = \
 sql_insert_into_staging = \
     """
     \copy myla311_staging
-    FROM '{}' WITH CSV HEADER delimiter ',';
+    FROM '{}' WITH CSV HEADER delimiter ','
     """
 
 sql_upsert = \
