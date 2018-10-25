@@ -297,7 +297,7 @@ sql_pull_data = \
 args = {'owner': 'hunterowens',
     'start_date': airflow.utils.dates.days_ago(7),
     'provide_context': True,
-    'email': ['hunter.owens@lacity.org','ITADATA@lacity.org'],
+    'email': ['hunter.owens@lacity.org'],
     'email_on_failure': False,
     'retries': 1, 
     'retry_delay': timedelta(minutes=5)
@@ -308,6 +308,7 @@ dag = airflow.DAG(
     dag_id='outlier_detector',
     schedule_interval="@weekly",
     default_args=args,
+    e
     max_active_runs=1)
 
 task0 = PostgresOperator(
