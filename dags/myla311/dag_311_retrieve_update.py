@@ -32,11 +32,12 @@ def retrieve_save_data(**kwargs):
                      USERNAME,
                      PASSWORD)
     # Getting the total number of rows in the dataset 
-    row_count = client.get("aub4-z9pc", select="count(srnumber)")
-    row_count = pd.DataFrame.from_records(row_count)
-    row_count = row_count.count_srnumber[0]
+    # row_count = client.get("aub4-z9pc", select="count(srnumber)")
+    # row_count = pd.DataFrame.from_records(row_count)
+    # row_count = row_count.count_srnumber[0]
     
-    # row_count = 1000
+    # Grabs last 10K records for upserting 
+    row_count = 10000
 
     logging.info("The number of rows is read successfully. Now it's pulling data.")
 
@@ -166,6 +167,103 @@ sql_insert_into_staging = \
     FROM '{}' WITH CSV HEADER delimiter ',';
     """
 
+sql_upsert = \
+    """
+    INSERT INTO myla311_staging
+    (
+        actiontaken text,
+        address text,
+        addressverified text,
+        anonymous text,
+        apc text,
+        approximateaddress text,
+        assignto text,
+        cd text,
+        cdmember text,
+        closeddate text,
+        createdbyuserorganization text,
+        createddate text,
+        direction text,
+        housenumber text,
+        latitude text,
+        location text,
+        location_address text,
+        location_city text,
+        location_state text,
+        location_zip text,
+        longitude text,
+        mobileos text,
+        nc text,
+        ncname text,
+        owner text,
+        policeprecinct text,
+        reasoncode text,
+        requestsource text,
+        requesttype text,
+        resolutioncode text,
+        servicedate text,
+        srnumber text,
+        status text,
+        streetname text,
+        suffix text,
+        tbmcolumn text,
+        tbmpage text,
+        tbmrow text,
+        updateddate text,
+        zipcode text
+    )
+    SELECT
+       (
+        actiontaken text,
+        address text,
+        addressverified text,
+        anonymous text,
+        apc text,
+        approximateaddress text,
+        assignto text,
+        cd text,
+        cdmember text,
+        closeddate text,
+        createdbyuserorganization text,
+        createddate text,
+        direction text,
+        housenumber text,
+        latitude text,
+        location text,
+        location_address text,
+        location_city text,
+        location_state text,
+        location_zip text,
+        longitude text,
+        mobileos text,
+        nc text,
+        ncname text,
+        owner text,
+        policeprecinct text,
+        reasoncode text,
+        requestsource text,
+        requesttype text,
+        resolutioncode text,
+        servicedate text,
+        srnumber text,
+        status text,
+        streetname text,
+        suffix text,
+        tbmcolumn text,
+        tbmpage text,
+        tbmrow text,
+        updateddate text,
+        zipcode text
+    )
+    FROM myla311_main
+    ON CONFLICT DO NOTHING
+    """
+
+sql_delete_relects = \
+    """
+    DROP TABLE myla311_main_old;
+    """
+
 sql_rename_staging_to_main = \
     """
     ALTER TABLE myla311_main
@@ -173,11 +271,6 @@ sql_rename_staging_to_main = \
     
     ALTER TABLE myla311_staging
     RENAME TO myla311_main;
-    """
-
-sql_delete_main_old = \
-    """
-    DROP TABLE myla311_main_old;
     """
 
 # airflow DAG arguments
@@ -229,18 +322,25 @@ task3 = PostgresOperator(
     )
 
 task4 = PostgresOperator(
-    task_id='rename_staging_to_main',
-    sql=sql_rename_staging_to_main,
+    task_id='upsert',
+    sql=sql_upsert,
     postgres_conn_id='postgres_default',
     dag=dag
     )
 
 task5 = PostgresOperator(
-    task_id='delete_main_old',
-    sql=sql_delete_main_old,
+    task_id='sql_rename_staging_to_main',
+    sql=sql_rename_staging_to_main,
+    postgres_conn_id='postgres_default',
+    dag=dag
+)
+
+task6 = PostgresOperator(
+    task_id='delete_relects',
+    sql=sql_delete_relects,
     postgres_conn_id='postgres_default',
     dag=dag
     )
 
 # task sequence
-task0 >> task1 >> task2 >> task3 >> task4 >> task5
+task0 >> task1 >> task2 >> task3 >> task4 >> task5 >> task6
