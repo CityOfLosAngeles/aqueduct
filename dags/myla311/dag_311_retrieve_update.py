@@ -163,7 +163,7 @@ sql_create_staging = \
 
 sql_insert_into_staging = \
     """
-    COPY myla311_staging
+    \copy myla311_staging
     FROM '{}' WITH CSV HEADER delimiter ',';
     """
 
