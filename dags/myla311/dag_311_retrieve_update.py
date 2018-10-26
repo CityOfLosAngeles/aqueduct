@@ -9,9 +9,11 @@ from sodapy import Socrata
 from datetime import timedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from airflow.hooks.base_hook import BaseHook 
 from airflow.models import Variable
 import csv
 import os
+import datetime
 
 # The folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
 #   MY_APP_TOKEN, USERNAME, PASSWORD 
@@ -161,11 +163,15 @@ sql_create_staging = \
     );
     """
 
-sql_insert_into_staging = \
+def insert_into_staging_table(**kwargs):
     """
-    \copy myla311_staging
-    FROM '{}' WITH CSV HEADER delimiter ','
+    reads teh temp file and inserts into postgres using 
+    python for better error handling. 
     """
+    pg_conn = BaseHook.get_connection('postgres_default') 
+    df = pd.read_csv(filename)
+    df.to_sql("myla311_staging",pg_conn, if_exists='replace')
+    return "done"
 
 sql_upsert = \
     """
@@ -276,7 +282,7 @@ sql_rename_staging_to_main = \
 # airflow DAG arguments
 args = {
     'owner': 'hunterowens',
-    'start_date': airflow.utils.dates.days_ago(7),
+    'start_date': datetime.datetime(2018, 10, 26),
     'provide_context': True,
     'email': ['hunter.owens@lacity.org'],
     'email_on_failure': False,
@@ -314,12 +320,12 @@ task2 = PythonOperator(
     dag=dag
     )
 
-task3 = PostgresOperator(
-    task_id='insert_into_staging_table',
-    sql=sql_insert_into_staging.format(filename),
-    postgres_conn_id='postgres_default',
+task3 = PythonOperator(
+    task_id='insert_into_staging',
+    provide_context=True
+    python_callable=insert_into_staging_table,
     dag=dag
-    )
+)
 
 task4 = PostgresOperator(
     task_id='upsert',
