@@ -322,7 +322,7 @@ task2 = PythonOperator(
 
 task3 = PythonOperator(
     task_id='insert_into_staging',
-    provide_context=True
+    provide_context=True,
     python_callable=insert_into_staging_table,
     dag=dag
 )
