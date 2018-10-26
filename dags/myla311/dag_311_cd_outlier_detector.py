@@ -313,13 +313,15 @@ def make_html_content(cd, alert, message):
 
 def remove_graph_png(**kwargs):
     task_instance = kwargs['task_instance']
-    alert = task_instance.xcom_pull(task_ids='detect_outliers')
-    for key, value in alert.items():
-        file = value[1]
-        if os.path.exists(prefix + file):
-          os.remove(prefix + file)
-        else:
-          print("The file "+ file + " does not exist. Skipping to the next graph png")
+    cd_alert = task_instance.xcom_pull(task_ids='detect_outliers')
+    
+    for cd, alert in cd_alert.items():
+        for key, value in alert.items():
+            file = value[1]
+            if os.path.exists(prefix + file):
+              os.remove(prefix + file)
+            else:
+              print("The file "+ file + " does not exist. Skipping to the next graph png")
 
 sql_pull_data = \
     """
