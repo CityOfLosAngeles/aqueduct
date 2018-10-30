@@ -20,7 +20,7 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2018, 10, 9), 
-    'email': ['airflow@example.com'],
+    'email': ['hunter.owens@lacity.org', 'timothy.black@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
@@ -35,6 +35,113 @@ dag = DAG(
     dag_id = 'dockless-elt',
     default_args=default_args,
     schedule_interval='@daily'
+    )
+
+types = """
+CREATE TYPE IF NOT EXITS vehicle_types AS ENUM (
+    'bicycle',
+    'scooter'
+);
+
+CREATE TYPE IF NOT EXITS  propulsion_types AS ENUM (
+    'human',
+    'electric_assist',
+    'electric',
+    'combustion'
+);
+
+CREATE TYPE IF NOT EXISTS event_types AS ENUM (
+    'available',
+    'reserved',
+    'unavailable',
+    'removed'
+);
+
+CREATE TYPE IF NOT EXISTS event_type_reasons AS ENUM (
+    'service_start',
+    'maintenance_drop_off',
+    'rebalance_drop_off',
+    'user_drop_off',
+    'user_pick_up',
+    'maintenance',
+    'low_battery',
+    'service_end',
+    'rebalance_pick_up',
+    'maintenance_pick_up'
+);
+"""
+
+status_changes = """
+
+CREATE TABLE IF NOT EXISTS status_changes (
+    provider_id UUID NOT NULL,
+    provider_name TEXT NOT NULL,
+    device_id UUID NOT NULL,
+    vehicle_id TEXT NOT NULL,
+    vehicle_type vehicle_types NOT NULL,
+    propulsion_type propulsion_types[] NOT NULL,
+    event_type event_types NOT NULL,
+    event_type_reason event_type_reasons NOT NULL,
+    event_time timestamptz NOT NULL,
+    event_location JSON NOT NULL,
+    battery_pct FLOAT,
+    associated_trips UUID[]
+);
+
+ALTER TABLE status_changes
+    ADD CONSTRAINT  unique_event
+    UNIQUE (provider_id,
+            device_id,
+            event_type,
+            event_type_reason,
+            event_time
+);
+"""
+
+trips = """
+
+CREATE TABLE  IF NOT EXISTS trips (
+    provider_id UUID NOT NULL,
+    provider_name TEXT NOT NULL,
+    device_id UUID NOT NULL,
+    vehicle_id TEXT NOT NULL,
+    vehicle_type vehicle_types NOT NULL,
+    propulsion_type propulsion_types[] NOT NULL,
+    trip_id UUID NOT NULL,
+    trip_duration INT NOT NULL,
+    trip_distance INT NOT NULL,
+    route JSON NOT NULL,
+    accuracy INT NOT NULL,
+    start_time timestamptz NOT NULL,
+    end_time timestamptz NOT NULL,
+    parking_verification_url TEXT,
+    standard_cost INT,
+    actual_cost INT
+);
+
+ALTER TABLE trips
+    ADD CONSTRAINT pk_trip
+PRIMARY KEY (provider_id, trip_id);
+"""
+
+task0 = PostgresOperator(
+    task_id='create_types',
+    sql=types,
+    postgres_conn_id='postgres_default',
+    dag=dag
+    )
+task1 = PostgresOperator(
+    task_id='create_status_changes',
+    sql=status_changes,
+    postgres_conn_id='postgres_default',
+    dag=dag
+    )
+
+task2 = PostgresOperator(
+    task_id='create_trips_table',
+    sql=trips,
+    postgres_conn_id='postgres_default',
+    dag=dag
     )
 
 # Task 1: Create tables if not exists
