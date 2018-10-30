@@ -2,35 +2,43 @@ FROM python:3
 MAINTAINER Hunter Owens <hunter.owens@lacity.org>
 
 ENV PYTHONUNBUFFERED=1 \
-    # AWS_REGION= \
+    AWS_REGION=us-west-2 \
     # AWS_ACCESS_KEY_ID= \
     # AWS_SECRET_ACCESS_KEY= \
-    # SPARK_BUCKET= \
-    # AIRFLOW_BUCKET= \
-    # PRIVATE_OUTPUT_BUCKET= \
-    # PUBLIC_OUTPUT_BUCKET= \
-    # EMR_KEY_NAME= \
-    # EMR_FLOW_ROLE= \
-    # EMR_SERVICE_ROLE= \
-    # EMR_INSTANCE_TYPE= \
-    # DEPLOY_ENVIRONMENT = \
-    # DEPLOY_TAG = \
-    # ARTIFACTS_BUCKET = \
-    PORT=8000
+    SPARK_BUCKET=telemetry-spark-emr-2 \
+    AIRFLOW_BUCKET=telemetry-test-bucket \
+    PRIVATE_OUTPUT_BUCKET=telemetry-test-bucket \
+    PUBLIC_OUTPUT_BUCKET=telemetry-test-bucket \
+    EMR_KEY_NAME=20161025-dataops-dev \
+    EMR_FLOW_ROLE=telemetry-spark-cloudformation-TelemetrySparkInstanceProfile-1SATUBVEXG7E3 \
+    EMR_SERVICE_ROLE=EMR_DefaultRole \
+    EMR_INSTANCE_TYPE=c3.4xlarge \
+    PORT=8000 \
+    DEPLOY_ENVIRONMENT=dev \
+    DEVELOPMENT=1 \
+    DEPLOY_TAG=master \
+    ARTIFACTS_BUCKET=net-mozaws-data-us-west-2-ops-ci-artifacts
 
-ENV AIRFLOW_HOME=/app
-    # AIRFLOW_AUTHENTICATE= \
-    # AIRFLOW_AUTH_BACKEND= \
-    # AIRFLOW_BROKER_URL= \
-    # AIRFLOW_RESULT_URL= \
-    # AIRFLOW_FLOWER_PORT= \
-    # AIRFLOW_DATABASE_URL= \
-    # AIRFLOW_FERNET_KEY= \
-    # AIRFLOW_SECRET_KEY= \
+# Airflow configuration can be set here using the following format:
+# $AIRFLOW__{SECTION}__{KEY}
+# See also: https://airflow.apache.org/configuration.html
+
+ENV AIRFLOW_HOME=/app \
+    AIRFLOW_AUTHENTICATE=False \
+    AIRFLOW_AUTH_BACKEND=airflow.contrib.auth.backends.password_auth \
+    AIRFLOW_BROKER_URL=redis://redis:6379/0 \
+    AIRFLOW_RESULT_URL=redis://redis:6379/0 \
+    AIRFLOW_FLOWER_PORT="5555" \
+    AIRFLOW_DATABASE_URL=postgres://postgres@db/postgres \
+    AIRFLOW_FERNET_KEY="0000000000000000000000000000000000000000000=" \
+    AIRFLOW_SECRET_KEY="0000000000000000000000000000000000000000000=" \
     # AIRFLOW_SMTP_HOST= \
     # AIRFLOW_SMTP_USER= \
     # AIRFLOW_SMTP_PASSWORD= \
-    # AIRFLOW_SMTP_FROM=
+    AIRFLOW_SMTP_FROM=telemetry-alerts@airflow.dev.mozaws.net \
+    AIRFLOW__SCHEDULER__CATCHUP_BY_DEFAULT=False \
+    SLUGIFY_USES_TEXT_UNIDECODE=yes \
+    URL=http://localhost
 
 EXPOSE $PORT
 
