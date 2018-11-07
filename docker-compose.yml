@@ -13,7 +13,7 @@ services:
       dockerfile: Dockerfile.dev
     restart: always
     volumes:
-      - $PWD:/app
+      - ./:/app
     command: "true"
 
   web:

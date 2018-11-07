@@ -38,9 +38,6 @@ from airflow.models import Variable #db schema and s3 bucket names stored in Var
 
 # Database schema
 #schemaName = "waze2"
-# S3 Config
-bucket_source_name = 'scripted-waze-data-525978535215-test'
-bucket_processed_name = 'scripted-waze-data-525978535215-processed'
 
 default_args = {
     'owner': 'airflow',
@@ -67,6 +64,8 @@ dag = DAG('waze2-s3-to-sql',
 
 
 def s3keyCheck():
+
+	
 	logging.info("s3keyCheck called")
 	print ('s3keyCheck')
 	hook = S3Hook(aws_conn_id="aws_s3_waze_unprocessed")
@@ -249,6 +248,8 @@ def tab_alerts(raw_data):
 def processJSONtoDB(**kwargs):
 	logging.info("processJSONtoDB called")
 	schemaName = Variable.get("waze_db_schema")
+	bucket_source_name = Variable.get("waze_s3_bucket_source")
+	
 	logging.info("Connecting to database. schema="+schemaName)
 	meta = connect_database("aws_postgres_datalake")
 
@@ -373,6 +374,8 @@ def moveProcessedKeys(**kwargs):
 
 	hook = S3Hook(aws_conn_id="aws_s3_waze_unprocessed")
 	logging.info("Got S3 Hook")
+	bucket_source_name = Variable.get("waze_s3_bucket_source")
+	bucket_processed_name = Variable.get("waze_s3_bucket_processed")
 	#bucket_source = s3.Bucket(bucket_source_name)
 	bucket_processed = hook.get_bucket(bucket_processed_name)
 
