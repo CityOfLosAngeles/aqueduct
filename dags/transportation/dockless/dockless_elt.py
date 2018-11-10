@@ -16,8 +16,10 @@ import mds
 import mds.providers
 from mds.api import ProviderClient
 import boto3
-
-s3_hook = airflow.hooks.S3Hook(aws_conn_id='S3_conn')
+import os
+import botocore
+import logging
+import json
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
@@ -86,10 +88,17 @@ def filter_providers(providers, names):
 
 def connect_aws_s3():
     """ Connect to AWS and return a boto S3 session """
-    aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
-    session = boto3.Session(
-    aws_access_key_id=aws_conn['aws_access_key_id'],
-    aws_secret_access_key=aws_conn['aws_secret_access_key'])
+    if os.environ.get('env') == 'dev':
+            config = ConfigParser()
+            config.read(os.path.expanduser('~/.aws/credentials'))
+            aws_access_key_id = config.get('la-city', 'aws_access_key_id')
+            aws_secret_access_key = config.get('la-city', 'aws_secret_access_key')
+    else:
+        aws_conn = BaseHook.get_connection('s3_conn').extra_dejson 
+        aws_access_key_id=aws_conn['aws_access_key_id']
+        aws_secret_access_key=aws_conn['aws_secret_access_key']
+    session = boto3.Session(aws_access_key_id=aws_access_key_id,
+                            aws_secret_access_key=aws_secret_access_key)
     s3 = session.resource('s3')
     return s3
 
@@ -115,12 +124,11 @@ def load_to_s3(**kwargs):
     # determine the MDS version to reference
     ref = config["DEFAULT"]["ref"]
     logging.info(f"Referencing MDS @ {ref}")
-
+    
     # download the Provider registry and filter based on params
     logging.info("Downloading provider registry...")
     registry = mds.providers.get_registry(ref)
-
-    company = kwargs.get('templates_dict', None).get('company_name', None)
+    company = kwargs['params']['company']
     logging.info(f"Acquired registry: {provider_names(registry)}")
 
     # filter the registry with cli args, and configure the providers that will be used
@@ -129,14 +137,25 @@ def load_to_s3(**kwargs):
     logging.info(f"set company to {company}")
 
     # query status changes 
-    start_time = kwargs['execution_date']
-    print(kwargs)
-    print(f"start time: {start_date}")
+    end_time = kwargs['execution_date']
+    start_time = end_time - timedelta(hours=12)
     client = mds.api.ProviderClient(providers=providers, ref="dev")
-    status_changes = client.get_status_changes(end_time=datetime.now(), start_time=datetime(2018, 10, 30, 0, 0, 0, 0))
-
+    status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
+    
+    obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
+    import ipdb; ipdb.set_trace()
+    obj.put(json.dumps(status_changes[providers[0]]))
     # query trips 
-    # save to bucket
+    trips = client.get_trips(end_time=end_time, start_time=start_time)
+    obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
+    obj.put(json.dumps(trips[providers[0]]))
+    logging.info("Connecting to DB")
+    db = mds.db.ProviderDataLoader('postgres://hunterowens@localhost/mds')
+    logging.info("loading {company} status changes into DB")
+    db.load_status_changes(sources=status_changes)
+    logging.info("loading {company} trips into DB")
+
+    db.load_trips(sources=trips)
     return 
 
 types = """
@@ -255,5 +274,15 @@ task2 = PostgresOperator(
 
 
 providers = ['lyft', 'lime']
+
+task_list = []
+for provider in providers:
+    provider_to_s3_task = PythonOperator(
+        task_id = f"loading_{provider}_data",
+        provide_context=True,
+        python_callable=load_to_s3,
+        params={"company": provider},
+        dag=dag)
+    provider_to_s3_task.set_upstream(task2)
 
 task0 >> task1 >> task2 
