@@ -13,16 +13,17 @@ from datetime import datetime, timedelta
 from configparser import ConfigParser
 import time, pytz
 import mds
+import mds.db
 import mds.providers
 from mds.api import ProviderClient
 import boto3
 import os
 import botocore
+import sqlalchemy
 import logging
 import json
 
 pg_conn = BaseHook.get_connection('postgres_default') 
-aws_conn = BaseHook.get_connection('aws_default').extra_dejson 
 
 
 default_args = {
@@ -149,7 +150,12 @@ def load_to_s3(**kwargs):
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
     obj.put(json.dumps(trips[providers[0]]))
     logging.info("Connecting to DB")
-    db = mds.db.ProviderDataLoader('postgres://hunterowens@localhost/mds')
+    user = pg_conn.user
+    password = pg_conn.get_password()
+    host = pg_conn.host
+    dbname = pg_conn.schema
+    engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
+    db = mds.db.ProviderDataLoader(engine=engine)
     logging.info("loading {company} status changes into DB")
     db.load_status_changes(sources=status_changes)
     logging.info("loading {company} trips into DB")
