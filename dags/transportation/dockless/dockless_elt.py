@@ -143,7 +143,6 @@ def load_to_s3(**kwargs):
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
     
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
-    import ipdb; ipdb.set_trace()
     obj.put(json.dumps(status_changes[providers[0]]))
     # query trips 
     trips = client.get_trips(end_time=end_time, start_time=start_time)
