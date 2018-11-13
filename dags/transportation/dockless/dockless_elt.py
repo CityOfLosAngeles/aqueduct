@@ -259,12 +259,15 @@ ALTER TABLE trips
 PRIMARY KEY (provider_id, trip_id);
 """
 
+"""
 task0 = PostgresOperator(
     task_id='create_types',
     sql=types,
     postgres_conn_id='postgres_default',
     dag=dag
     )
+
+"""
 task1 = PostgresOperator(
     task_id='create_status_changes',
     sql=status_changes,
@@ -280,7 +283,6 @@ task2 = PostgresOperator(
     )
 
 
-
 providers = ['lyft', 'lime']
 
 task_list = []
@@ -293,4 +295,4 @@ for provider in providers:
         dag=dag)
     provider_to_s3_task.set_upstream(task2)
 
-task0 >> task1 >> task2 
+task1 >> task2 
