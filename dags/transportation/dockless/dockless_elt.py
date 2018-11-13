@@ -160,11 +160,11 @@ def load_to_s3(**kwargs):
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
     db = mds.db.ProviderDataLoader(engine=engine)
     logging.info("loading {company} status changes into DB")
-    db.load_status_changes(sources=status_changes)
+    db.load_status_changes(sources=status_changes, stage_first=5)
     logging.info("loading {company} trips into DB")
 
-    db.load_trips(sources=trips)
-    return 
+    db.load_trips(sources=trips, stage_first=5)
+    return True
 
 types = """
 DROP TYPE IF EXISTS vehicle_types;
