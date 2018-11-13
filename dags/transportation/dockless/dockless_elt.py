@@ -283,7 +283,7 @@ task2 = PostgresOperator(
     )
 
 
-providers = ['lyft', 'lime']
+providers = ['lyft', 'lime', 'jump']
 
 task_list = []
 for provider in providers:
