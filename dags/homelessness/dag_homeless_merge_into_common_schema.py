@@ -199,7 +199,7 @@ args = {
     'owner': 'hunterowens',
     'start_date': airflow.utils.dates.days_ago(7),
     'provide_context': True,
-    'email': ['hunter.owens@lacity.org','ITADATA@lacity.org'],
+    'email': ['hunter.owens@lacity.org'],
     'email_on_failure': False,
     'retries': 1, 
     'retry_delay': timedelta(minutes=5)
@@ -208,7 +208,7 @@ args = {
 # initiating the DAG
 dag = airflow.DAG(
     'merge_homeless_datasets_into_one',
-    schedule_interval="@daily",
+    schedule_interval="@monthly",
     default_args=args,
     max_active_runs=1)
 
