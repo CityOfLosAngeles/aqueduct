@@ -150,10 +150,11 @@ def load_to_s3(**kwargs):
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
     obj.put(json.dumps(trips[providers[0]]))
     logging.info("Connecting to DB")
-    user = pg_conn.user
+    user = pg_conn.login
     password = pg_conn.get_password()
     host = pg_conn.host
     dbname = pg_conn.schema
+    logging.info(f"Logging into postgres://{user}:{password}@{host}:5432/{dbname}")
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
     db = mds.db.ProviderDataLoader(engine=engine)
     logging.info("loading {company} status changes into DB")
