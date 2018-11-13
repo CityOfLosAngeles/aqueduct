@@ -144,11 +144,13 @@ def load_to_s3(**kwargs):
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
     
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
-    obj.put(json.dumps(status_changes[providers[0]]))
+    obj.put(Body=json.dumps(status_changes[providers[0]]))
+    logging.info(f"Wrote {company} status changes to s3")
     # query trips 
     trips = client.get_trips(end_time=end_time, start_time=start_time)
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
-    obj.put(json.dumps(trips[providers[0]]))
+    obj.put(Body=json.dumps(trips[providers[0]]))
+    logging.info(f"Wrote {company} trip to s3")
     logging.info("Connecting to DB")
     user = pg_conn.login
     password = pg_conn.get_password()
@@ -215,7 +217,7 @@ CREATE TABLE IF NOT EXISTS status_changes (
     event_type event_types NOT NULL,
     event_type_reason event_type_reasons NOT NULL,
     event_time timestamptz NOT NULL,
-    event_location JSON NOT NULL,
+    event_location jsonb NOT NULL,
     battery_pct FLOAT,
     associated_trips UUID[]
 );
@@ -242,7 +244,7 @@ CREATE TABLE  IF NOT EXISTS trips (
     trip_id UUID NOT NULL,
     trip_duration INT NOT NULL,
     trip_distance INT NOT NULL,
-    route JSON NOT NULL,
+    route jsonb NOT NULL,
     accuracy INT NOT NULL,
     start_time timestamptz NOT NULL,
     end_time timestamptz NOT NULL,
