@@ -54,33 +54,6 @@ If your desired task depends on other views, it will expect to be able to find t
 in `telemetry-test-bucket` too. It's your responsibility to run the tasks in correct
 order of their dependencies.
 
-### Testing main_summary
-
-`main_summary` can be a good test case for any large changes to telemetry-batch-view,
-but you'll likely want to make some modifications before launching a test to keep runtime reasonable.
-
-Edit the `EMRSparkOperator` definition for the `main_summary` task in `dags/main_summary.py`
-to add some additional parameters to the `tbv_envvar` dictionary:
-
-```python
-        "channel": "nightly",   # run on smaller nightly data rather than release
-        "read-mode": "aligned", # more efficient RDD splitting for small datasets
-```
-
-Then launch in dev as:
-
-```bash
-export AWS_SECRET_ACCESS_KEY=...
-export AWS_ACCESS_KEY_ID=...
-make run COMMAND="test main_summary main_summary 20180523"
-```
-
-To run the full `main_summary` DAG via local Airflow, you'll need to remove
-the `main_summary_glue` task definition and all references to it, since
-your local instance doesn't have the proper credentials set up to access
-AWS Glue. See the next section for info on how to configure a full DAG run,
-though this should only be needed to significant changes affecting many view definitions.
-
 ### Local Deployment
 
 Assuming you're using macOS and Docker for macOS, start the docker service,
