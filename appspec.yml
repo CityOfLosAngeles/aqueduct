@@ -1,0 +1,13 @@
+version: 0.1
+os: linux
+files:
+  - source: source
+    destination: /home/ec2-user/aqueduct
+hooks:
+  BeforeInstall:
+    - location: scripts/install.sh
+      runas: ec2-user
+  ApplicationStart:
+    - location: scripts/restart_app.sh
+      timeout: 3600
+      runas: root
