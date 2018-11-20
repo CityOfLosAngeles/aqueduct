@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 import sqlalchemy
 import pandas as pd
+from airflow.utils.email import send_email
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 
@@ -77,31 +78,39 @@ def set_xcom_variables(**kwargs):
     kwargs['ti'].xcom_push(key='device_table', value=device_table)
     return True
 
-email_template = """
+def email_callback(**kwargs):
 
-In the last 24 hours, the number of trips observed was {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} across {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} devices. 
+    email_template = """
 
-"""
+    In the last 24 hours, the number of trips observed was {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} across {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} devices. 
 
-spare_text = """
-Company Trips Table: 
+    """
 
-{{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
+    spare_text = """
+    Company Trips Table: 
 
-Company Devices Table: 
+    {{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
 
-{{ task_instance.xcom_pull(key='device_table', task_ids='computing_stats') }}
+    Company Devices Table: 
 
-"""
+    {{ task_instance.xcom_pull(key='device_table', task_ids='computing_stats') }}
 
-alert_email = EmailOperator(
-    task_id="scoot_stat_email",
-    to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
-    subject='Scooter/Bikeshare Stat Email',
-    html_content=email_template,
+    """
+    send_email(
+        to=['hunter.owens@lacity.org'
+        ],
+        subject='Scooter Stat Refactor',
+        html_content=email_template,
+    )
+
+    return
+
+email_task = PythonOperator(
+    task_id='scoot_stat_email',
+    python_callable=email_callback,
+    provide_context=True,
     dag=dag
 )
-
 set_xcom = PythonOperator(
         task_id = "computing_stats",
         provide_context=True,
@@ -110,4 +119,4 @@ set_xcom = PythonOperator(
 
 task1.set_downstream(set_xcom)
 task2.set_downstream(set_xcom)
-alert_email.set_upstream(set_xcom)
+email_task.set_upstream(set_xcom)
