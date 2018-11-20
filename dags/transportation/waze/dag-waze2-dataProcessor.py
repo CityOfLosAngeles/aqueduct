@@ -36,9 +36,6 @@ from airflow.hooks.S3_hook import S3Hook
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable #db schema and s3 bucket names stored in Variables
 
-# Database schema
-#schemaName = "waze2"
-
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -58,17 +55,10 @@ dag = DAG('waze2-s3-to-sql',
     description='DAG for moving Waze data from S3 to RDS',
     catchup=False, default_args=default_args,schedule_interval="*/1 * * * *") #"@hourly") # *****=run every minute
 
-#dag >> s3keyCheck >> emailNotify #t1 >> t2 # >> t4 # dag operation order
-#dag >> s3keyCheck >> connectDatabase >> processJSONtoDB >> moveKeyToBucket
-
-
-
 def s3keyCheck():
-
-	
 	logging.info("s3keyCheck called")
 	print ('s3keyCheck')
-	hook = S3Hook(aws_conn_id="aws_s3_waze_unprocessed")
+	hook = S3Hook(aws_conn_id="s3_conn")
 	if (hook.check_for_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)):
 		logging.info("wildcard found key")
 		return True
@@ -76,8 +66,7 @@ def s3keyCheck():
 		logging.info("no key found")
 		return False
         
-
-        #        session = boto3.Session(
+#       session = boto3.Session(
 #	s3 = boto3.resource('s3')
 #	client = boto3.client('s3')
 #	bucket_source = s3.Bucket(bucket_source_name)
@@ -251,7 +240,7 @@ def processJSONtoDB(**kwargs):
 	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	
 	logging.info("Connecting to database. schema="+schemaName)
-	meta = connect_database("aws_postgres_datalake")
+	meta = connect_database("postgres_default") #"aws_postgres_datalake")
 
 	#Store data_file in database
 	col_dict = {"startTimeMillis": "start_time_millis",
@@ -265,7 +254,7 @@ def processJSONtoDB(**kwargs):
 				}
 
 	# get a hook to the S3 via airflow
-	hook = S3Hook(aws_conn_id="aws_s3_waze_unprocessed")
+	hook = S3Hook(aws_conn_id="s3_conn") #"aws_s3_waze_unprocessed")
 	logging.info("Got S3 Hook")
 	#key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
 	#print ("Got a key from S3 bucket:")
@@ -372,7 +361,7 @@ def moveProcessedKeys(**kwargs):
 	logging.info("movePorcessedKeys called")
 	keys = kwargs['ti'].xcom_pull(key='processedKeys')
 
-	hook = S3Hook(aws_conn_id="aws_s3_waze_unprocessed")
+	hook = S3Hook(aws_conn_id="s3_conn")
 	logging.info("Got S3 Hook")
 	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	bucket_processed_name = Variable.get("waze_s3_bucket_processed")
@@ -407,7 +396,7 @@ s3keySense = S3KeySensor(
 	bucket_key='*',
 	wildcard_match=True,
 	bucket_name="{{ var.value.waze_s3_bucket_source }}",
-	aws_conn_id='aws_s3_waze_unprocessed',
+	aws_conn_id='s3_conn',
 	dag=dag)
 
 
