@@ -156,7 +156,7 @@ def load_to_s3(**kwargs):
     password = pg_conn.get_password()
     host = pg_conn.host
     dbname = pg_conn.schema
-    logging.info(f"Logging into postgres://{user}:{password}@{host}:5432/{dbname}")
+    logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
     db = mds.db.ProviderDataLoader(engine=engine)
     logging.info("loading {company} status changes into DB")
