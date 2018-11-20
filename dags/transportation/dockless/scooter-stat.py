@@ -67,21 +67,28 @@ def set_xcom_variables(**kwargs):
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
     today = kwargs['ds']
     yesterday = kwargs['yesterday_ds']
-    trips = pd.real_sql(f"""SELECT * FROM TRIPS WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
+    trips = pd.read_sql(f"""SELECT * FROM TRIPS WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
-    
+    kwargs['ti'].xcom_push(key='xcom_trips', value = len(trips))
+    kwargs['ti'].xcom_push(key='xcom_devices', value = len(trips.device_id.unique()))
+    trips_table = pd.DataFrame(trips.groupby('provider_name')['trip_id'].count()).to_html()
+    device_table = pd.DataFrame(trips.groupby('provider_name')['device_id'].nunique()).to_html()
+    kwargs['ti'].xcom_push(key='trips_table', value=trips_table)
+    kwargs['ti'].xcom_push(key='device_table', value=device_table)
+    return True
 
 email_template = """
 
-In the last 24 hours, the number of trips observed was <b> {{ xcom trips }} </b> across <b> {{ number devices}} </b> devices. 
+In the last 24 hours, the number of trips observed was <b> {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} </b> across <b> {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} </b> devices. 
 
 Company Trips Table: 
 
-{{ Tables }}
+{{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
 
 Company Devices Table: 
 
-{{ Tables }}
+{{ task_instance.xcom_pull(key='device_table', task_ids='computing_stats') }}
+
 """
 
 alert_email = EmailOperator(
