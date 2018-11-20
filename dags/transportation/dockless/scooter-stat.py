@@ -91,9 +91,15 @@ Company Devices Table:
 
 """
 
+email_template = """
+
+test
+
+"""
+
 alert_email = EmailOperator(
     task_id="scoot_stat_email",
-    to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
+    to=['hunter.owens@lacity.org', ]#'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
     subject='Scooter Stat {{ts.date}}',
     html_content=email_template,
     dag=dag
