@@ -107,3 +107,7 @@ set_xcom = PythonOperator(
         provide_context=True,
         python_callable=set_xcom_variables,
         dag=dag)
+
+task1.set_downstream(set_xcom)
+task2.set_downstream(set_xcom)
+alert_email.set_upstream(set_xcom)
