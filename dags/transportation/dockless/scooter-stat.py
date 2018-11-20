@@ -83,8 +83,7 @@ In the last 24 hours, the number of trips observed was {{ task_instance.xcom_pul
 
 """
 
-spare_text = 
-"""
+spare_text = """
 Company Trips Table: 
 
 {{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
