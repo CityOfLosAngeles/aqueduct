@@ -79,8 +79,12 @@ def set_xcom_variables(**kwargs):
 
 email_template = """
 
-In the last 24 hours, the number of trips observed was <b> {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} </b> across <b> {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} </b> devices. 
+In the last 24 hours, the number of trips observed was {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} across {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} devices. 
 
+"""
+
+spare_text = 
+"""
 Company Trips Table: 
 
 {{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
@@ -91,15 +95,9 @@ Company Devices Table:
 
 """
 
-email_template = """
-
-test
-
-"""
-
 alert_email = EmailOperator(
     task_id="scoot_stat_email",
-    to=['hunter.owens@lacity.org', ]#'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
+    to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
     subject='Scooter Stat {{ts.date}}',
     html_content=email_template,
     dag=dag
