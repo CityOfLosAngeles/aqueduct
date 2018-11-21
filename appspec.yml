@@ -10,4 +10,4 @@ hooks:
   ApplicationStart:
     - location: scripts/restart_app.sh
       timeout: 3600
-      runas: root
+      runas: ec2-user

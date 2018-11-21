@@ -1,2 +1,2 @@
 #!/bin/bash
-systemctl restart aqueduct-worker
+sudo systemctl restart aqueduct-worker
