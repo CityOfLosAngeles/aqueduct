@@ -68,7 +68,7 @@ def set_xcom_variables(**kwargs):
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
     today = kwargs['ds']
     yesterday = kwargs['yesterday_ds']
-    trips = pd.read_sql(f"""SELECT * FROM TRIPS WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
+    trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
     kwargs['ti'].xcom_push(key='xcom_trips', value = len(trips))
     kwargs['ti'].xcom_push(key='xcom_devices', value = len(trips.device_id.unique()))
