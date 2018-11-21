@@ -80,30 +80,26 @@ def set_xcom_variables(**kwargs):
 
 def email_callback(**kwargs):
 
-    email_template = """
+    email_template = f"""
 
-    In the last 24 hours, the number of trips observed was {{ task_instance.xcom_pull(key='xcom_trips', task_ids='computing_stats') }} across {{ task_instance.xcom_pull(key='xcom_devices', task_ids='computing_stats') }} devices. 
+    In the last 24 hours, the number of trips observed was { kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats') } across {kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats')} devices. 
 
-    """
-
-    spare_text = """
     Company Trips Table: 
 
-    {{ task_instance.xcom_pull(key='trips_table', task_ids='computing_stats') }}
+    { kwargs['ti'].xcom_pull(key='trips_table', task_ids='computing_stats') }
 
     Company Devices Table: 
 
-    {{ task_instance.xcom_pull(key='device_table', task_ids='computing_stats') }}
+    { kwargs['ti'].xcom_pull(key='device_table', task_ids='computing_stats') }
 
     """
     send_email(
-        to=['hunter.owens@lacity.org'
-        ],
-        subject='Scooter Stat Refactor',
+        to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
+        subject=f'Dockless Stats for { kwargs['start_date'] }',
         html_content=email_template,
     )
 
-    return
+    return True
 
 email_task = PythonOperator(
     task_id='scoot_stat_email',
