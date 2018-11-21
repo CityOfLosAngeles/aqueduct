@@ -70,10 +70,12 @@ def set_xcom_variables(**kwargs):
     yesterday = kwargs['yesterday_ds']
     trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
+    status_changes = pd.read_sql(f"""SELECT * FROM v_status_changes WHERE event_time BETWEEN '{yesterday}' AND '{today}'""", 
+                        con=engine)
     kwargs['ti'].xcom_push(key='xcom_trips', value = len(trips))
-    kwargs['ti'].xcom_push(key='xcom_devices', value = len(trips.device_id.unique()))
+    kwargs['ti'].xcom_push(key='xcom_devices', value = len(status_changes.device_id.unique()))
     trips_table = pd.DataFrame(trips.groupby('provider_name')['trip_id'].count()).to_html()
-    device_table = pd.DataFrame(trips.groupby('provider_name')['device_id'].nunique()).to_html()
+    device_table = pd.DataFrame(status_changes.groupby('provider_name')['device_id'].nunique()).to_html()
     kwargs['ti'].xcom_push(key='trips_table', value=trips_table)
     kwargs['ti'].xcom_push(key='device_table', value=device_table)
     return True
