@@ -58,7 +58,20 @@ task2 = PostgresOperator(
     dag=dag
     )
 
+
 def set_xcom_variables(**kwargs):
+    sum_table_sql = f"""
+    SELECT provider_name, 
+            vehicle_type,
+            COUNT(trip_id) as num_trips,
+            AVG(trip_distance_miles) as avg_trip_length,
+            MAX(trip_distance_miles) as max_trip_length,
+            COUNT(trip_id) / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
+            COUNT (DISTINCT (device_id)) as num_devices
+    FROM v_trips 
+    WHERE start_time_local BETWEEN '{yesterday}' AND '{today}'
+    GROUP BY provider_name, vehicle_type ; 
+    """ 
     logging.info("Connecting to DB")
     user = pg_conn.login
     password = pg_conn.get_password()
@@ -72,12 +85,14 @@ def set_xcom_variables(**kwargs):
                         con=engine)
     status_changes = pd.read_sql(f"""SELECT * FROM v_status_changes WHERE event_time BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
+    sum_table = pd.read_sql(sum_table_sql, con=engine).to_html()
     kwargs['ti'].xcom_push(key='xcom_trips', value = len(trips))
     kwargs['ti'].xcom_push(key='xcom_devices', value = len(status_changes.device_id.unique()))
     trips_table = pd.DataFrame(trips.groupby('provider_name')['trip_id'].count()).to_html()
     device_table = pd.DataFrame(status_changes.groupby('provider_name')['device_id'].nunique()).to_html()
     kwargs['ti'].xcom_push(key='trips_table', value=trips_table)
     kwargs['ti'].xcom_push(key='device_table', value=device_table)
+    kwargs['ti'].xcom_push(key='sum_table', value=sum_table)
     return True
 
 def email_callback(**kwargs):
@@ -92,7 +107,10 @@ def email_callback(**kwargs):
 
     Company Devices Table: 
 
-    { kwargs['ti'].xcom_pull(key='device_table', task_ids='computing_stats') }
+    { kwargs['ti'].xcom_pull(key='device_table', task_ids='computing_stats') } <br> 
+
+    Status Table <br> 
+    { kwargs['ti'].xcom_pull(key='sum_table', task_ids='computing_stats')}
 
     """
     send_email(
