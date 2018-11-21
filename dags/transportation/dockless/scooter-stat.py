@@ -95,8 +95,8 @@ def email_callback(**kwargs):
     """
     send_email(
         to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
-        subject=f'Dockless Stats for { kwargs['start_date'] }',
-        html_content=email_template,
+        subject=f"Dockless Stats for { kwargs['start_date'] }",
+        html_content=email_template.encode('ascii')
     )
 
     return True
