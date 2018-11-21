@@ -82,7 +82,7 @@ def email_callback(**kwargs):
 
     email_template = f"""
 
-    In the last 24 hours, the number of trips observed was { kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats') } across {kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats')} devices. 
+    In the last 24 hours, the number of trips observed was { kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats') } across {kwargs['ti'].xcom_pull(key='xcom_devices', task_ids='computing_stats')} devices. 
 
     Company Trips Table: 
 
