@@ -66,7 +66,7 @@ def set_xcom_variables(**kwargs):
             COUNT(trip_id) as num_trips,
             AVG(trip_distance_miles) as avg_trip_length,
             MAX(trip_distance_miles) as max_trip_length,
-            COUNT(trip_id) / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
+            COUNT(trip_id)::FLOAT / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
             COUNT (DISTINCT (device_id)) as num_devices
     FROM v_trips 
     WHERE start_time_local BETWEEN '{yesterday}' AND '{today}'
