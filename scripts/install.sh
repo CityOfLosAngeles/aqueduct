@@ -12,6 +12,6 @@ if command -v pyenv 1>/dev/null 2>&1; then
    eval "$(pyenv init -)"
  fi
 
- export SLUGIFY_USES_TEXT_UNIDECODE=yes
-
+export SLUGIFY_USES_TEXT_UNIDECODE=yes
+echo `which pip`
 pip install -U -r /home/ec2-user/aqueduct/requirements.txt
