@@ -60,6 +60,15 @@ task2 = PostgresOperator(
 
 
 def set_xcom_variables(**kwargs):
+    logging.info("Connecting to DB")
+    user = pg_conn.login
+    password = pg_conn.get_password()
+    host = pg_conn.host
+    dbname = pg_conn.schema
+    logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
+    engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
+    today = kwargs['ds']
+    yesterday = kwargs['yesterday_ds']
     sum_table_sql = f"""
     SELECT provider_name, 
             vehicle_type,
@@ -71,16 +80,7 @@ def set_xcom_variables(**kwargs):
     FROM v_trips 
     WHERE start_time_local BETWEEN '{yesterday}' AND '{today}'
     GROUP BY provider_name, vehicle_type ; 
-    """ 
-    logging.info("Connecting to DB")
-    user = pg_conn.login
-    password = pg_conn.get_password()
-    host = pg_conn.host
-    dbname = pg_conn.schema
-    logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
-    engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
-    today = kwargs['ds']
-    yesterday = kwargs['yesterday_ds']
+    """
     trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
     status_changes = pd.read_sql(f"""SELECT * FROM v_status_changes WHERE event_time BETWEEN '{yesterday}' AND '{today}'""", 
