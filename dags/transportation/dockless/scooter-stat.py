@@ -17,7 +17,7 @@ pg_conn = BaseHook.get_connection('postgres_default')
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2018, 10, 30), 
+    'start_date': datetime(2018, 10, 30, tzinfo='America/Los_Angeles'), 
     'email': ['hunter.owens@lacity.org', 'timothy.black@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': False,
@@ -76,14 +76,14 @@ def set_xcom_variables(**kwargs):
             AVG(trip_distance_miles) as avg_trip_length,
             MAX(trip_distance_miles) as max_trip_length,
             COUNT(trip_id)::FLOAT / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
-            COUNT (DISTINCT (device_id)) as num_devices
+            COUNT (DISTINCT (device_id)) as num_devices_doing_trips
     FROM v_trips 
     WHERE start_time_local BETWEEN '{yesterday}' AND '{today}'
     GROUP BY provider_name, vehicle_type ; 
     """
-    trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time BETWEEN '{yesterday}' AND '{today}'""", 
+    trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
-    status_changes = pd.read_sql(f"""SELECT * FROM v_status_changes WHERE event_time BETWEEN '{yesterday}' AND '{today}'""", 
+    status_changes = pd.read_sql(f"""SELECT * FROM v_status_changes WHERE event_time_local BETWEEN '{yesterday}' AND '{today}'""", 
                         con=engine)
     sum_table = pd.read_sql(sum_table_sql, con=engine).to_html()
     kwargs['ti'].xcom_push(key='xcom_trips', value = len(trips))
