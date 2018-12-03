@@ -10,14 +10,15 @@ import logging
 import sqlalchemy
 import pandas as pd
 from airflow.utils.email import send_email
+import pendulum
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 
-
+local_tz = pendulum.timezone("America/Los_Angeles")
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2018, 10, 30, tzinfo='America/Los_Angeles'), 
+    'start_date': datetime(2018, 10, 30, tzinfo=local_tz), 
     'email': ['hunter.owens@lacity.org', 'timothy.black@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': False,
