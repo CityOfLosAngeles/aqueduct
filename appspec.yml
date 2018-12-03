@@ -3,8 +3,9 @@ os: linux
 files:
   - source: /
     destination: /home/ec2-user/aqueduct
+    overwrite: yes
 hooks:
-  BeforeInstall:
+  AfterInstall:
     - location: scripts/install.sh
       runas: ec2-user
   ApplicationStart:
