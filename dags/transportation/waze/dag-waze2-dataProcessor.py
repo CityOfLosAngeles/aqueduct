@@ -39,12 +39,12 @@ from airflow.models import Variable #db schema and s3 bucket names stored in Var
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2018, 10, 15),
+    'start_date': datetime(2018, 12, 3),
     'email': ['hunter.owens@lacity.org','bryan.blackford@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': True,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retries': 0
+    #'retry_delay': timedelta(minutes=5),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -53,7 +53,8 @@ default_args = {
 
 dag = DAG('waze2-s3-to-sql', 
     description='DAG for moving Waze data from S3 to RDS',
-    catchup=False, default_args=default_args,schedule_interval="*/1 * * * *") #"@hourly") # *****=run every minute
+	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",
+	  concurrency=1) #"@hourly") # *****=run every minute
 
 def s3keyCheck():
 	logging.info("s3keyCheck called")
@@ -380,11 +381,11 @@ def moveProcessedKeys(**kwargs):
 
 		# delete file
 		#hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
-		#logging.info ("deleted "+key+" from "+bucket_processed_name)
 		#keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+		#logging.info("Deleted "+key+" from "+bucket_processed_name)
 		keyObj = hook.get_key(key,bucket_name=bucket_processed_name) #temp delete file we copied
-		keyObj.delete()
 		logging.info("Deleted key that was copied TEST")
+		keyObj.delete()
 			
 	logging.info("moveProcessedKeys complete!")
 
