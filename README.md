@@ -93,57 +93,7 @@ sed -i "s/10001/$(id -u)/g" Dockerfile.dev
 
 ### Production Setup
 
-When deploying to production make sure to set up the following environment
-variables:
-
-- `AWS_ACCESS_KEY_ID` -- The AWS access key ID to spin up the Spark clusters
-- `AWS_SECRET_ACCESS_KEY` -- The AWS secret access key
-- `SPARK_BUCKET` -- The AWS S3 bucket where Spark related files are stored,
-  e.g. `telemetry-spark-emr-2`
-- `AIRFLOW_BUCKET` -- The AWS S3 bucket where airflow specific files are stored,
-  e.g. `telemetry-airflow`
-- `PUBLIC_OUTPUT_BUCKET` -- The AWS S3 bucket where public job results are
-  stored in, e.g. `telemetry-public-analysis-2`
-- `PRIVATE_OUTPUT_BUCKET` -- The AWS S3 bucket where private job results are
-  stored in, e.g. `telemetry-parquet`
-- `AIRFLOW_DATABASE_URL` -- The connection URI for the Airflow database, e.g.
-  `postgres://username:password@hostname:port/password`
-- `AIRFLOW_BROKER_URL` -- The connection URI for the Airflow worker queue, e.g.
-  `redis://hostname:6379/0`
-- `AIRFLOW_BROKER_URL` -- The connection URI for the Airflow result backend, e.g.
-  `redis://hostname:6379/1`
-- `AIRFLOW_GOOGLE_CLIENT_ID` -- The Google Auth client id used for
-  authentication.
-- `AIRFLOW_GOOGLE_CLIENT_SECRET` -- The Google Auth client secret used for
-  authentication.
-- `AIRFLOW_GOOGLE_APPS_DOMAIN` -- The domain(s) to restrict Google Auth login
-  to e.g. `lacity.org`
-- `AIRFLOW_SMTP_HOST` -- The SMTP server to use to send emails e.g.
-  `email-smtp.us-west-2.amazonaws.com`
-- `AIRFLOW_SMTP_USER` -- The SMTP user name
-- `AIRFLOW_SMTP_PASSWORD` --  The SMTP password
-- `AIRFLOW_SMTP_FROM` -- The email address to send emails from e.g.
-  `telemetry-alerts@workflow.telemetry.mozilla.org`
-- `URL` -- The base URL of the website e.g.
-  `https://workflow.telemetry.mozilla.org`
-- `DEPLOY_ENVIRONMENT` -- The environment currently running, e.g.
-  `stage` or `prod`
-- `DEPLOY_TAG` -- The tag or branch to retrieve the JAR from, e.g.
-  `master` or `tags`. You can specify the tag or travis build exactly as well, e.g.
-  `master/42.1` or `tags/v2.2.1`. Not specifying the exact tag or build will
-  use the latest from that branch, or the latest tag.
-
-Also, please set
-
-- `AIRFLOW_SECRET_KEY` -- A secret key for Airflow's Flask based webserver
-- `AIRFLOW_FERNET_KEY` -- A secret key to saving connection passwords in the DB
-
-Both values should be set by using the cryptography module's fernet tool that
-we've wrapped in a docker-compose call:
-
-    make secret
-
-Run this for each key config variable, and **don't use the same for both!**
+@Bryan Prod Diagram goes here. 
 
 ### Debugging
 
@@ -187,9 +137,7 @@ docker volume rm $(docker volume ls -qf dangling=true)
 
 ### Triggering backfill tasks using the CLI
 
-- SSH into the ECS container instance
-- List docker containers using `docker ps`
-- Log in to one of the docker containers using `docker exec -it <container_id> bash`. The web server instance is a good choice.
+- SSH into the `aqueduct-airflow` instance.
 - Run the desired backfill command, something like `$ airflow backfill main_summary -s 2018-05-20 -e 2018-05-26`
 
 ## Install Issues
