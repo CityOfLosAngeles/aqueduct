@@ -6,10 +6,12 @@ Lots of the following code and documentation was based on the excellent [Mozilla
 ## Contributors 
 * Robert Pangalian 
 * Hunter Owens
+* Bryan Blackford
+* Eirik Lin
 
 ### Prerequisites
 
-This app is built and deployed with
+This app is built and deployed locally with
 [docker](https://docs.docker.com/) and
 [docker-compose](https://docs.docker.com/compose/).
 
