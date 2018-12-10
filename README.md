@@ -93,7 +93,7 @@ sed -i "s/10001/$(id -u)/g" Dockerfile.dev
 
 ### Production Setup
 
-@Bryan Prod Diagram goes here. 
+![Aqueductagram](Aqueduct.png)
 
 ### Debugging
 
