@@ -52,7 +52,7 @@ default_args = {
 }
 
 dag = DAG('waze2-s3-to-sql', 
-    description='DAG for moving Waze data from S3 to RDS (test mode)',
+    description='DAG for moving Waze data from S3 to RDS',
 	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",
 	  concurrency=1) #"@hourly") # *****=run every minute
 
@@ -381,10 +381,10 @@ def moveProcessedKeys(**kwargs):
 
 		# delete file
 		#hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
-		#keyObj = hook.get_key(key,bucket_name=bucket_source_name)
-		#logging.info("Deleted "+key+" from "+bucket_processed_name)
-		keyObj = hook.get_key(key,bucket_name=bucket_processed_name) #temp delete file we copied
-		logging.info("Deleted key that was copied TEST MODE")
+		keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+		logging.info("Deleted "+key+" from "+bucket_processed_name)
+		#keyObj = hook.get_key(key,bucket_name=bucket_processed_name) #temp delete file we copied
+		#logging.info("Deleted key that was copied TEST")
 		keyObj.delete()
 			
 	logging.info("moveProcessedKeys complete!")
