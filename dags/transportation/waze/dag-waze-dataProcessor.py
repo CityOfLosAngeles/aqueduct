@@ -51,7 +51,7 @@ default_args = {
     # 'end_date': datetime(2016, 1, 1),
 }
 
-dag = DAG('waze2-s3-to-sql', 
+dag = DAG('waze-s3-to-sql', 
     description='DAG for moving Waze data from S3 to RDS',
 	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",
 	  concurrency=1) #"@hourly") # *****=run every minute
