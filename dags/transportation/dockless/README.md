@@ -30,5 +30,12 @@ Information needed to connect to Provider APIs are stored within a `provider` va
 Key: provider  
 Val: {"lemon": {"baseurl": "localhost", "token": "None"}}  
 
+### Config File 
+
+To upload the .config to S3, run 
+
+`aws s3 cp .config s3://city-of-los-angeles-data-lake/dockless/.config --profile la-city` from the AWS CLI.
+
+
 ### Related Work
 * [LA Mobility Data Specification (MDS)](https://github.com/CityOfLosAngeles/mobility-data-specification): A data standard and API specification for mobility as a service providers, such as Dockless Bikeshare, E-Scooters, and Shared Ride providers who work within the public right of way.

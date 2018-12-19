@@ -90,10 +90,10 @@ def filter_providers(providers, names):
 def connect_aws_s3():
     """ Connect to AWS and return a boto S3 session """
     if os.environ.get('env') == 'dev':
-            config = ConfigParser()
-            config.read(os.path.expanduser('~/.aws/credentials'))
-            aws_access_key_id = config.get('la-city', 'aws_access_key_id')
-            aws_secret_access_key = config.get('la-city', 'aws_secret_access_key')
+        config = ConfigParser()
+        config.read(os.path.expanduser('~/.aws/credentials'))
+        aws_access_key_id = config.get('la-city', 'aws_access_key_id')
+        aws_secret_access_key = config.get('la-city', 'aws_secret_access_key')
     else:
         aws_conn = BaseHook.get_connection('s3_conn').extra_dejson 
         aws_access_key_id=aws_conn['aws_access_key_id']
@@ -118,8 +118,8 @@ def load_to_s3(**kwargs):
             print("The object does not exist.")
         else:
             raise
+    config = parse_config('./.config') # ('/tmp/.config')
     
-    config = parse_config('/tmp/.config')
     logging.info("Downloaded and parsed config from S3")
 
     # determine the MDS version to reference
@@ -135,12 +135,18 @@ def load_to_s3(**kwargs):
     # filter the registry with cli args, and configure the providers that will be used
     providers = [p.configure(config, use_id=True) for p in filter_providers(registry, [company])]
 
+    # parse any headers from the config to a dict
+    # This is to fix the Bird APP-version bug. 
+    for p in providers:
+        headers = getattr(p, "headers", None)
+        if headers and isinstance(headers, str):
+            p.headers = json.loads(headers)
     logging.info(f"set company to {company}")
 
     # query status changes 
     end_time = kwargs['execution_date']
     start_time = end_time - timedelta(hours=12)
-    client = mds.api.ProviderClient(providers=providers, ref="dev")
+    client = mds.api.ProviderClient(providers=providers, ref="master")
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
     
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
@@ -283,7 +289,7 @@ task2 = PostgresOperator(
     )
 
 
-providers = ['lyft', 'lime', 'jump']
+providers = ['lyft', 'lime', 'jump', 'bird']
 
 task_list = []
 for provider in providers:
