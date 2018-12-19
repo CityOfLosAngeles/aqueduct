@@ -43,7 +43,7 @@ default_args = {
     'email': ['hunter.owens@lacity.org','bryan.blackford@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': True,
-    'retries': 0
+    'retries': 1
     #'retry_delay': timedelta(minutes=5),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
@@ -53,8 +53,7 @@ default_args = {
 
 dag = DAG('waze-s3-to-sql', 
     description='DAG for moving Waze data from S3 to RDS',
-	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",
-	  concurrency=1) #"@hourly") # *****=run every minute
+	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",concurrency=1,max_active_runs=1) #"@hourly") # *****=run every minute
 
 def s3keyCheck():
 	logging.info("s3keyCheck called")
