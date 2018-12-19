@@ -118,7 +118,7 @@ def load_to_s3(**kwargs):
             print("The object does not exist.")
         else:
             raise
-    config = parse_config('./.config') # ('/tmp/.config')
+    config = parse_config('/tmp/.config')
     
     logging.info("Downloaded and parsed config from S3")
 
