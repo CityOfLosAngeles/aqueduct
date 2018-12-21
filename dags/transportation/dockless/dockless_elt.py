@@ -34,7 +34,7 @@ default_args = {
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retry_delay': timedelta(minutes=2),
     'concurrency': 50
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
@@ -290,7 +290,7 @@ task2 = PostgresOperator(
     )
 
 
-providers = ['lyft', 'lime', 'jump', 'bird']
+providers = ['lyft', 'lime', 'jump', 'bird', 'razor']
 
 task_list = []
 for provider in providers:
