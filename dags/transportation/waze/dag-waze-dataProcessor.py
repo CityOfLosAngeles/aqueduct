@@ -381,7 +381,7 @@ def moveProcessedKeys(**kwargs):
 		# delete file
 		#hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
 		keyObj = hook.get_key(key,bucket_name=bucket_source_name)
-		logging.info("Deleted "+key+" from "+bucket_processed_name)
+		logging.info("Deleted "+key+" from "+bucket_source_name)
 		#keyObj = hook.get_key(key,bucket_name=bucket_processed_name) #temp delete file we copied
 		#logging.info("Deleted key that was copied TEST")
 		keyObj.delete()
