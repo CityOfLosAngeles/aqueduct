@@ -4,12 +4,14 @@
 
 import airflow
 import logging
+from sqlalchemy import create_engine, MetaData
 import pandas as pd
 from sodapy import Socrata
 from datetime import timedelta
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.base_hook import BaseHook 
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 import csv
 import os
@@ -168,9 +170,19 @@ def insert_into_staging_table(**kwargs):
     reads teh temp file and inserts into postgres using 
     python for better error handling. 
     """
-    pg_conn = BaseHook.get_connection('postgres_default') 
+    # connect to db
+    connection_id = 'postgres_default' #this is the name in airflow variables
+    dbhook = PostgresHook(postgres_conn_id=connection_id)
+    pg_conn = dbhook.get_connection(conn_id=connection_id) 
+    db_url = 'postgresql://{c.login}:{c.password}@{c.host}:{c.port}/{c.schema}'.format(c=pg_conn)
+    engine = create_engine(db_url)
+    meta = MetaData()
+    meta.bind = engine
+    logging.info("got db connection")
+    # read data
     df = pd.read_csv(filename)
-    df.to_sql("myla311_staging",pg_conn, if_exists='replace')
+    # write to db. name (myla311_staging) is the table in the schema
+    df.to_sql(name='myla311_staging',schema='public',con=meta.bind, if_exists='replace')
     return "done"
 
 sql_upsert = \
