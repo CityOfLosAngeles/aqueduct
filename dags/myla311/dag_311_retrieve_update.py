@@ -182,99 +182,14 @@ def insert_into_staging_table(**kwargs):
     # read data
     df = pd.read_csv(filename)
     # write to db. name (myla311_staging) is the table in the schema
-    df.to_sql(name='myla311_staging',schema='public',con=meta.bind, if_exists='replace')
+    df.to_sql(name='myla311_staging',schema='public',con=meta.bind, if_exists='append',index=False)
     return "done"
 
 sql_upsert = \
     """
-    INSERT INTO myla311_staging
-    (
-        actiontaken text,
-        address text,
-        addressverified text,
-        anonymous text,
-        apc text,
-        approximateaddress text,
-        assignto text,
-        cd text,
-        cdmember text,
-        closeddate text,
-        createdbyuserorganization text,
-        createddate text,
-        direction text,
-        housenumber text,
-        latitude text,
-        location text,
-        location_address text,
-        location_city text,
-        location_state text,
-        location_zip text,
-        longitude text,
-        mobileos text,
-        nc text,
-        ncname text,
-        owner text,
-        policeprecinct text,
-        reasoncode text,
-        requestsource text,
-        requesttype text,
-        resolutioncode text,
-        servicedate text,
-        srnumber text,
-        status text,
-        streetname text,
-        suffix text,
-        tbmcolumn text,
-        tbmpage text,
-        tbmrow text,
-        updateddate text,
-        zipcode text
-    )
-    SELECT
-       (
-        actiontaken text,
-        address text,
-        addressverified text,
-        anonymous text,
-        apc text,
-        approximateaddress text,
-        assignto text,
-        cd text,
-        cdmember text,
-        closeddate text,
-        createdbyuserorganization text,
-        createddate text,
-        direction text,
-        housenumber text,
-        latitude text,
-        location text,
-        location_address text,
-        location_city text,
-        location_state text,
-        location_zip text,
-        longitude text,
-        mobileos text,
-        nc text,
-        ncname text,
-        owner text,
-        policeprecinct text,
-        reasoncode text,
-        requestsource text,
-        requesttype text,
-        resolutioncode text,
-        servicedate text,
-        srnumber text,
-        status text,
-        streetname text,
-        suffix text,
-        tbmcolumn text,
-        tbmpage text,
-        tbmrow text,
-        updateddate text,
-        zipcode text
-    )
-    FROM myla311_main
-    ON CONFLICT DO NOTHING
+    INSERT INTO public.myla311_staging
+    SELECT * FROM public.myla311_main
+    ON CONFLICT DO NOTHING;
     """
 
 sql_delete_relects = \
