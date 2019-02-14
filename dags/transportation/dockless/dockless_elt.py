@@ -119,7 +119,7 @@ def load_to_s3(**kwargs):
             print("The object does not exist.")
         else:
             raise
-    config = parse_config('.config')
+    config = parse_config('/tmp/.config')
     
     logging.info("Downloaded and parsed config from S3")
 
@@ -143,7 +143,6 @@ def load_to_s3(**kwargs):
         if headers and isinstance(headers, str):
             p.headers = json.loads(headers)
     logging.info(f"set company to {company}")
-    import ipdb; ipdb.set_trace()
     # query status changes 
     end_time = kwargs['execution_date']
     start_time = end_time - timedelta(hours=12)
