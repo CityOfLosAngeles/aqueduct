@@ -30,7 +30,7 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2018, 10, 30), 
-    'email': ['hunter.owens@lacity.org'],
+    'email': ['hunter.owens@lacity.org', 'mony.patel@lacity.org', 'paul.tsan@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
@@ -119,7 +119,7 @@ def load_to_s3(**kwargs):
             print("The object does not exist.")
         else:
             raise
-    config = parse_config('/tmp/.config')
+    config = parse_config('.config')
     
     logging.info("Downloaded and parsed config from S3")
 
@@ -143,7 +143,7 @@ def load_to_s3(**kwargs):
         if headers and isinstance(headers, str):
             p.headers = json.loads(headers)
     logging.info(f"set company to {company}")
-
+    import ipdb; ipdb.set_trace()
     # query status changes 
     end_time = kwargs['execution_date']
     start_time = end_time - timedelta(hours=12)
@@ -290,7 +290,7 @@ task2 = PostgresOperator(
     )
 
 
-providers = ['lyft', 'lime', 'jump', 'bird', ]
+providers = ['lyft', 'lime', 'jump', 'bird', 'razor', 'wheels']
 
 task_list = []
 for provider in providers:
