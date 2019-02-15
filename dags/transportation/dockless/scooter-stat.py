@@ -41,7 +41,8 @@ REFRESH MATERIALIZED VIEW v_status_changes;
 """
 
 refresh_materialized_trips = """
-REFRESH MATERIALIZED VIEW v_trips; 
+SET work_mem = '64MB';
+REFRESH MATERIALIZED VIEW v_trips;
 """ 
 
 task1 = PostgresOperator(
