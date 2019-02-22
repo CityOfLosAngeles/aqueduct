@@ -53,7 +53,7 @@ default_args = {
 
 dag = DAG('waze-s3-to-sql', 
     description='DAG for moving Waze data from S3 to RDS',
-	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",concurrency=1,max_active_runs=1) #"@hourly") # *****=run every minute
+	  catchup=False, default_args=default_args,schedule_interval="*/1 * * * *",concurrency=3,max_active_runs=3) #"@hourly") # *****=run every minute
 
 def s3keyCheck():
 	logging.info("s3keyCheck called")
@@ -282,7 +282,13 @@ def processJSONtoDB(**kwargs):
 		if "/" not in key and key.endswith('.json'):
 			logging.info ("Attempting to process key: "+key)
 			logging.info("Getting key from S3")
-			keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+			try:
+				keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+			except Exception as e:
+				logging.warning("S3 Key not found (pulled by another thread perhaps). Skipping file.")
+				print("Error getting key:{0}".format(e))
+				continue
+                        
 			logging.info("Getting meta data from file")
 			raw_data = tab_raw_data(keyObj)#.key) #filepath.name)
 
