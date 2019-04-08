@@ -339,8 +339,8 @@ def processJSONtoDB(**kwargs):
 				irregs_tosql.to_sql(name="irregularities", schema=schemaName, con=meta.bind, if_exists="append", index=False,
 						    dtype={"line": typeJSON})
 
-                        #finished processing file
-                        print("File added to database! ")
+			#finished processing file
+			print("File added to database! ")
 			processedKeys.append(key)
 			
 			# store file info before deleting key
