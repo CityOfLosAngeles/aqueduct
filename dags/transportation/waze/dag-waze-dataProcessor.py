@@ -339,7 +339,8 @@ def processJSONtoDB(**kwargs):
 				irregs_tosql.to_sql(name="irregularities", schema=schemaName, con=meta.bind, if_exists="append", index=False,
 						    dtype={"line": typeJSON})
 
-			print("File added to database! ")
+                        #finished processing file
+                        print("File added to database! ")
 			processedKeys.append(key)
 			
 			# store file info before deleting key
@@ -354,7 +355,7 @@ def processJSONtoDB(**kwargs):
 			
 			# how many files to process, comment out to process all files
 			count += 1
-			if count > 0:
+			if count > 5:
 				break
 			
 	print ("processed keys:")
@@ -397,6 +398,7 @@ def moveProcessedKeys(**kwargs):
 			
 	logging.info("moveProcessedKeys complete!")
 
+''' removed as unnecessary and time consuming
 s3keySense = S3KeySensor(
 	task_id='s3_file_test',
 	poke_interval=15, #retry after 15 seconds
@@ -407,7 +409,7 @@ s3keySense = S3KeySensor(
 	bucket_name="{{ var.value.waze_s3_bucket_source }}",
 	aws_conn_id='s3_conn',
 	dag=dag)
-
+'''
 
 #emailNotify = EmailOperator(
 #   task_id='email_notification',
@@ -434,4 +436,4 @@ moveProcessedFilesOp = PythonOperator(
 	dag=dag)
 	
 # order of execution of tasks
-dag >> s3keySense >> processDataFileOp >> moveProcessedFilesOp
+dag >> processDataFileOp >> moveProcessedFilesOp
