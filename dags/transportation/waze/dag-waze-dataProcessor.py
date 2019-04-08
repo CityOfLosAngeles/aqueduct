@@ -256,7 +256,14 @@ def processJSONtoDB(**kwargs):
 	# get a hook to the S3 via airflow
 	hook = S3Hook(aws_conn_id="s3_conn") #"aws_s3_waze_unprocessed")
 	logging.info("Got S3 Hook")
-	#key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
+
+	# get bucket names and bucket for moving files from queued to processed
+	bucket_source_name = Variable.get("waze_s3_bucket_source")
+	bucket_processed_name = Variable.get("waze_s3_bucket_processed")
+	#bucket_source = s3.Bucket(bucket_source_name)
+	bucket_processed = hook.get_bucket(bucket_processed_name)
+
+        #key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
 	#print ("Got a key from S3 bucket:")
 	#print (key.key)
 
@@ -341,11 +348,22 @@ def processJSONtoDB(**kwargs):
 
 			#finished processing file
 			print("File added to database! ")
-			processedKeys.append(key)
-			
 			# store file info before deleting key
 			keymb = (keyObj.content_length/(1024*1024))
+			#processedKeys.append(key)
 
+			# move file from 'test' queue bucket to processed bucket
+			copy_source = {'Bucket':bucket_source_name,'Key':key}
+			bucket_processed.copy(copy_source,key)
+			#hook.copy_object(key,key,bucket_source_name,bucket_processed_name) # airflow 1.11?
+			logging.info ("copied "+key+" from "+bucket_source_name+" to "+bucket_processed_name)
+
+			# delete file from 'test' queue bucket
+			#hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
+			keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+			keyObj.delete()
+			logging.info("Deleted "+key+" from "+bucket_source_name)
+						
 			#Time to download file from S3, process, store in RDS, bucket copy
 			processDoneTime = time.time()
 			elapsed = processDoneTime - startTime
@@ -358,10 +376,11 @@ def processJSONtoDB(**kwargs):
 			if count > 5:
 				break
 			
-	print ("processed keys:")
-	for key in processedKeys:
-		print (key)
-	kwargs['ti'].xcom_push(key='processedKeys',value=processedKeys)
+	#print ("processed keys:")
+	#for key in processedKeys:
+	#	print (key)
+	#kwargs['ti'].xcom_push(key='processedKeys',value=processedKeys)
+
 	print ("ProcessJSONtoDB complete!")
 	
 	return count
@@ -428,12 +447,12 @@ processDataFileOp = PythonOperator(
 	python_callable=processJSONtoDB,
 	provide_context=True,
 	dag=dag)
-
+'''
 moveProcessedFilesOp = PythonOperator(
 	task_id='moveProcessedKeys',
 	python_callable=moveProcessedKeys,
 	provide_context=True,
 	dag=dag)
-	
+'''	
 # order of execution of tasks
-dag >> processDataFileOp >> moveProcessedFilesOp
+dag >> processDataFileOp
