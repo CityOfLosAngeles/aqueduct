@@ -236,8 +236,8 @@ def tab_alerts(raw_data):
 
 def processJSONtoDB(**kwargs):
 	logging.info("processJSONtoDB called")
+	# get schema name from airflow variables
 	schemaName = Variable.get("waze_db_schema")
-	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	
 	logging.info("Connecting to database. schema="+schemaName)
 	meta = connect_database("postgres_default") #"aws_postgres_datalake")
@@ -258,12 +258,14 @@ def processJSONtoDB(**kwargs):
 	logging.info("Got S3 Hook")
 
 	# get bucket names and bucket for moving files from queued to processed
-	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	bucket_processed_name = Variable.get("waze_s3_bucket_processed")
+	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	#bucket_source = s3.Bucket(bucket_source_name)
 	bucket_processed = hook.get_bucket(bucket_processed_name)
-
-        #key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
+	# files processed per run
+	process_files_per_run = int(Variable.get("waze_process_files_per_run"))
+	
+	#key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
 	#print ("Got a key from S3 bucket:")
 	#print (key.key)
 
@@ -373,7 +375,7 @@ def processJSONtoDB(**kwargs):
 			
 			# how many files to process, comment out to process all files
 			count += 1
-			if count > 5:
+			if count >= process_files_per_run:
 				break
 			
 	#print ("processed keys:")
