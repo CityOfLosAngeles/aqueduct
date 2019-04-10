@@ -65,19 +65,6 @@ def s3keyCheck():
 	else:
 		logging.info("no key found")
 		return False
-        
-#       session = boto3.Session(
-#	s3 = boto3.resource('s3')
-#	client = boto3.client('s3')
-#	bucket_source = s3.Bucket(bucket_source_name)
-#	objs = client.list_objects_v2(Bucket='bucket_source_name',MaxKeys=1)
-#	if (objs['KeyCount'] > 0):
-#		print ('Found at least 1 key!')
-#		logging.info("found at least 1 key")
-#		return True
-#	else:
-#		logging.info("no keys found")
-#		return False
 
 def logTest():
 	logging.info('logTest called')
@@ -99,7 +86,6 @@ def connect_database(connection_id):
 	return meta
 
 def tab_raw_data(s3_key_obj):
-
 	#read data file
 	#doc = open(datafile_s3_key) # old local file method
 	# get file from S3
@@ -419,42 +405,11 @@ def moveProcessedKeys(**kwargs):
 			
 	logging.info("moveProcessedKeys complete!")
 
-''' removed as unnecessary and time consuming
-s3keySense = S3KeySensor(
-	task_id='s3_file_test',
-	poke_interval=15, #retry after 15 seconds
-	timeout=60, #timeout after 60 seconds
-	soft_fail=True, #mark task Skipped on failure
-	bucket_key='*',
-	wildcard_match=True,
-	bucket_name="{{ var.value.waze_s3_bucket_source }}",
-	aws_conn_id='s3_conn',
-	dag=dag)
-'''
-
-#emailNotify = EmailOperator(
-#   task_id='email_notification',
-#   to = 'bryan.blackford@lacity.org',
-#   subject = 'ETL Job Done',
-#   html_content = 'Airflow ETL Job Done',
-#   dag=dag)
-
-#s3keyCheckOp = PythonOperator(
-#        task_id='s3keyCheckOpID',
-#        python_callable=s3keyCheck,
-#        dag=dag)
-
 processDataFileOp = PythonOperator(
 	task_id='processDataFile',
 	python_callable=processJSONtoDB,
 	provide_context=True,
 	dag=dag)
-'''
-moveProcessedFilesOp = PythonOperator(
-	task_id='moveProcessedKeys',
-	python_callable=moveProcessedKeys,
-	provide_context=True,
-	dag=dag)
-'''	
+
 # order of execution of tasks
 dag >> processDataFileOp
