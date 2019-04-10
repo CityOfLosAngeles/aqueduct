@@ -65,19 +65,6 @@ def s3keyCheck():
 	else:
 		logging.info("no key found")
 		return False
-        
-#       session = boto3.Session(
-#	s3 = boto3.resource('s3')
-#	client = boto3.client('s3')
-#	bucket_source = s3.Bucket(bucket_source_name)
-#	objs = client.list_objects_v2(Bucket='bucket_source_name',MaxKeys=1)
-#	if (objs['KeyCount'] > 0):
-#		print ('Found at least 1 key!')
-#		logging.info("found at least 1 key")
-#		return True
-#	else:
-#		logging.info("no keys found")
-#		return False
 
 def logTest():
 	logging.info('logTest called')
@@ -99,7 +86,6 @@ def connect_database(connection_id):
 	return meta
 
 def tab_raw_data(s3_key_obj):
-
 	#read data file
 	#doc = open(datafile_s3_key) # old local file method
 	# get file from S3
@@ -236,8 +222,8 @@ def tab_alerts(raw_data):
 
 def processJSONtoDB(**kwargs):
 	logging.info("processJSONtoDB called")
+	# get schema name from airflow variables
 	schemaName = Variable.get("waze_db_schema")
-	bucket_source_name = Variable.get("waze_s3_bucket_source")
 	
 	logging.info("Connecting to database. schema="+schemaName)
 	meta = connect_database("postgres_default") #"aws_postgres_datalake")
@@ -256,6 +242,15 @@ def processJSONtoDB(**kwargs):
 	# get a hook to the S3 via airflow
 	hook = S3Hook(aws_conn_id="s3_conn") #"aws_s3_waze_unprocessed")
 	logging.info("Got S3 Hook")
+
+	# get bucket names and bucket for moving files from queued to processed
+	bucket_processed_name = Variable.get("waze_s3_bucket_processed")
+	bucket_source_name = Variable.get("waze_s3_bucket_source")
+	#bucket_source = s3.Bucket(bucket_source_name)
+	bucket_processed = hook.get_bucket(bucket_processed_name)
+	# files processed per run
+	process_files_per_run = int(Variable.get("waze_process_files_per_run"))
+	
 	#key = hook.get_wildcard_key(wildcard_key="*",bucket_name=bucket_source_name)
 	#print ("Got a key from S3 bucket:")
 	#print (key.key)
@@ -339,12 +334,24 @@ def processJSONtoDB(**kwargs):
 				irregs_tosql.to_sql(name="irregularities", schema=schemaName, con=meta.bind, if_exists="append", index=False,
 						    dtype={"line": typeJSON})
 
+			#finished processing file
 			print("File added to database! ")
-			processedKeys.append(key)
-			
 			# store file info before deleting key
 			keymb = (keyObj.content_length/(1024*1024))
+			#processedKeys.append(key)
 
+			# move file from 'test' queue bucket to processed bucket
+			copy_source = {'Bucket':bucket_source_name,'Key':key}
+			bucket_processed.copy(copy_source,key)
+			#hook.copy_object(key,key,bucket_source_name,bucket_processed_name) # airflow 1.11?
+			logging.info ("copied "+key+" from "+bucket_source_name+" to "+bucket_processed_name)
+
+			# delete file from 'test' queue bucket
+			#hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
+			keyObj = hook.get_key(key,bucket_name=bucket_source_name)
+			keyObj.delete()
+			logging.info("Deleted "+key+" from "+bucket_source_name)
+						
 			#Time to download file from S3, process, store in RDS, bucket copy
 			processDoneTime = time.time()
 			elapsed = processDoneTime - startTime
@@ -354,13 +361,14 @@ def processJSONtoDB(**kwargs):
 			
 			# how many files to process, comment out to process all files
 			count += 1
-			if count > 0:
+			if count >= process_files_per_run:
 				break
 			
-	print ("processed keys:")
-	for key in processedKeys:
-		print (key)
-	kwargs['ti'].xcom_push(key='processedKeys',value=processedKeys)
+	#print ("processed keys:")
+	#for key in processedKeys:
+	#	print (key)
+	#kwargs['ti'].xcom_push(key='processedKeys',value=processedKeys)
+
 	print ("ProcessJSONtoDB complete!")
 	
 	return count
@@ -397,41 +405,11 @@ def moveProcessedKeys(**kwargs):
 			
 	logging.info("moveProcessedKeys complete!")
 
-s3keySense = S3KeySensor(
-	task_id='s3_file_test',
-	poke_interval=15, #retry after 15 seconds
-	timeout=60, #timeout after 60 seconds
-	soft_fail=True, #mark task Skipped on failure
-	bucket_key='*',
-	wildcard_match=True,
-	bucket_name="{{ var.value.waze_s3_bucket_source }}",
-	aws_conn_id='s3_conn',
-	dag=dag)
-
-
-#emailNotify = EmailOperator(
-#   task_id='email_notification',
-#   to = 'bryan.blackford@lacity.org',
-#   subject = 'ETL Job Done',
-#   html_content = 'Airflow ETL Job Done',
-#   dag=dag)
-
-#s3keyCheckOp = PythonOperator(
-#        task_id='s3keyCheckOpID',
-#        python_callable=s3keyCheck,
-#        dag=dag)
-
 processDataFileOp = PythonOperator(
 	task_id='processDataFile',
 	python_callable=processJSONtoDB,
 	provide_context=True,
 	dag=dag)
 
-moveProcessedFilesOp = PythonOperator(
-	task_id='moveProcessedKeys',
-	python_callable=moveProcessedKeys,
-	provide_context=True,
-	dag=dag)
-	
 # order of execution of tasks
-dag >> s3keySense >> processDataFileOp >> moveProcessedFilesOp
+dag >> processDataFileOp
