@@ -95,6 +95,11 @@ sed -i "s/10001/$(id -u)/g" Dockerfile.dev
 
 ![Aqueductagram](Aqueduct.png)
 
+
+To deploy to production, [AWS Codedeploy](https://aws.amazon.com/codedeploy/) automatically pushes master to all the worker and master nodes / resets the system. 
+
+Open a PR againist master and it will be deployed.
+
 ### Debugging
 
 Some useful docker tricks for development and debugging:
