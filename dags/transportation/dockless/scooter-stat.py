@@ -19,7 +19,7 @@ default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
     'start_date': datetime(2018, 10, 30, tzinfo=local_tz), 
-    'email': ['hunter.owens@lacity.org', 'timothy.black@lacity.org'],
+    'email': ['hunter.owens@lacity.org', 'mony.patel@lacity.org','paul.tsan@lacity.org'],
     'email_on_failure': True,
     'email_on_retry': False,
     'retries': 1,
@@ -116,7 +116,13 @@ def email_callback(**kwargs):
 
     """
     send_email(
-        to=['hunter.owens@lacity.org', 'marcel.porras@lacity.org', 'jose.elias@lacity.org', 'timothy.black@lacity.org'],
+        to=['hunter.owens@lacity.org', 
+            'marcel.porras@lacity.org',
+            'jose.elias@lacity.org', 
+            'paul.tsan@lacity.org',
+            'vladimir.gallegos@lacity.org',
+            'mony.patel@lacity.org'
+        ],
         subject=f"Dockless Stats for { kwargs['yesterday_ds'] }",
         html_content=email_template
     )
