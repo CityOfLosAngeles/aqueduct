@@ -104,3 +104,6 @@ ENV/
 # mypy
 .mypy_cache/
 .DS_Store
+
+# config file for mds-provider
+*.config
