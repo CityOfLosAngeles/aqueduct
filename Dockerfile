@@ -1,4 +1,4 @@
-FROM python:3.7-slim
+FROM python:3.6-slim
 
 ENV PYTHONUNBUFFERED=1 \
     AWS_REGION=us-west-2 \
