@@ -29,7 +29,14 @@ You should then run the database migrations to complete the container initializa
 make migrate
 ```
 
-There are some unresolved issues with WSL, Docker for Windows and such. Waiting for WSL 2. 
+There are some unresolved issues with WSL, Docker for Windows and such. Waiting for WSL 2. To fix, run 
+
+```
+sudo mkdir /c
+sudo mount --bind /mnt/c /c
+``` 
+
+and read this [blog post](https://nickjanetakis.com/blog/setting-up-docker-for-windows-and-wsl-to-work-flawlessly) for context. 
 ## Testing
 
 A single task, e.g. `spark`, of an Airflow dag, e.g. `example`, can be run with an execution date, e.g. `2018-01-01`, in the `dev` environment with:
