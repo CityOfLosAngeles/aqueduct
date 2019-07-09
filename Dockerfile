@@ -29,9 +29,15 @@ ENV AIRFLOW_HOME=/app \
     SLUGIFY_USES_TEXT_UNIDECODE=yes \
     URL=http://localhost
 
-RUN mkdir -p /app 
-
 EXPOSE $PORT
+
+
+# add a non-privileged user for installing and running the application
+RUN mkdir -p /app && \
+    chown 10001:10001 /app && \
+    groupadd --gid 10001 app && \
+    useradd --no-create-home --uid 10001 --gid 10001 --home-dir /app app
+
 # python-slim base image has missing directories required for psql install
 RUN mkdir -p /usr/share/man/man1
 RUN mkdir -p /usr/share/man/man7
@@ -52,9 +58,14 @@ WORKDIR /tmp
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Switch back to home directory
+WORKDIR /app
+
 COPY . /app
 
-WORKDIR /app
+RUN chown -R 10001:10001 /app
+
+USER 10001
+
 # Using /bin/bash as the entrypoint works around some volume mount issues on Windows
 # where volume-mounted files do not have execute bits set.
 # https://github.com/docker/compose/issues/2301#issuecomment-154450785 has additional background.
