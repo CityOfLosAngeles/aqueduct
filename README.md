@@ -29,6 +29,7 @@ You should then run the database migrations to complete the container initializa
 make migrate
 ```
 
+There are some unresolved issues with WSL, Docker for Windows and such. Waiting for WSL 2. 
 ## Testing
 
 A single task, e.g. `spark`, of an Airflow dag, e.g. `example`, can be run with an execution date, e.g. `2018-01-01`, in the `dev` environment with:

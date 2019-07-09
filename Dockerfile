@@ -54,10 +54,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Switch back to home directory
 COPY . /app
 
-RUN ls /app
+WORKDIR /app
 # Using /bin/bash as the entrypoint works around some volume mount issues on Windows
 # where volume-mounted files do not have execute bits set.
 # https://github.com/docker/compose/issues/2301#issuecomment-154450785 has additional background.
-# ENTRYPOINT [ "/bin/bash", "/app/bin/run.sh"]
+ENTRYPOINT [ "/bin/bash", "/app/bin/run.sh"]
 
-# CMD ["web"]
+CMD ["web"]
