@@ -109,3 +109,6 @@ ENV/
 *.config
 logs
 airflow-webserver.pid
+
+.bash_history
+.python_history
