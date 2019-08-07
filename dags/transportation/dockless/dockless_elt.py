@@ -145,7 +145,8 @@ def load_to_s3(**kwargs):
     logging.info(f"set company to {company}")
     # query status changes 
     end_time = kwargs['execution_date']
-    if providers[0].provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': ## test is provider is jump, up hours
+    ## test is provider is jump, up hours
+    if providers[0].provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': 
         start_time = end_time - timedelta(hours=25)
     else:
         start_time = end_time - timedelta(hours=12)
