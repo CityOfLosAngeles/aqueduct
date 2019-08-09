@@ -5,17 +5,20 @@ CREATE TABLE IF NOT EXISTS trips_geoms (
 ); 
 /* process route function */ 
 CREATE OR REPLACE FUNCTION process_route(jsonb) 
-	RETURNS geometry 
-	LANGUAGE 'sql'
-	AS $BODY$
+	RETURNS geometry AS 
+	$func$
+	BEGIN
+		RETURN ST_MakeLine(ARRAY(
+					SELECT ST_GeomFromGeoJSON((feature -> 'geometry')::text) as geometry FROM (
+						SELECT jsonb_array_elements($1 -> 'features') as feature
+					) features
+				  ));
+	EXCEPTION WHEN OTHERS THEN
+		return NULL;
+	END
+	$func$  
+    LANGUAGE plpgsql IMMUTABLE;
 
-	SELECT  
-	ST_MakeLine(ARRAY(
-        SELECT ST_GeomFromGeoJSON((feature -> 'geometry')::text) as geometry FROM (
-            SELECT jsonb_array_elements($1 -> 'features') as feature
-        ) features
-    ))
-$BODY$;
 /* trigger function */ 
 CREATE OR REPLACE FUNCTION geom_copy() RETURNS TRIGGER AS
 $BODY$
