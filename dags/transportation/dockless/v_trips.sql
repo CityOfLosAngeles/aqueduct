@@ -24,8 +24,8 @@ AS
     trips.standard_cost,
     trips.actual_cost,
 	trips_geoms.points as trip_geometry, 
-	ST_StartPoint(trip_geometry) as start_point,
-	ST_EndPoint(trip_geometry) as end_point
+	ST_StartPoint(trips_geoms.points) as start_point,
+	ST_EndPoint(trips_geoms.points) as end_point
    FROM trips INNER JOIN trips_geoms 
    ON
 		trips.trip_id = trips_geoms.trip_id
@@ -44,6 +44,7 @@ GRANT SELECT ON TABLE public.v_trips TO dot_paul_ro;
 GRANT ALL ON TABLE public.v_trips TO dbadmin;
 GRANT SELECT ON TABLE public.v_trips TO dot_vlad_ro;
 
+-- view v.status_changes
 
 DROP MATERIALIZED VIEW public.v_status_changes;
 
@@ -64,8 +65,9 @@ AS
 	status_changes.id,
     status_changes.event_location as event_location_json,
     timezone('PST'::text, status_changes.event_time) AS event_time_local, 
-	status_change_geoms.event_location_geom as event_location_geom,
+	status_change_geoms.event_location_geom as event_location_geom
    FROM status_changes INNER JOIN status_change_geoms
+   ON status_changes.id = status_change_geoms.status_change_id
 WITH DATA;
 
 CREATE INDEX idx_status_change_event_time ON v_status_changes(event_time_local);
