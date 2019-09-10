@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS status_changes (
     event_type event_types NOT NULL,
     event_type_reason event_type_reasons NOT NULL,
     event_time timestamptz NOT NULL,
+    publication_time timestamptz, 
     event_location jsonb NOT NULL,
     battery_pct FLOAT,
     associated_trips UUID[]
