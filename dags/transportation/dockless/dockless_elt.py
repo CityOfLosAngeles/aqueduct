@@ -204,7 +204,7 @@ CREATE TYPE event_type_reasons AS ENUM (
 status_changes = """
 
 CREATE TABLE IF NOT EXISTS status_changes (
-    id SERIAL PRIMARY KEY 
+    id SERIAL PRIMARY KEY,
     provider_id UUID NOT NULL,
     provider_name TEXT NOT NULL,
     device_id UUID NOT NULL,
