@@ -6,7 +6,7 @@ help:
 	@echo "The list of commands for local development:\n"
 	@echo "  build      Builds the docker images for the docker-compose setup"
 	@echo "  clean      Stops and removes all docker containers"
-	@echo "  migrate    Runs the Django database migrations"
+	@echo "  migrate    Runs the Flask database migrations"
 	@echo "  redis-cli  Opens a Redis CLI"
 	@echo "  run        Run a airflow command"
 	@echo "  secret     Create a secret to be used for a config variable"
@@ -31,7 +31,7 @@ redis-cli:
 	docker-compose run redis redis-cli -h redis
 
 run:
-	docker-compose run -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID web airflow $(COMMAND)
+	docker-compose run -e DEV_USERNAME -e AWS_SECRET_ACCESS_KEY -e AWS_ACCESS_KEY_ID web airflow $(AIRFLOW_COMMAND)
 
 secret:
 	@docker-compose run web python -c \

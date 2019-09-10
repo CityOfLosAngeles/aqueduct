@@ -15,7 +15,6 @@ import time, pytz
 import mds
 import mds.db
 import mds.providers
-from mds.api import ProviderClient
 import boto3
 import os
 import botocore
@@ -107,59 +106,44 @@ def connect_aws_s3():
 def load_to_s3(**kwargs):
     """
     Python operator to load data to s3 
-    for an operator 
+    for an operator and the database
     """
     # load config from s3
     s3 = connect_aws_s3()
     
     try:
-        s3.Bucket('city-of-los-angeles-data-lake').download_file('dockless/.config', '/tmp/.config')
+        s3.Bucket('city-of-los-angeles-data-lake').download_file('dockless/config.json', '/tmp/config.json')
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] == "404":
             print("The object does not exist.")
         else:
             raise
-    config = parse_config('/tmp/.config')
-    
-    logging.info("Downloaded and parsed config from S3")
-
-    # determine the MDS version to reference
-    ref = config["DEFAULT"]["ref"]
-    logging.info(f"Referencing MDS @ {ref}")
-    
-    # download the Provider registry and filter based on params
-    logging.info("Downloading provider registry...")
-    registry = mds.providers.get_registry(ref)
     company = kwargs['params']['company']
-    logging.info(f"Acquired registry: {provider_names(registry)}")
-
-    # filter the registry with cli args, and configure the providers that will be used
-    providers = [p.configure(config, use_id=True) for p in filter_providers(registry, [company])]
-
-    # parse any headers from the config to a dict
-    # This is to fix the Bird APP-version bug. 
-    for p in providers:
-        headers = getattr(p, "headers", None)
-        if headers and isinstance(headers, str):
-            p.headers = json.loads(headers)
+    config = mds.ConfigFile('/tmp/config.json', company)
+    logging.info("Downloaded and parsed config from S3")
+    # assert the version parameter
+    version = '0.3.2'
+    # set company 
     logging.info(f"set company to {company}")
-    # query status changes 
+    logging.info(f"Referencing MDS @ {version}")
+    # load company
+    client = mds.Client(company, config,
+                        version=version)
     end_time = kwargs['execution_date']
-    ## test is provider is jump, up hours
-    if providers[0].provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': 
+    ## test is provider is jump, up hours because their ETL is slow. 
+    if client.provider.provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': 
         start_time = end_time - timedelta(hours=25)
     else:
         start_time = end_time - timedelta(hours=12)
-    client = mds.api.ProviderClient(providers=providers, ref="master")
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
     
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
-    obj.put(Body=json.dumps(status_changes[providers[0]]))
+    obj.put(Body=json.dumps(status_changes))
     logging.info(f"Wrote {company} status changes to s3")
     # query trips 
     trips = client.get_trips(end_time=end_time, start_time=start_time)
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
-    obj.put(Body=json.dumps(trips[providers[0]]))
+    obj.put(Body=json.dumps(trips))
     logging.info(f"Wrote {company} trip to s3")
     logging.info("Connecting to DB")
     user = pg_conn.login
@@ -168,7 +152,7 @@ def load_to_s3(**kwargs):
     dbname = pg_conn.schema
     logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
     engine = sqlalchemy.create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}')
-    db = mds.db.ProviderDataLoader(engine=engine)
+    db = mds.Database(engine=engine)
     logging.info("loading {company} status changes into DB")
     db.load_status_changes(source=status_changes, stage_first=5)
     logging.info("loading {company} trips into DB")
