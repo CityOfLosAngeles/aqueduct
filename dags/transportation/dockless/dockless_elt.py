@@ -217,7 +217,7 @@ CREATE TABLE IF NOT EXISTS status_changes (
     publication_time timestamptz, 
     event_location jsonb NOT NULL,
     battery_pct FLOAT,
-    associated_trips UUID[]
+    associated_trip UUID
 );
 ALTER TABLE status_changes DROP CONSTRAINT unique_event;
 ALTER TABLE status_changes
@@ -248,7 +248,8 @@ CREATE TABLE  IF NOT EXISTS trips (
     end_time timestamptz NOT NULL,
     parking_verification_url TEXT,
     standard_cost INT,
-    actual_cost INT
+    actual_cost INT,
+    publication_time timestamptz
 );
 ALTER TABLE trips DROP CONSTRAINT pk_trip;
 
