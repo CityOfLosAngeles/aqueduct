@@ -211,8 +211,10 @@ CREATE TYPE event_type_reasons AS ENUM (
     'low_battery',
     'service_end',
     'rebalance_pick_up',
-    'maintenance_pick_up'
-);
+    'maintenance_pick_up',
+    'agency_drop_off',
+    'agency_pick_up'
+    );
 """
 
 status_changes = """
