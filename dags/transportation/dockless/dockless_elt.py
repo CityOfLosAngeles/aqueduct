@@ -138,7 +138,6 @@ def load_to_s3(**kwargs):
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
     
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
-    import pdb; pdb.set_trace()
     obj.put(Body=json.dumps(status_changes))
     logging.info(f"Wrote {company} status changes to s3")
     # query trips 
