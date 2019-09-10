@@ -119,7 +119,7 @@ def load_to_s3(**kwargs):
         else:
             raise
     company = kwargs['params']['company']
-    config = mds.ConfigFile('/tmp/config.json')
+    config = mds.ConfigFile('/tmp/config.json', company)
     logging.info("Downloaded and parsed config from S3")
     # assert the version parameter
     version = '0.3.2'
