@@ -130,7 +130,8 @@ def load_to_s3(**kwargs):
     logging.info(f"set company to {company}")
     logging.info(f"Referencing MDS @ {version}")
     # load company
-    client = mds.Client(company, config, version)
+    client = mds.Client(company, config, 
+                        version=version)
     end_time = kwargs['execution_date']
     ## test is provider is jump, up hours because their ETL is slow. 
     if client.provider.provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': 
