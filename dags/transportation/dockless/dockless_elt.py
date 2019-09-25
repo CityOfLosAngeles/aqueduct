@@ -122,12 +122,12 @@ def load_to_s3(**kwargs):
     config = mds.ConfigFile('/tmp/config.json', company)
     logging.info("Downloaded and parsed config from S3")
     # assert the version parameter
-    version = '0.3.2'
+    version = getattr(config, 'version', '0.3.2')
     # set company 
     logging.info(f"set company to {company}")
     logging.info(f"Referencing MDS @ {version}")
     # load company
-    client = mds.Client(company, config,
+    client = mds.Client(company, config, 
                         version=version)
     end_time = kwargs['execution_date']
     ## test is provider is jump, up hours because their ETL is slow. 
