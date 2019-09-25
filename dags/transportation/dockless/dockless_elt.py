@@ -122,11 +122,7 @@ def load_to_s3(**kwargs):
     config = mds.ConfigFile('/tmp/config.json', company)
     logging.info("Downloaded and parsed config from S3")
     # assert the version parameter
-    try: 
-        config.version 
-        version = config.version
-    except AttributeError: 
-        version = '0.3.2'
+    version = getattr(config, 'version', '0.3.2')
     # set company 
     logging.info(f"set company to {company}")
     logging.info(f"Referencing MDS @ {version}")
