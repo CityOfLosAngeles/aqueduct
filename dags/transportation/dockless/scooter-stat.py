@@ -125,6 +125,7 @@ def email_callback(**kwargs):
             'sean@ellis-and-associates.com',
             'john@ellis-and-associates.com',
             'max@ellis-and-associates.com',
+            'ian.rose@lacity.org',
         ],
         subject=f"Dockless Stats for { kwargs['yesterday_ds'] }",
         html_content=email_template
