@@ -15,12 +15,14 @@ import time, pytz
 import mds
 import mds.db
 import mds.providers
+from mds.versions import Version
 import boto3
 import os
 import botocore
 import sqlalchemy
 import logging
 import json
+import pandas
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 
@@ -103,6 +105,34 @@ def connect_aws_s3():
     s3 = session.resource('s3')
     return s3
 
+def normalize_trips(df, version):
+    """
+    Coerce types to str for optional fields so that pandas doesn't make an
+    incorrect type inference before loading into the temp table.
+    We could get more strict than this, but another type conversion happens
+    when we load from the temp table into the final table.
+    """
+    types = {
+        "parking_verification_url": str,
+        "standard_cost": str,
+        "actual_cost": str,
+    }
+    if version >= Version("0.3.0"):
+        types["publication_time"] = str
+    return pandas.astype(types)
+
+def normalize_status_changes(df, version):
+    """
+    Coerce types to str for optional fields so that pandas doesn't make an
+    incorrect type inference before loading into the temp table.
+    We could get more strict than this, but another type conversion happens
+    when we load from the temp table into the final table.
+    """
+    types = { "battery_pct": str }
+    if version >= Version("0.3.0"):
+        types["associated_trip"] = str
+    return pandas.astype(types)
+
 def load_to_s3(**kwargs):
     """
     Python operator to load data to s3 
@@ -144,7 +174,7 @@ def load_to_s3(**kwargs):
     trips = client.get_trips(end_time=end_time, start_time=start_time)
     obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
     obj.put(Body=json.dumps(trips))
-    logging.info(f"Wrote {company} trip to s3")
+    logging.info(f"Wrote {company} trips to s3")
     logging.info("Connecting to DB")
     user = pg_conn.login
     password = pg_conn.get_password()
@@ -154,10 +184,18 @@ def load_to_s3(**kwargs):
     db = mds.Database(uri=f'postgres://{user}:{password}@{host}:5432/{dbname}',
                       version=version)
     logging.info("loading {company} status changes into DB")
-    db.load_status_changes(source=status_changes, stage_first=5)
-    logging.info("loading {company} trips into DB")
+    db.load_status_changes(
+        source=status_changes,
+        stage_first=5,
+        before_load=normalize_status_changes
+    )
 
-    db.load_trips(source=trips, stage_first=5)
+    logging.info("loading {company} trips into DB")
+    db.load_trips(
+        source=trips,
+        stage_first=5,
+        before_load=normalize_trips
+    )
     return True
 
 types = """
@@ -294,4 +332,4 @@ for provider in providers:
         dag=dag)
     provider_to_s3_task.set_upstream(task2)
 
-task1 >> task2 
+task1 >> task2
