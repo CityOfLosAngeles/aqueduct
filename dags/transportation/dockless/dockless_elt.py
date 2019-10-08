@@ -114,11 +114,11 @@ def normalize_trips(df, version):
     """
     types = {
         "parking_verification_url": str,
-        "standard_cost": int,
-        "actual_cost": int,
+        "standard_cost": float, # pandas doesn't yet have nullable integers
+        "actual_cost": float, # pandas doesn't yet have nullable integers
     }
     if version >= Version("0.3.0"):
-        types["publication_time"] = str
+        types["publication_time"] = float # pandas doesn't yet have nullable integers
     return df.astype(types)
 
 def normalize_status_changes(df, version):
