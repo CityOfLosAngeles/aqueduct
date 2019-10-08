@@ -114,12 +114,12 @@ def normalize_trips(df, version):
     """
     types = {
         "parking_verification_url": str,
-        "standard_cost": str,
-        "actual_cost": str,
+        "standard_cost": int,
+        "actual_cost": int,
     }
     if version >= Version("0.3.0"):
         types["publication_time"] = str
-    return pandas.astype(types)
+    return df.astype(types)
 
 def normalize_status_changes(df, version):
     """
@@ -128,10 +128,10 @@ def normalize_status_changes(df, version):
     We could get more strict than this, but another type conversion happens
     when we load from the temp table into the final table.
     """
-    types = { "battery_pct": str }
+    types = { "battery_pct": float }
     if version >= Version("0.3.0"):
-        types["associated_trip"] = str
-    return pandas.astype(types)
+        types["associated_trip"] = 'object'
+    return df.astype(types)
 
 def load_to_s3(**kwargs):
     """
