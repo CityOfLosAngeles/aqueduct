@@ -80,7 +80,7 @@ def set_xcom_variables(**kwargs):
             COUNT(trip_id)::FLOAT / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
             COUNT (DISTINCT (device_id)) as num_devices_doing_trips
     FROM v_trips 
-    WHERE DATE_PART(start_time_local, 'day') IS '{yesterday}'
+    WHERE DATE(start_time_local') = '{yesterday}'
     GROUP BY provider_name, vehicle_type ; 
     """
     trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""", 
@@ -125,6 +125,7 @@ def email_callback(**kwargs):
             'sean@ellis-and-associates.com',
             'john@ellis-and-associates.com',
             'max@ellis-and-associates.com',
+            'ian.rose@lacity.org',
         ],
         subject=f"Dockless Stats for { kwargs['yesterday_ds'] }",
         html_content=email_template
