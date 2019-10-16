@@ -80,7 +80,7 @@ def set_xcom_variables(**kwargs):
             COUNT(trip_id)::FLOAT / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
             COUNT (DISTINCT (device_id)) as num_devices_doing_trips
     FROM v_trips 
-    WHERE DATE(start_time_local') = '{yesterday}'
+    WHERE DATE(start_time_local) = '{yesterday}'
     GROUP BY provider_name, vehicle_type ; 
     """
     trips = pd.read_sql(f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""", 
