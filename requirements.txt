@@ -11,3 +11,8 @@ sodapy
 geoalchemy2
 pandas
 git+https://github.com/CityofSantaMonica/mds-provider@master#egg=mds_provider
+beautifulsoup4
+html5lib
+requests
+pyarrow
+s3fs
