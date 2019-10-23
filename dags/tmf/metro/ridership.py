@@ -190,25 +190,25 @@ default_args = {
 dag = DAG("metro-ridership", default_args=default_args, schedule_interval="@monthly")
 
 
-def scrape_ridership_data(**kwargs):
+def scrape_ridership_data(ds, **kwargs):
     """
     The actual python callable that Airflow schedules.
     """
-    name = kwargs.get("name", "metro-ridership.parquet")
+    name = "metro-ridership-{}.parquet".format(ds)
     bucket = kwargs.get("bucket")
     ridership = get_all_ridership_data(3)
     if bucket:
         ridership.to_parquet(name)
         s3 = S3Hook('s3_conn')
-        s3.load_file(name, name, bucket)
+        s3.load_file(name, name, bucket, replace=True)
         os.remove(name)
 
 
 t1 = PythonOperator(
     task_id="scrape-ridership-data",
+    provide_context=True,
     python_callable=scrape_ridership_data,
     op_kwargs={
-        "name": "metro-ridership.parquet",
         "bucket": "tmf-data"
     },
     dag=dag,
