@@ -1,5 +1,6 @@
 import arcgis 
 import os 
+from sqlalchemy import create_engine
 
 def ratstat_loader():
     """
@@ -18,7 +19,15 @@ def ratstat_loader():
             [feature_layers.append(feature_layer) for feature_layer in item.layers]
         except KeyError: 
             pass
-    dfs = [layer.query(as_df=True) for layer in feature_layers]
+    dfs = {layer.properties['name']: layer.query(as_df=True, as_shapely=True) for layer in feature_layers}
+    conn = create_engine(os.environ.get('POSTGRES_URI'))
+    for k,table in dfs.items(): 
+        table['SHAPE'] = str(table['SHAPE'])
+        table.to_sql(k,
+                     conn, 
+                     schema='public-health',
+                     if_exists='replace')
+    return True
                  
 if __name__ == '__main__': 
-    content = ratstat_loader()
+    dfs = ratstat_loader()
