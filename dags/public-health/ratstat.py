@@ -3,8 +3,10 @@ import os
 from sqlalchemy import create_engine
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.hooks.base_hook import base_hook
 from datetime import datetime, timedelta
-
+import logging
+pg_conn = BaseHook.get_connection('postgres_default') 
 
 def ratstat_loader():
     """
@@ -16,6 +18,7 @@ def ratstat_loader():
                          password=os.environ.get('LAHUB_PASSWORD'))
     rat_stat_group = arcgis.gis.Group(hub, 
                                       '7f3d66478dd846598e76a8e334a03988') #this is the groupid of the ratstat group       
+    logging.info("Logged into hub and accessed rat stat group.")
     content = rat_stat_group.content()
     feature_layers = []
     for item in content:
@@ -24,7 +27,14 @@ def ratstat_loader():
         except KeyError: 
             pass
     dfs = {layer.properties['name']: layer.query(as_df=True, as_shapely=True) for layer in feature_layers}
-    conn = create_engine(os.environ.get('POSTGRES_URI'))
+    logging.info(f"Parsed {dfs.keys} into Pandas")
+    logging.info("Connecting to DB")
+    user = pg_conn.login
+    password = pg_conn.get_password()
+    host = pg_conn.host
+    dbname = pg_conn.schema
+    logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
+    conn = create_engine(f'postgres://{user}:{password}@{host}:5432/{dbname}'')
     for k,table in dfs.items(): 
         table['SHAPE'] = str(table['SHAPE'])
         table.to_sql(k,
