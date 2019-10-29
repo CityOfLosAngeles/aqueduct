@@ -16,3 +16,4 @@ html5lib
 requests
 pyarrow
 s3fs
+arcgis
