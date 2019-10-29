@@ -1,6 +1,8 @@
 import arcgis 
 import os 
 from sqlalchemy import create_engine
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
 
 def ratstat_loader():
     """
@@ -28,6 +30,23 @@ def ratstat_loader():
                      schema='public-health',
                      if_exists='replace')
     return True
-                 
-if __name__ == '__main__': 
-    dfs = ratstat_loader()
+
+default_args = {
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2019, 10, 30),
+    "email": ["hunter.owens@lacity.org", "ian.rose@lacity.org", "anthony.lyons@lacity.org"],
+    "email_on_failure": True,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(hours=2),
+}             
+
+dag = DAG('ratstat-loader', default_args=default_args, schedule_interval="@daily")
+
+t1 = PythonOperator(
+    task_id='ratstat-loader',
+    provide_content=True,
+    python_callable=ratstat_loader, 
+    dag=dag
+)
