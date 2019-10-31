@@ -51,10 +51,14 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Python dependencies
+COPY airflow-requirements.txt /tmp/
 COPY requirements.txt /tmp/
 # Switch to /tmp to install dependencies outside home dir
 WORKDIR /tmp
 
+# Install airflow requirements separately to avoid inadvertently upgrading them
+# upon deoployment.
+RUN pip install --no-cache-dir -r airflow-requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Switch back to home directory

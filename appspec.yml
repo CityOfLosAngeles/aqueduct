@@ -4,6 +4,11 @@ files:
   - source: /
     destination: /home/ec2-user/aqueduct
     overwrite: yes
+permissions:
+  - object: /home/ec2-user/aqueduct
+    pattern: "**"
+    owner: ec2-user
+    type: directory
 hooks:
   AfterInstall:
     - location: scripts/install.sh
