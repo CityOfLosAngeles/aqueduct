@@ -10,6 +10,11 @@ permissions:
     owner: ec2-user
     type:
       - directory
+  - object: /home/ec2-user/aqueduct
+    pattern: "**"
+    owner: ec2-user
+    type:
+      - file
 hooks:
   AfterInstall:
     - location: scripts/install.sh
