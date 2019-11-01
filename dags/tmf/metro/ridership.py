@@ -198,10 +198,11 @@ def scrape_ridership_data(ds, **kwargs):
     bucket = kwargs.get("bucket")
     ridership = get_all_ridership_data(3)
     if bucket:
-        ridership.to_parquet(name)
+        path = os.path.join('/tmp', name)
+        ridership.to_parquet(path)
         s3 = S3Hook('s3_conn')
-        s3.load_file(name, name, bucket, replace=True)
-        os.remove(name)
+        s3.load_file(path, name, bucket, replace=True)
+        os.remove(path)
 
 
 t1 = PythonOperator(
