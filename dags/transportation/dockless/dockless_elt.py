@@ -16,6 +16,7 @@ import mds
 import mds.db
 import mds.providers
 from mds.versions import Version
+from mds.api.auth import AuthorizationToken
 import boto3
 import os
 import botocore
@@ -23,6 +24,7 @@ import sqlalchemy
 import logging
 import json
 import pandas
+import requests
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 
@@ -105,7 +107,7 @@ def connect_aws_s3():
     s3 = session.resource('s3')
     return s3
 
-class BoltClientCredentials(mds.api.auth.AuthorizationToken):
+class BoltClientCredentials(AuthorizationToken):
     """
     Represents an authenticated session via the Bolt authentication scheme, documented at:
     <no URL>
