@@ -220,19 +220,23 @@ def load_to_s3_pgdb(**kwargs):
     logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
     db = mds.Database(uri=f'postgres://{user}:{password}@{host}:5432/{dbname}',
                       version=version)
-    logging.info("loading {company} status changes into DB")
-    db.load_status_changes(
-        source=status_changes,
-        stage_first=5,
-        before_load=normalize_status_changes
-    )
 
-    logging.info("loading {company} trips into DB")
-    db.load_trips(
-        source=trips,
-        stage_first=5,
-        before_load=normalize_trips
-    )
+    if len(status_changes) != 0:
+        logging.info("loading {company} status changes into DB")
+        db.load_status_changes(
+            source=status_changes,
+            stage_first=5,
+            before_load=normalize_status_changes
+        )
+
+    if len(trips) != 0:
+        logging.info("loading {company} trips into DB")
+        db.load_trips(
+            source=trips,
+            stage_first=5,
+            before_load=normalize_trips
+        )
+
     return True
 
 types = """
