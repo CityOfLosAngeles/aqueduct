@@ -228,6 +228,8 @@ def load_to_s3_pgdb(**kwargs):
             stage_first=5,
             before_load=normalize_status_changes
         )
+    else:
+        logging.info("Warning: not loading status change data for {company} as no data was received")
 
     if len(trips) != 0:
         logging.info("loading {company} trips into DB")
@@ -236,6 +238,8 @@ def load_to_s3_pgdb(**kwargs):
             stage_first=5,
             before_load=normalize_trips
         )
+    else:
+        logging.info("Warning: not loading trip data for {company} as no data was received")
 
     return True
 
