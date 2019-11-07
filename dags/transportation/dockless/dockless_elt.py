@@ -16,6 +16,7 @@ import mds
 import mds.db
 import mds.providers
 from mds.versions import Version
+from mds.api.auth import AuthorizationToken
 import boto3
 import os
 import botocore
@@ -23,6 +24,7 @@ import sqlalchemy
 import logging
 import json
 import pandas
+import requests
 
 pg_conn = BaseHook.get_connection('postgres_default') 
 
@@ -105,6 +107,41 @@ def connect_aws_s3():
     s3 = session.resource('s3')
     return s3
 
+class BoltClientCredentials(AuthorizationToken):
+    """
+    Represents an authenticated session via the Bolt authentication scheme, documented at:
+    <no URL>
+    Currently, your config needs:
+    * email
+    * password
+    * mds_api_url
+    * token_url
+    """
+    def __init__(self, provider):
+        """
+        Acquires the bearer token for Spin before establishing a session.
+        """
+        payload = {
+            "email": provider.email,
+            "password": provider.password
+        }
+        r = requests.post(provider.token_url, params=payload)
+        provider.token = r.json()["token"]
+
+        AuthorizationToken.__init__(self, provider)
+
+    @classmethod
+    def can_auth(cls, provider):
+        """
+        Returns True if this auth type can be used for the provider.
+        """
+        return all([
+            provider.provider_name.lower() == "bolt",
+            hasattr(provider, "email"),
+            hasattr(provider, "password"),
+            hasattr(provider, "token_url")
+        ])
+
 def normalize_trips(df, version):
     """
     Coerce types to str for optional fields so that pandas doesn't make an
@@ -133,7 +170,7 @@ def normalize_status_changes(df, version):
         types["associated_trip"] = 'object'
     return df.astype(types)
 
-def load_to_s3(**kwargs):
+def load_to_s3_pgdb(**kwargs):
     """
     Python operator to load data to s3 
     for an operator and the database
@@ -183,19 +220,27 @@ def load_to_s3(**kwargs):
     logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
     db = mds.Database(uri=f'postgres://{user}:{password}@{host}:5432/{dbname}',
                       version=version)
-    logging.info("loading {company} status changes into DB")
-    db.load_status_changes(
-        source=status_changes,
-        stage_first=5,
-        before_load=normalize_status_changes
-    )
 
-    logging.info("loading {company} trips into DB")
-    db.load_trips(
-        source=trips,
-        stage_first=5,
-        before_load=normalize_trips
-    )
+    if len(status_changes) != 0:
+        logging.info("loading {company} status changes into DB")
+        db.load_status_changes(
+            source=status_changes,
+            stage_first=5,
+            before_load=normalize_status_changes
+        )
+    else:
+        logging.info("Warning: not loading status change data for {company} as no data was received")
+
+    if len(trips) != 0:
+        logging.info("loading {company} trips into DB")
+        db.load_trips(
+            source=trips,
+            stage_first=5,
+            before_load=normalize_trips
+        )
+    else:
+        logging.info("Warning: not loading trip data for {company} as no data was received")
+
     return True
 
 types = """
@@ -327,7 +372,7 @@ for provider in providers:
     provider_to_s3_task = PythonOperator(
         task_id = f"loading_{provider}_data",
         provide_context=True,
-        python_callable=load_to_s3,
+        python_callable=load_to_s3_pgdb,
         params={"company": provider},
         dag=dag)
     provider_to_s3_task.set_upstream(task2)
