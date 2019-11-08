@@ -153,6 +153,7 @@ def normalize_trips(df, version):
         "parking_verification_url": str,
         "standard_cost": float, # pandas doesn't yet have nullable integers
         "actual_cost": float, # pandas doesn't yet have nullable integers
+        "trip_distance": float, # pandas doesn't yet have nullable integers
     }
     if version >= Version("0.3.0"):
         types["publication_time"] = float # pandas doesn't yet have nullable integers
