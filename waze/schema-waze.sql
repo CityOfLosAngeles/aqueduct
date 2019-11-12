@@ -18,7 +18,7 @@ ON waze.data_files USING btree
 (json_hash COLLATE pg_catalog."default")
 TABLESPACE pg_default;
 
-CREATE TABLE waze.jams 
+CREATE TABLE waze.jams
 (
   "pid"                             BIGSERIAL PRIMARY KEY,
   "id"                              BIGINT NOT NULL,--VARCHAR(40) NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE waze.alerts
 (
   "pid"                             BIGSERIAL PRIMARY KEY,
   "id"                              TEXT,--VARCHAR(40) NOT NULL,
-  "uuid"                            TEXT,-- NOT NULL, 
+  "uuid"                            TEXT,-- NOT NULL,
   "pub_millis"                      BIGINT NOT NULL,
   "pub_utc_date"                    TIMESTAMP,
   "road_type"                       INTEGER,
@@ -117,7 +117,7 @@ CREATE TABLE waze.geoTable(
 SELECT AddGeometryColumn ('waze','geotable','geom',4326,'LINESTRING',2);
 
 
-CREATE TABLE waze.roads 
+CREATE TABLE waze.roads
 (
   "id"                              SERIAL PRIMARY KEY NOT NULL,
   "value"                           INTEGER NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE waze.roads
 --ALTER TABLE waze.roads
 --  ADD CONSTRAINT roads_unique_combo UNIQUE(value, name);
 
-CREATE TABLE waze.alert_types 
+CREATE TABLE waze.alert_types
 (
   "id"                              SERIAL PRIMARY KEY NOT NULL,
   "type"                            TEXT NOT NULL,

@@ -23,17 +23,17 @@ AS
     trips.parking_verification_url,
     trips.standard_cost,
     trips.actual_cost,
-	trips_geoms.points as trip_geometry, 
+	trips_geoms.points as trip_geometry,
 	ST_StartPoint(trips_geoms.points) as start_point,
 	ST_EndPoint(trips_geoms.points) as end_point
-   FROM trips INNER JOIN trips_geoms 
+   FROM trips INNER JOIN trips_geoms
    ON
 		trips.trip_id = trips_geoms.trip_id
 WITH DATA;
 
 CREATE INDEX idx_trips_start_time ON v_trips(start_time_local);
 CREATE INDEX idx_trips_end_time ON v_trips(end_time_local);
- 
+
 ALTER TABLE public.v_trips
     OWNER TO dbadmin;
 
@@ -62,7 +62,7 @@ AS
 	status_changes.associated_trips,
 	status_changes.id,
     status_changes.event_location as event_location_json,
-    timezone('PST'::text, status_changes.event_time) AS event_time_local, 
+    timezone('PST'::text, status_changes.event_time) AS event_time_local,
 	status_change_geoms.event_location_geom as event_location_geom
    FROM status_changes INNER JOIN status_change_geoms
    ON status_changes.id = status_change_geoms.status_change_id
@@ -78,7 +78,7 @@ GRANT SELECT ON TABLE public.v_status_changes TO dot_paul_ro;
 GRANT ALL ON TABLE public.v_status_changes TO dbadmin;
 GRANT SELECT ON TABLE public.v_status_changes TO dot_vlad_ro;
 
---- make some indexes 
+--- make some indexes
 
 CREATE INDEX idx_status_change_geometry
     ON public.v_status_changes USING gist
@@ -92,4 +92,3 @@ CREATE INDEX idx_trip_start
 CREATE INDEX idx_trip_end
     ON public.v_trips USING gist
     (end_point);
-

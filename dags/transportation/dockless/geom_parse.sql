@@ -1,11 +1,11 @@
-/* create a trip_geoms table */ 
+/* create a trip_geoms table */
 CREATE TABLE IF NOT EXISTS trips_geoms (
 	trip_id UUID NOT NULL,
-	points GEOMETRY 
-); 
-/* process route function */ 
-CREATE OR REPLACE FUNCTION process_route(jsonb) 
-	RETURNS geometry AS 
+	points GEOMETRY
+);
+/* process route function */
+CREATE OR REPLACE FUNCTION process_route(jsonb)
+	RETURNS geometry AS
 	$func$
 	BEGIN
 		RETURN ST_MakeLine(ARRAY(
@@ -16,10 +16,10 @@ CREATE OR REPLACE FUNCTION process_route(jsonb)
 	EXCEPTION WHEN OTHERS THEN
 		return NULL;
 	END
-	$func$  
+	$func$
     LANGUAGE plpgsql IMMUTABLE;
 
-/* trigger function */ 
+/* trigger function */
 CREATE OR REPLACE FUNCTION geom_copy() RETURNS TRIGGER AS
 $BODY$
 BEGIN
@@ -30,31 +30,31 @@ BEGIN
 END;
 $BODY$
 language plpgsql;
-/* trigger itself */ 
+/* trigger itself */
 CREATE OR REPLACE TRIGGER route_process
      AFTER INSERT ON trips
      FOR EACH ROW
      EXECUTE PROCEDURE geom_copy();
 
-/* create a status_change_geoms table */ 
+/* create a status_change_geoms table */
 CREATE TABLE IF NOT EXISTS status_change_geoms (
 	status_change_id INTEGER NOT NULL REFERENCES status_changes(id),
-	event_location_geom GEOMETRY 
-); 
-/* process location function function */ 
+	event_location_geom GEOMETRY
+);
+/* process location function function */
 -- jsonb input
 CREATE OR REPLACE FUNCTION process_status_change_location(jsonb)
-    	RETURNS geometry AS 
+    	RETURNS geometry AS
 	$func$
 	BEGIN
 		RETURN st_setsrid(st_geomfromgeojson(($1 -> 'geometry'::text)::text), 4326);
 	EXCEPTION WHEN OTHERS THEN
 		return NULL;
 	END
-	$func$  
+	$func$
     LANGUAGE plpgsql IMMUTABLE;
 
-/* trigger function */ 
+/* trigger function */
 CREATE OR REPLACE FUNCTION status_geom_copy() RETURNS TRIGGER AS
 $BODY$
 BEGIN
@@ -65,7 +65,7 @@ BEGIN
 END;
 $BODY$
 language plpgsql;
-/* trigger itself */ 
+/* trigger itself */
 CREATE OR REPLACE TRIGGER status_change_processor
      AFTER INSERT ON status_changes
      FOR EACH ROW
