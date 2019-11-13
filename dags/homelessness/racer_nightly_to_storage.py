@@ -4,10 +4,8 @@ DAG for Waze Data to move to SQL Data Warehouse from Amazon S3
 from datetime import datetime, timedelta
 
 import pandas as pd
-import requests
 from airflow import DAG
 from airflow.operators import PythonOperator
-from airflow.operators.bash_operator import BashOperator
 
 default_args = {
     "owner": "airflow",
@@ -37,7 +35,8 @@ def download_google_sheet(ds, **kwargs):
     """This is a function that will run within the DAG execution"""
     print("running google sheet")
     df = pd.read_csv(
-        "https://docs.google.com/spreadsheets/d/1vYg2lvDL9Q4ddzUgKVTvTyCUcF2EgnNsxNwffHo28lo/export?gid=0&format=csv"
+        "https://docs.google.com/spreadsheets/d/"
+        "1vYg2lvDL9Q4ddzUgKVTvTyCUcF2EgnNsxNwffHo28lo/export?gid=0&format=csv"
     )
     execution_date = kwargs["execution_date"].date()
     df.to_csv("~/shelters-" + str(execution_date) + ".csv")

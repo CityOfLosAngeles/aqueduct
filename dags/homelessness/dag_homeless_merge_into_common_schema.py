@@ -1,11 +1,9 @@
 import logging
-import os
 from datetime import timedelta
 
 import airflow
 import numpy as np
 import pandas as pd
-from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
@@ -71,8 +69,8 @@ def merge_and_save(**kwargs):
         replace_col_dict = {k: v for k, v in zip(keys, values)}
         df.rename(columns=replace_col_dict, inplace=True)
 
-    # Taking care of a special case (refer to the 'Combined Column Name' in the Common Schema file)
-    df_special = df_schema[df_schema.comb_col_name.notnull()]
+    # Taking care of a special case (refer to the 'Combined Column Name' in the Common
+    # Schema file)
     df2017["tot_tent_people"] = df2017["fam_tent_people"] + df2017["fam_tent_hh"]
     df2018["tot_tent_people"] = df2018["fam_tent_people"] + df2018["fam_tent_hh"]
 
@@ -226,13 +224,34 @@ dag = airflow.DAG(
     max_active_runs=1,
 )
 
-# when future annual datasets becomes available, just add a new url and add it to the urls list
-# the path & filename after '-O' is the path & name that the files are to be placed and renamed to
-url2018 = "wget -O /tmp/homeless2018.xlsx https://github.com/CityOfLosAngeles/aqueduct/raw/master/dags/homelessness/static_datasets/homeless2018.xlsx"
-url2017 = "wget -O /tmp/homeless2017.xlsx https://github.com/CityOfLosAngeles/aqueduct/raw/master/dags/homelessness/static_datasets/homeless2017.xlsx"
-url2016 = "wget -O /tmp/homeless2016.xlsx https://github.com/CityOfLosAngeles/aqueduct/raw/master/dags/homelessness/static_datasets/homeless2016.xlsx"
-url2015 = "wget -O /tmp/homeless2015.xlsx https://github.com/CityOfLosAngeles/aqueduct/raw/master/dags/homelessness/static_datasets/homeless2015.xlsx"
-common_schema = "wget -O /tmp/common_schema.xlsx https://github.com/CityOfLosAngeles/aqueduct/raw/master/dags/homelessness/static_datasets/common_schema_v1.xlsx"
+# when future annual datasets becomes available, just add a new url and add it to the
+# urls list  the path & filename after '-O' is the path & name that the files are to
+# be placed and renamed to
+url2018 = (
+    "wget -O /tmp/homeless2018.xlsx "
+    "https://github.com/CityOfLosAngeles/aqueduct"
+    "/raw/master/dags/homelessness/static_datasets/homeless2018.xlsx"
+)
+url2017 = (
+    "wget -O /tmp/homeless2017.xlsx "
+    "https://github.com/CityOfLosAngeles/aqueduct/"
+    "raw/master/dags/homelessness/static_datasets/homeless2017.xlsx"
+)
+url2016 = (
+    "wget -O /tmp/homeless2016.xlsx "
+    "https://github.com/CityOfLosAngeles/aqueduct/"
+    "raw/master/dags/homelessness/static_datasets/homeless2016.xlsx"
+)
+url2015 = (
+    "wget -O /tmp/homeless2015.xlsx "
+    "https://github.com/CityOfLosAngeles/aqueduct/"
+    "raw/master/dags/homelessness/static_datasets/homeless2015.xlsx"
+)
+common_schema = (
+    "wget -O /tmp/common_schema.xlsx "
+    "https://github.com/CityOfLosAngeles/aqueduct/"
+    "raw/master/dags/homelessness/static_datasets/common_schema_v1.xlsx"
+)
 urls = [url2018, url2017, url2016, url2015, common_schema]
 
 # bash command to download all datasets in urls list

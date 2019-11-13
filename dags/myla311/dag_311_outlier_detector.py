@@ -38,12 +38,10 @@ import altair as alt
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-from airflow.models import Variable
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
 from dateutil.relativedelta import relativedelta
-from matplotlib import *
 
 # a csv file with this filename will be saved from a copy of postgres table
 filename = "/tmp/myla311.csv"
@@ -88,10 +86,8 @@ def make_save_boxplot(df, point, title):
     sns.set_style("whitegrid")
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.set_title(title, fontsize=15)
-    plot1 = sns.boxplot(ax=ax, x=df, linewidth=1, color="lightblue")
-    plot2 = plt.scatter(
-        point, 0, marker="o", s=100, c="red", linewidths=5, label="Outlier"
-    )
+    sns.boxplot(ax=ax, x=df, linewidth=1, color="lightblue")
+    plt.scatter(point, 0, marker="o", s=100, c="red", linewidths=5, label="Outlier")
     ax.legend()
     filename = "chart-Proc-Time-{}.png".format(
         title.replace("/", "-").replace(" ", "-")
@@ -146,7 +142,8 @@ def detect_outliers(filename, **kwargs):
     df["cal_year"] = df["created_datetime"].apply(lambda x: x.isocalendar()[0])
 
     # padding the week number to two digit number, and
-    # combine with the 'created_year' into a created_year.week_number column called 'year_week'
+    # combine with the 'created_year' into a created_year.week_number column called
+    # 'year_week'
     df["year_week"] = (
         df["cal_year"].map(str)
         + "."

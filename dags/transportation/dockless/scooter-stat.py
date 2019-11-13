@@ -1,14 +1,11 @@
 import logging
 from datetime import datetime, timedelta
 
-import airflow
 import pandas as pd
 import pendulum
 import sqlalchemy
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.email_operator import EmailOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
@@ -80,18 +77,18 @@ def set_xcom_variables(**kwargs):
             COUNT(trip_id) as num_trips,
             AVG(trip_distance_miles) as avg_trip_length,
             MAX(trip_distance_miles) as max_trip_length,
-            COUNT(trip_id)::FLOAT / COUNT (DISTINCT (device_id)) as avg_rides_per_device,
+            COUNT(trip_id)::FLOAT / COUNT (DISTINCT(device_id)) as avg_rides_per_device,
             COUNT (DISTINCT (device_id)) as num_devices_doing_trips
     FROM v_trips
     WHERE DATE(start_time_local) = '{yesterday}'
     GROUP BY provider_name, vehicle_type ;
     """
     trips = pd.read_sql(
-        f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""",
+        f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
         con=engine,
     )
     status_changes = pd.read_sql(
-        f"""SELECT * FROM v_status_changes WHERE event_time_local BETWEEN '{yesterday}' AND '{today}'""",
+        f"""SELECT * FROM v_status_changes WHERE event_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
         con=engine,
     )
     sum_table = pd.read_sql(sum_table_sql, con=engine).to_html()
@@ -115,7 +112,7 @@ def email_callback(**kwargs):
 
     email_template = f"""
 
-    From {kwargs['yesterday_ds']}to {kwargs['ds']}, the number of trips observed was { kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats') } across {kwargs['ti'].xcom_pull(key='xcom_devices', task_ids='computing_stats')} devices.
+    From {kwargs['yesterday_ds']} to {kwargs['ds']}, the number of trips observed was { kwargs['ti'].xcom_pull(key='xcom_trips', task_ids='computing_stats') } across {kwargs['ti'].xcom_pull(key='xcom_devices', task_ids='computing_stats')} devices.
 
     Company Trips Table:
 
@@ -128,7 +125,7 @@ def email_callback(**kwargs):
     Status Table <br>
     { kwargs['ti'].xcom_pull(key='sum_table', task_ids='computing_stats')}
 
-    """
+    """  # noqa: E501
     send_email(
         to=[
             "hunter.owens@lacity.org",

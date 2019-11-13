@@ -1,7 +1,3 @@
-# make sure to install these packages before running:
-# pip install pandas
-# pip install sodapy
-
 import csv
 import datetime
 import logging
@@ -10,7 +6,6 @@ from datetime import timedelta
 
 import airflow
 import pandas as pd
-from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 from airflow.operators.postgres_operator import PostgresOperator
@@ -43,7 +38,8 @@ def retrieve_save_data(**kwargs):
 
     logging.info("The number of rows is read successfully. Now it's pulling data.")
 
-    # Retrieving dataset using API, limit=row_count is to specify we are retrieving all the rows
+    # Retrieving dataset using API, limit=row_count is to specify we are
+    # etrieving all the rows
     dataset = client.get("aub4-z9pc", content_type="csv", limit=row_count)
 
     logging.info("the dataset is pulled successfully.")

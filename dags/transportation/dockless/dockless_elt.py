@@ -4,25 +4,17 @@ DAG for ETL Processing of Dockless Mobility Provider Data
 import json
 import logging
 import os
-import time
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 
-import airflow
-import airflow.hooks
 import boto3
 import botocore
 import mds
 import mds.db
 import mds.providers
-import pandas
-import pytz
 import requests
-import sqlalchemy
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
-from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from mds.api.auth import AuthorizationToken
@@ -53,7 +45,7 @@ default_args = {
 
 dag = DAG(dag_id="dockless-elt", default_args=default_args, schedule_interval="@hourly")
 
-## Util Functions
+# Util Functions
 
 
 def parse_config(path):
@@ -116,7 +108,8 @@ def connect_aws_s3():
 
 class BoltClientCredentials(AuthorizationToken):
     """
-    Represents an authenticated session via the Bolt authentication scheme, documented at:
+    Represents an authenticated session via the Bolt authentication scheme,
+    documented at:
     <no URL>
     Currently, your config needs:
     * email
@@ -209,7 +202,7 @@ def load_to_s3_pgdb(**kwargs):
     # load company
     client = mds.Client(company, config, version=version)
     end_time = kwargs["execution_date"]
-    ## test is provider is jump, up hours because their ETL is slow.
+    # test is provider is jump, up hours because their ETL is slow.
     if client.provider.provider_id == "c20e08cf-8488-46a6-a66c-5d8fb827f7e0":
         start_time = end_time - timedelta(hours=25)
     else:
@@ -247,7 +240,8 @@ def load_to_s3_pgdb(**kwargs):
         )
     else:
         logging.info(
-            "Warning: not loading status change data for {company} as no data was received"
+            "Warning: not loading status change data for {company} as no data was "
+            "received"
         )
 
     if len(trips) != 0:

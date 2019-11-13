@@ -4,14 +4,10 @@
 
 import hashlib
 import json
-
-# airflow config
 import logging
-import os
 import sys
 import time
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -19,20 +15,11 @@ from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
 from airflow.models import Variable  # db schema and s3 bucket names stored in Variables
-from airflow.operators.email_operator import EmailOperator
-
-# from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.sensors.s3_key_sensor import S3KeySensor
-from geoalchemy2 import Geography, Geometry
 from pandas.io.json import json_normalize
 from sqlalchemy import MetaData, create_engine, exc, select
-from sqlalchemy.engine.url import URL
-from sqlalchemy.sql import and_, or_
+from sqlalchemy.sql import and_
 from sqlalchemy.types import JSON as typeJSON
-
-# import boto3
-
 
 default_args = {
     "owner": "airflow",
@@ -42,7 +29,7 @@ default_args = {
     "email_on_failure": True,
     "email_on_retry": False,
     "retries": 1
-    #'retry_delay': timedelta(minutes=5),
+    # 'retry_delay': timedelta(minutes=5),
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -63,6 +50,7 @@ dag = DAG(
 def s3keyCheck():
     logging.info("s3keyCheck called")
     print("s3keyCheck")
+    bucket_source_name = Variable.get("waze_s3_bucket_source")
     hook = S3Hook(aws_conn_id="s3_conn")
     if hook.check_for_wildcard_key(wildcard_key="*", bucket_name=bucket_source_name):
         logging.info("wildcard found key")
@@ -318,7 +306,6 @@ def processJSONtoDB(**kwargs):
     # client = boto3.client('s3')
 
     # keeping track
-    processedKeys = []
     count = 0
 
     # loop through all keys (files) in source bucket
@@ -340,7 +327,8 @@ def processJSONtoDB(**kwargs):
                 keyObj = hook.get_key(key, bucket_name=bucket_source_name)
             except Exception as e:
                 logging.warning(
-                    "S3 Key not found (pulled by another thread perhaps). Skipping file."
+                    "S3 Key not found (pulled by another thread perhaps). "
+                    "Skipping file."
                 )
                 print("Error getting key:{0}".format(e))
                 continue
@@ -360,7 +348,8 @@ def processJSONtoDB(**kwargs):
                 )
             except exc.IntegrityError as e:
                 logging.warning(
-                    "Data file is already stored in the relational database. Skipping file."
+                    "Data file is already stored in the relational database. "
+                    "Skipping file."
                 )
                 print("Error:{0}".format(e))
                 print("Err: ", sys.exc_info()[0])
@@ -438,7 +427,6 @@ def processJSONtoDB(**kwargs):
             # move file from 'test' queue bucket to processed bucket
             copy_source = {"Bucket": bucket_source_name, "Key": key}
             bucket_processed.copy(copy_source, key)
-            # hook.copy_object(key,key,bucket_source_name,bucket_processed_name) # airflow 1.11?
             logging.info(
                 "copied "
                 + key
@@ -459,7 +447,8 @@ def processJSONtoDB(**kwargs):
             elapsed = processDoneTime - startTime
             mbps = keymb / elapsed
             print(
-                "Processing time: %(elapsed)0.2f seconds for %(keysize)0.1f megabytes. MB/s: %(mbps)0.2f"
+                "Processing time: %(elapsed)0.2f seconds for %(keysize)0.1f megabytes. "
+                "MB/s: %(mbps)0.2f"
                 % {"elapsed": elapsed, "keysize": keymb, "mbps": mbps}
             )
 
@@ -467,11 +456,6 @@ def processJSONtoDB(**kwargs):
             count += 1
             if count >= process_files_per_run:
                 break
-
-    # print ("processed keys:")
-    # for key in processedKeys:
-    # 	print (key)
-    # kwargs['ti'].xcom_push(key='processedKeys',value=processedKeys)
 
     print("ProcessJSONtoDB complete!")
 
@@ -499,7 +483,6 @@ def moveProcessedKeys(**kwargs):
         copy_source = {"Bucket": bucket_source_name, "Key": key}
         logging.info(copy_source)
         bucket_processed.copy(copy_source, key)
-        # hook.copy_object(key,key,bucket_source_name,bucket_processed_name) # airflow 1.11?
         logging.info(
             "copied "
             + key
@@ -510,11 +493,8 @@ def moveProcessedKeys(**kwargs):
         )
 
         # delete file
-        # hook.delete_objects(bucket=bucket_source_name,keys=key) # airflow 1.11?
         keyObj = hook.get_key(key, bucket_name=bucket_source_name)
         logging.info("Deleted " + key + " from " + bucket_source_name)
-        # keyObj = hook.get_key(key,bucket_name=bucket_processed_name) #temp delete file we copied
-        # logging.info("Deleted key that was copied TEST")
         keyObj.delete()
 
     logging.info("moveProcessedKeys complete!")

@@ -169,9 +169,10 @@ def get_all_ridership_data(verbosity=0):
                     ridership = ridership.append(df)
                     if verbosity > 2:
                         print(f"Fetched data for line {line}")
-                except:
+                except Exception as e:
                     if verbosity > 2:
                         print(f"Failed to get data for line {line}")
+                        print(e)
     return ridership
 
 

@@ -2,6 +2,19 @@
 # forked from Joinville Smart Mobility Project and Louisville WazeCCPProcessor
 # modified by Bryan.Blackford@lacity.org for City of Los Angeles CCP
 
+import hashlib
+import json
+import time
+
+import boto3
+import numpy as np
+import pandas as pd
+from pandas.io.json import json_normalize
+from sqlalchemy import MetaData, create_engine, exc, select
+from sqlalchemy.engine.url import URL
+from sqlalchemy.sql import and_
+from sqlalchemy.types import JSON as typeJSON
+
 # Database Config - fill in the details for your database here:
 DATABASE = {
     "drivername": "postgresql",
@@ -15,24 +28,6 @@ schemaName = "waze"
 # S3 Config
 bucket_source_name = ""
 bucket_processed_name = ""
-
-import hashlib
-import json
-import os
-import sys
-import time
-from datetime import datetime
-from pathlib import Path
-
-import boto3
-import numpy as np
-import pandas as pd
-from geoalchemy2 import Geography, Geometry
-from pandas.io.json import json_normalize
-from sqlalchemy import MetaData, create_engine, exc, select
-from sqlalchemy.engine.url import URL
-from sqlalchemy.sql import and_, or_
-from sqlalchemy.types import JSON as typeJSON
 
 
 def connect_database(database_dict):
@@ -345,13 +340,14 @@ for key in bucket_source.objects.all():  # a list of ObjectSummary
         # delete file
         key.delete()
 
-        # Time to download file from S3, process, store in RDS, bucket copy, and delete processed
+        # Time to download file from S3, process, store in RDS, bucket copy, and delete
+        # processed
         processDoneTime = time.time()
         elapsed = processDoneTime - startTime
         mbps = keymb / elapsed
         print(
-            "Processing time: %(elapsed)0.2f seconds for %(keysize)0.1f megabytes. MB/s: %(mbps)0.2f"
-            % {"elapsed": elapsed, "keysize": keymb, "mbps": mbps}
+            "Processing time: %(elapsed)0.2f seconds for %(keysize)0.1f megabytes. "
+            "MB/s: %(mbps)0.2f" % {"elapsed": elapsed, "keysize": keymb, "mbps": mbps}
         )
 
         # how many files to process, comment out to process all files
