@@ -14,10 +14,10 @@ def get_file(ftphost, ftpuser, ftppassword, filename):
     ftp = ftplib.FTP(host = ftphost)
     ftp.login(user = ftpuser, passwd = ftppassword)
     ftp.cwd("Upload")
-    ftp.retrbinary('RETR %s' % filename, open("tmp/%s" % filename, 'wb').write)
+    ftp.retrbinary('RETR %s' % filename, open("/tmp/%s" % filename, 'wb').write)
     
 def correct_file(filename):
-    filename = "tmp/%s" % filename
+    filename = "/tmp/%s" % filename
     df = pd.read_csv(filename)
     if "GeoLong" in df.columns:
         df.loc[df["GeoLong"] > 0, "GeoLong"] *= -1
@@ -25,7 +25,7 @@ def correct_file(filename):
     df.to_csv(filename, index = False)
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
-    filename = "tmp/%s" % filename
+    filename = "/tmp/%s" % filename
     gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
@@ -61,7 +61,7 @@ def update_rap_data(**kwargs):
     correct_file(filename)
     
     #Updating ArcGis
-    arcconnection = BaseHook.get_connection("rap_ftp")
+    arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
     arcfeatureid = kwargs.get("arcfeatureid")
