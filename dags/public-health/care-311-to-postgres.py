@@ -8,7 +8,11 @@ import os
 from sqlalchemy import create_engine
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
+from airflow.models import Variable
 
+SOCRATA_APP_TOKEN = Variable.get('SOCRATA_APP_TOKEN')
+USERNAME = Variable.get('SOCRATA_USERNAME')
+PASSWORD = Variable.get('SOCRATA_PASSWORD')
 
 def load_to_postgres():
     """
@@ -17,6 +21,9 @@ def load_to_postgres():
     """
     dataset_id = 'jvre-2ecm'
     client = Socrata("data.lacity.org",
+                     SOCRATA_APP_TOKEN,
+                     username=SOCRATA_USERNAME,
+                     password=SOCRATA_PASSWORD 
     )
     results = []
     req_count = 0
