@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     volumes:
-      - $PWD:/app
+      - /mnt/c/Users/rmk0110/aqueduct:/app
     command: "true"
     environment:
       - AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://ita:secret@postgres-default:5432/ita
