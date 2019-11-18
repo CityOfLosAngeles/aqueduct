@@ -119,7 +119,7 @@ class BoltClientCredentials(AuthorizationToken):
     """
     def __init__(self, provider):
         """
-        Acquires the bearer token for Spin before establishing a session.
+        Acquires the provider token for Bolt before establishing a session.
         """
         payload = {
             "email": provider.email,
