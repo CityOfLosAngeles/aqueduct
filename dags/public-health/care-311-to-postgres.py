@@ -86,7 +86,7 @@ dag = DAG("care-plus-loader", default_args=default_args, schedule_interval="@dai
 
 t1 = PythonOperator(
     task_id='load-to-postgres',
-    provide_context=True
+    provide_context=True,
     python_callable=load_to_postgres,
     dag=dag
 )
