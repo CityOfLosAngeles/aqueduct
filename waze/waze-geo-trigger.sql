@@ -20,9 +20,9 @@ END;
 $BODY$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trig_geom_on_insert_alert ON waze.alerts;
-CREATE TRIGGER trig_geom_on_insert_alert 
+CREATE TRIGGER trig_geom_on_insert_alert
 	AFTER INSERT ON waze.alerts
-	FOR EACH ROW 
+	FOR EACH ROW
 	EXECUTE PROCEDURE waze.fn_geom_on_insert_alert();
 
 ---- JAMS (line)
@@ -47,7 +47,7 @@ $BODY$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trig_geom_on_insert_jam ON waze.jams;
 CREATE TRIGGER trig_geom_on_insert_jam
 	AFTER INSERT ON waze.jams
-	FOR EACH ROW 
+	FOR EACH ROW
 	EXECUTE PROCEDURE waze.fn_geom_on_insert_jam();
 
 ---- IRREGULARITIES (line)
@@ -72,5 +72,5 @@ $BODY$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trig_geom_on_insert_irreg ON waze.irregularities;
 CREATE TRIGGER trig_geom_on_insert_irreg
 	AFTER INSERT ON waze.irregularities
-	FOR EACH ROW 
+	FOR EACH ROW
 	EXECUTE PROCEDURE waze.fn_geom_on_insert_irreg();

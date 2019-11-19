@@ -4,28 +4,28 @@ A series of DAGs, created in Apache Airflow, created to process data from dockle
 
 ## DocklessDag
 #### Tasks
-1. Make trips table 
-2. Make status change table 
-3. use the [mds-provider](http://github.com/cityofsantamonica/mds-provider) library to load a providers data into python, save to s3, then load in to the database under `public.trips` or `public.status_changes`. 
+1. Make trips table
+2. Make status change table
+3. use the [mds-provider](http://github.com/cityofsantamonica/mds-provider) library to load a providers data into python, save to s3, then load in to the database under `public.trips` or `public.status_changes`.
 
 #### Connections
 The DAG expects the following connections to be configured in Airflow:
 
-PostgreSQL  
-Conn Id: postgres_default  
-Host: [host]  
-Schema: [db]  
-Login: [login]  
-Password: [password]  
-Port: [port]  
+PostgreSQL
+Conn Id: postgres_default
+Host: [host]
+Schema: [db]
+Login: [login]
+Password: [password]
+Port: [port]
 
-AWS S3  
-Conn Id: aws_default  
-Extra: {"aws_access_key_id":"[id]","aws_secret_access_key":"[key]"}  
+AWS S3
+Conn Id: aws_default
+Extra: {"aws_access_key_id":"[id]","aws_secret_access_key":"[key]"}
 
-#### Config File 
+#### Config File
 
-To upload the .config to S3, run 
+To upload the .config to S3, run
 
 `aws s3 cp .config s3://city-of-los-angeles-data-lake/dockless/.config --profile la-city` from the AWS CLI.
 

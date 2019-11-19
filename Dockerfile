@@ -7,7 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     DEPLOY_ENVIRONMENT=dev \
     DEVELOPMENT=1 \
-    DEPLOY_TAG=master 
+    DEPLOY_TAG=master
 
 # Airflow configuration can be set here using the following format:
 # $AIRFLOW__{SECTION}__{KEY}

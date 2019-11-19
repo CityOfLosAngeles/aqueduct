@@ -2,15 +2,14 @@
 Scrape Los Angeles Metro ridership data
 """
 import os
+from datetime import datetime, timedelta
 
 import bs4
 import pandas as pd
 import requests
-
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
 from airflow.hooks.S3_hook import S3Hook
-from datetime import datetime, timedelta
+from airflow.operators.python_operator import PythonOperator
 
 # The URL for the ridership form
 RIDERSHIP_URL = "http://isotp.metro.net/MetroRidership/IndexSys.aspx"
@@ -170,9 +169,10 @@ def get_all_ridership_data(verbosity=0):
                     ridership = ridership.append(df)
                     if verbosity > 2:
                         print(f"Fetched data for line {line}")
-                except:
+                except Exception as e:
                     if verbosity > 2:
                         print(f"Failed to get data for line {line}")
+                        print(e)
     return ridership
 
 
@@ -198,9 +198,9 @@ def scrape_ridership_data(ds, **kwargs):
     bucket = kwargs.get("bucket")
     ridership = get_all_ridership_data(3)
     if bucket:
-        path = os.path.join('/tmp', name)
+        path = os.path.join("/tmp", name)
         ridership.to_parquet(path)
-        s3 = S3Hook('s3_conn')
+        s3 = S3Hook("s3_conn")
         s3.load_file(path, name, bucket, replace=True)
         os.remove(path)
 
@@ -209,8 +209,6 @@ t1 = PythonOperator(
     task_id="scrape-ridership-data",
     provide_context=True,
     python_callable=scrape_ridership_data,
-    op_kwargs={
-        "bucket": "tmf-data"
-    },
+    op_kwargs={"bucket": "tmf-data"},
     dag=dag,
 )

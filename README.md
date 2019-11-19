@@ -1,10 +1,10 @@
 # Aqueduct
-A shared pipeline for building ETLs and batch jobs that we run at the City of LA for Data Science Projects. Built on Apache Airflow. 
+A shared pipeline for building ETLs and batch jobs that we run at the City of LA for Data Science Projects. Built on Apache Airflow.
 
 Lots of the following code and documentation was based on the excellent [Mozilla-Telemetry](https://raw.githubusercontent.com/mozilla/telemetry-airflow/master/README.md) project.
 
-## Contributors 
-* Robert Pangalian 
+## Contributors
+* Robert Pangalian
 * Hunter Owens
 * Bryan Blackford
 * Eirik Lin
@@ -29,14 +29,14 @@ You should then run the database migrations to complete the container initializa
 make migrate
 ```
 
-There are some unresolved issues with WSL, Docker for Windows and such. Waiting for WSL 2. To fix, run 
+There are some unresolved issues with WSL, Docker for Windows and such. Waiting for WSL 2. To fix, run
 
 ```
 sudo mkdir /c
 sudo mount --bind /mnt/c /c
-``` 
+```
 
-and read this [blog post](https://nickjanetakis.com/blog/setting-up-docker-for-windows-and-wsl-to-work-flawlessly) for context. 
+and read this [blog post](https://nickjanetakis.com/blog/setting-up-docker-for-windows-and-wsl-to-work-flawlessly) for context.
 ## Testing
 
 A single task, e.g. `spark`, of an Airflow dag, e.g. `example`, can be run with an execution date, e.g. `2018-01-01`, in the `dev` environment with:
@@ -104,7 +104,7 @@ sed -i "s/10001/$(id -u)/g" Dockerfile.dev
 ![Aqueductagram](Aqueduct.png)
 
 
-To deploy to production, [AWS Codedeploy](https://aws.amazon.com/codedeploy/) automatically pushes master to all the worker nodes / resets the system. 
+To deploy to production, [AWS Codedeploy](https://aws.amazon.com/codedeploy/) automatically pushes master to all the worker nodes / resets the system.
 
 Open a PR againist master and it will be deployed.
 
@@ -157,7 +157,7 @@ docker volume rm $(docker volume ls -qf dangling=true)
 
 ## Install Issues
 
-1. Installing on a network with a proxy (such as LA City) may require setting proxy settings for these applications. Your proxy server address can be found in your system settings or by asking your network admin. 
+1. Installing on a network with a proxy (such as LA City) may require setting proxy settings for these applications. Your proxy server address can be found in your system settings or by asking your network admin.
 
 1a. Anaconda: (Reference: https://conda.io/docs/user-guide/configuration/use-winxp-with-proxy.html )
 Edit the file .condarc (in Windows: \users\{username}\ )
@@ -165,7 +165,7 @@ and add these 3 lines (with proxy and port address filled in):
 proxy_servers:
     http: http://proxy:port
     https: https://proxy:port
-    
-1b. Set pip and python proxies by setting the http_proxy and https_proxy system variables to your proxy server. 
+
+1b. Set pip and python proxies by setting the http_proxy and https_proxy system variables to your proxy server.
 
 1c. Anaconda may call pip to install some modules, but it may not work with the pip proxies you setup. One way around this is to run pip install with proxy options from the command line. After conda failed to pip install flask, run this command line: `pip install --proxy=http://proxy:port flask` and then run the conda line again.

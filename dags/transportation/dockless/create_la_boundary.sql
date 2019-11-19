@@ -1,4 +1,4 @@
-    
+
 CREATE OR REPLACE FUNCTION cla_city_boundary()
     RETURNS geometry
     LANGUAGE 'sql'

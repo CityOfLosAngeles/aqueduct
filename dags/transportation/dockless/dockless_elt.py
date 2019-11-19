@@ -1,57 +1,52 @@
 """
 DAG for ETL Processing of Dockless Mobility Provider Data
 """
-import airflow
-from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.hooks.base_hook import BaseHook
-import airflow.hooks
-from airflow.models import Variable
-from datetime import datetime, timedelta
+import json
+import logging
+import os
 from configparser import ConfigParser
-import time, pytz
+from datetime import datetime, timedelta
+
+import boto3
+import botocore
 import mds
 import mds.db
 import mds.providers
-from mds.versions import Version
-from mds.api.auth import AuthorizationToken
-import boto3
-import os
-import botocore
-import sqlalchemy
-import logging
-import json
-import pandas
 import requests
+from airflow import DAG
+from airflow.hooks.base_hook import BaseHook
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import PythonOperator
+from mds.api.auth import AuthorizationToken
+from mds.versions import Version
 
-pg_conn = BaseHook.get_connection('postgres_default') 
+pg_conn = BaseHook.get_connection("postgres_default")
 
 
 default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'start_date': datetime(2018, 10, 30), 
-    'email': ['hunter.owens@lacity.org', 'mony.patel@lacity.org', 'paul.tsan@lacity.org'],
-    'email_on_failure': True,
-    'email_on_retry': False,
-    'retries': 1,
-    'retry_delay': timedelta(minutes=2),
-    'concurrency': 50
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2018, 10, 30),
+    "email": [
+        "hunter.owens@lacity.org",
+        "mony.patel@lacity.org",
+        "paul.tsan@lacity.org",
+    ],
+    "email_on_failure": True,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=2),
+    "concurrency": 50
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
     # 'end_date': datetime(2016, 1, 1),
 }
 
-dag = DAG(
-    dag_id = 'dockless-elt',
-    default_args=default_args,
-    schedule_interval='@hourly'
-    )
+dag = DAG(dag_id="dockless-elt", default_args=default_args, schedule_interval="@hourly")
 
-## Util Functions 
+# Util Functions
+
 
 def parse_config(path):
     """
@@ -69,6 +64,7 @@ def parse_config(path):
     config.read(path)
 
     return config
+
 
 def provider_names(providers):
     """
@@ -91,25 +87,29 @@ def filter_providers(providers, names):
 
     return [p for p in providers if p.provider_name.lower() in names]
 
+
 def connect_aws_s3():
     """ Connect to AWS and return a boto S3 session """
-    if os.environ.get('env') == 'dev':
+    if os.environ.get("env") == "dev":
         config = ConfigParser()
-        config.read(os.path.expanduser('~/.aws/credentials'))
-        aws_access_key_id = config.get('la-city', 'aws_access_key_id')
-        aws_secret_access_key = config.get('la-city', 'aws_secret_access_key')
+        config.read(os.path.expanduser("~/.aws/credentials"))
+        aws_access_key_id = config.get("la-city", "aws_access_key_id")
+        aws_secret_access_key = config.get("la-city", "aws_secret_access_key")
     else:
-        aws_conn = BaseHook.get_connection('s3_conn').extra_dejson 
-        aws_access_key_id=aws_conn['aws_access_key_id']
-        aws_secret_access_key=aws_conn['aws_secret_access_key']
-    session = boto3.Session(aws_access_key_id=aws_access_key_id,
-                            aws_secret_access_key=aws_secret_access_key)
-    s3 = session.resource('s3')
+        aws_conn = BaseHook.get_connection("s3_conn").extra_dejson
+        aws_access_key_id = aws_conn["aws_access_key_id"]
+        aws_secret_access_key = aws_conn["aws_secret_access_key"]
+    session = boto3.Session(
+        aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key
+    )
+    s3 = session.resource("s3")
     return s3
+
 
 class BoltClientCredentials(AuthorizationToken):
     """
-    Represents an authenticated session via the Bolt authentication scheme, documented at:
+    Represents an authenticated session via the Bolt authentication scheme,
+    documented at:
     <no URL>
     Currently, your config needs:
     * email
@@ -117,14 +117,12 @@ class BoltClientCredentials(AuthorizationToken):
     * mds_api_url
     * token_url
     """
+
     def __init__(self, provider):
         """
         Acquires the provider token for Bolt before establishing a session.
         """
-        payload = {
-            "email": provider.email,
-            "password": provider.password
-        }
+        payload = {"email": provider.email, "password": provider.password}
         r = requests.post(provider.token_url, params=payload)
         provider.token = r.json()["token"]
 
@@ -135,12 +133,15 @@ class BoltClientCredentials(AuthorizationToken):
         """
         Returns True if this auth type can be used for the provider.
         """
-        return all([
-            provider.provider_name.lower() == "bolt",
-            hasattr(provider, "email"),
-            hasattr(provider, "password"),
-            hasattr(provider, "token_url")
-        ])
+        return all(
+            [
+                provider.provider_name.lower() == "bolt",
+                hasattr(provider, "email"),
+                hasattr(provider, "password"),
+                hasattr(provider, "token_url"),
+            ]
+        )
+
 
 def normalize_trips(df, version):
     """
@@ -151,13 +152,14 @@ def normalize_trips(df, version):
     """
     types = {
         "parking_verification_url": str,
-        "standard_cost": float, # pandas doesn't yet have nullable integers
-        "actual_cost": float, # pandas doesn't yet have nullable integers
-        "trip_distance": float, # pandas doesn't yet have nullable integers
+        "standard_cost": float,  # pandas doesn't yet have nullable integers
+        "actual_cost": float,  # pandas doesn't yet have nullable integers
+        "trip_distance": float,  # pandas doesn't yet have nullable integers
     }
     if version >= Version("0.3.0"):
-        types["publication_time"] = float # pandas doesn't yet have nullable integers
+        types["publication_time"] = float  # pandas doesn't yet have nullable integers
     return df.astype(types)
+
 
 def normalize_status_changes(df, version):
     """
@@ -166,51 +168,59 @@ def normalize_status_changes(df, version):
     We could get more strict than this, but another type conversion happens
     when we load from the temp table into the final table.
     """
-    types = { "battery_pct": float }
+    types = {"battery_pct": float}
     if version >= Version("0.3.0"):
-        types["associated_trip"] = 'object'
+        types["associated_trip"] = "object"
     return df.astype(types)
+
 
 def load_to_s3_pgdb(**kwargs):
     """
-    Python operator to load data to s3 
+    Python operator to load data to s3
     for an operator and the database
     """
     # load config from s3
     s3 = connect_aws_s3()
-    
+
     try:
-        s3.Bucket('city-of-los-angeles-data-lake').download_file('dockless/config.json', '/tmp/config.json')
+        s3.Bucket("city-of-los-angeles-data-lake").download_file(
+            "dockless/config.json", "/tmp/config.json"
+        )
     except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == "404":
+        if e.response["Error"]["Code"] == "404":
             print("The object does not exist.")
         else:
             raise
-    company = kwargs['params']['company']
-    config = mds.ConfigFile('/tmp/config.json', company)
+    company = kwargs["params"]["company"]
+    config = mds.ConfigFile("/tmp/config.json", company)
     logging.info("Downloaded and parsed config from S3")
     # assert the version parameter
-    version = getattr(config, 'version', '0.3.2')
-    # set company 
+    version = getattr(config, "version", "0.3.2")
+    # set company
     logging.info(f"set company to {company}")
     logging.info(f"Referencing MDS @ {version}")
     # load company
-    client = mds.Client(company, config, 
-                        version=version)
-    end_time = kwargs['execution_date']
-    ## test is provider is jump, up hours because their ETL is slow. 
-    if client.provider.provider_id == 'c20e08cf-8488-46a6-a66c-5d8fb827f7e0': 
+    client = mds.Client(company, config, version=version)
+    end_time = kwargs["execution_date"]
+    # test is provider is jump, up hours because their ETL is slow.
+    if client.provider.provider_id == "c20e08cf-8488-46a6-a66c-5d8fb827f7e0":
         start_time = end_time - timedelta(hours=25)
     else:
         start_time = end_time - timedelta(hours=12)
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
-    
-    obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/status_changes/{kwargs['ts']}.json")
+
+    obj = s3.Object(
+        "city-of-los-angeles-data-lake",
+        f"dockless/data/{company}/status_changes/{kwargs['ts']}.json",
+    )
     obj.put(Body=json.dumps(status_changes))
     logging.info(f"Wrote {company} status changes to s3")
-    # query trips 
+    # query trips
     trips = client.get_trips(end_time=end_time, start_time=start_time)
-    obj = s3.Object('city-of-los-angeles-data-lake',f"dockless/data/{company}/trips/{kwargs['ts']}.json")
+    obj = s3.Object(
+        "city-of-los-angeles-data-lake",
+        f"dockless/data/{company}/trips/{kwargs['ts']}.json",
+    )
     obj.put(Body=json.dumps(trips))
     logging.info(f"Wrote {company} trips to s3")
     logging.info("Connecting to DB")
@@ -219,36 +229,37 @@ def load_to_s3_pgdb(**kwargs):
     host = pg_conn.host
     dbname = pg_conn.schema
     logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
-    db = mds.Database(uri=f'postgres://{user}:{password}@{host}:5432/{dbname}',
-                      version=version)
+    db = mds.Database(
+        uri=f"postgres://{user}:{password}@{host}:5432/{dbname}", version=version
+    )
 
     if len(status_changes) != 0:
         logging.info("loading {company} status changes into DB")
         db.load_status_changes(
-            source=status_changes,
-            stage_first=5,
-            before_load=normalize_status_changes
+            source=status_changes, stage_first=5, before_load=normalize_status_changes
         )
     else:
-        logging.info("Warning: not loading status change data for {company} as no data was received")
+        logging.info(
+            "Warning: not loading status change data for {company} as no data was "
+            "received"
+        )
 
     if len(trips) != 0:
         logging.info("loading {company} trips into DB")
-        db.load_trips(
-            source=trips,
-            stage_first=5,
-            before_load=normalize_trips
-        )
+        db.load_trips(source=trips, stage_first=5, before_load=normalize_trips)
     else:
-        logging.info("Warning: not loading trip data for {company} as no data was received")
+        logging.info(
+            "Warning: not loading trip data for {company} as no data was received"
+        )
 
     return True
+
 
 types = """
 DROP TYPE IF EXISTS vehicle_types;
 DROP TYPE IF EXISTS event_types;
-DROP TYPE IF EXISTS event_type_reasons; 
-DROP TYPE IF EXISTS propulsion_types; 
+DROP TYPE IF EXISTS event_type_reasons;
+DROP TYPE IF EXISTS propulsion_types;
 
 CREATE TYPE vehicle_types AS ENUM (
     'bicycle',
@@ -298,7 +309,7 @@ CREATE TABLE IF NOT EXISTS status_changes (
     event_type event_types NOT NULL,
     event_type_reason event_type_reasons NOT NULL,
     event_time timestamptz NOT NULL,
-    publication_time timestamptz, 
+    publication_time timestamptz,
     event_location jsonb NOT NULL,
     battery_pct FLOAT,
     associated_trip UUID
@@ -352,30 +363,31 @@ task0 = PostgresOperator(
 
 """
 task1 = PostgresOperator(
-    task_id='create_status_changes',
+    task_id="create_status_changes",
     sql=status_changes,
-    postgres_conn_id='postgres_default',
-    dag=dag
-    )
+    postgres_conn_id="postgres_default",
+    dag=dag,
+)
 
 task2 = PostgresOperator(
-    task_id='create_trips_table',
+    task_id="create_trips_table",
     sql=trips,
-    postgres_conn_id='postgres_default',
-    dag=dag
-    )
+    postgres_conn_id="postgres_default",
+    dag=dag,
+)
 
 
-providers = ['lyft', 'lime', 'jump', 'bird', 'wheels', 'spin', 'bolt']
+providers = ["lyft", "lime", "jump", "bird", "wheels", "spin", "bolt"]
 
 task_list = []
 for provider in providers:
     provider_to_s3_task = PythonOperator(
-        task_id = f"loading_{provider}_data",
+        task_id=f"loading_{provider}_data",
         provide_context=True,
         python_callable=load_to_s3_pgdb,
         params={"company": provider},
-        dag=dag)
+        dag=dag,
+    )
     provider_to_s3_task.set_upstream(task2)
 
 task1 >> task2
