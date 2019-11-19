@@ -5,7 +5,7 @@ seaborn
 altair
 sodapy
 geoalchemy2
-pandas
+pandas==0.24
 git+https://github.com/CityofSantaMonica/mds-provider@master#egg=mds_provider
 beautifulsoup4
 html5lib
