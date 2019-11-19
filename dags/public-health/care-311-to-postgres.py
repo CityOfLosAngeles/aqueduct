@@ -16,7 +16,7 @@ SOCRATA_APP_TOKEN = Variable.get('SOCRATA_APP_TOKEN')
 SOCRATA_USERNAME = Variable.get('SOCRATA_USERNAME')
 SOCRATA_PASSWORD = Variable.get('SOCRATA_PASSWORD')
 
-def load_to_postgres():
+def load_to_postgres(**kwags):
     """
     Loads the care, care plus response codes 
     to postgres as an upsert
