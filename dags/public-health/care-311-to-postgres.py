@@ -10,10 +10,12 @@ from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
+from airflow.operators.python_operator import PythonOperator
+
 
 SOCRATA_APP_TOKEN = Variable.get('SOCRATA_APP_TOKEN')
-USERNAME = Variable.get('SOCRATA_USERNAME')
-PASSWORD = Variable.get('SOCRATA_PASSWORD')
+SOCRATA_USERNAME = Variable.get('SOCRATA_USERNAME')
+SOCRATA_PASSWORD = Variable.get('SOCRATA_PASSWORD')
 
 def load_to_postgres():
     """
