@@ -9,6 +9,8 @@ from sqlalchemy import create_engine
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
+from airflow.operators.python_operator import PythonOperator
+
 
 SOCRATA_APP_TOKEN = Variable.get('SOCRATA_APP_TOKEN')
 USERNAME = Variable.get('SOCRATA_USERNAME')
