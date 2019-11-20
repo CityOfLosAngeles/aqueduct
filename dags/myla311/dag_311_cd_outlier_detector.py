@@ -53,7 +53,10 @@ filename = "/tmp/myla311.csv"
 prefix = "/tmp/"
 
 # get the current Council District data and init cd_dict
-cd_list = pd.read_csv("./LA_City_Council_Districts.csv", index_col=False)
+cd_list = pd.read_csv(
+    "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.csv",
+    index_col=False,
+)
 cd_list.OBJECTID = cd_list.OBJECTID.astype(float)
 cd_dict = {}
 for index, row in cd_list.iterrows():
