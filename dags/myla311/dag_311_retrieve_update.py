@@ -14,11 +14,11 @@ from sodapy import Socrata
 from sqlalchemy import MetaData, create_engine
 
 # The folllowing variables need to be setup airflow's webserver UI: Admin -> Variables
-#   MY_APP_TOKEN, USERNAME, PASSWORD
+#   SOCRATA_APP_TOKEN, SOCRATA_USERNAME, SOCRATA_PASSWORD
 
 filename = "/tmp/myla311.csv"
 
-MY_APP_TOKEN = Variable.get("MY_APP_TOKEN")
+MY_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
 USERNAME = Variable.get("SOCRATA_USERNAME")
 PASSWORD = Variable.get("SOCRATA_PASSWORD")
 
