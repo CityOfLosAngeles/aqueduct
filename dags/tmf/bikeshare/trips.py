@@ -1,6 +1,8 @@
 """
-Scrape Los Angeles Metro Bikeshare trip data
+Download Los Angeles Metro Bikeshare trip data from Tableau,
+upload to Postgres and S3.
 """
+import io
 import os
 from datetime import datetime, timedelta
 
@@ -9,32 +11,37 @@ import sqlalchemy
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
+from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
+
+import tableauserverclient
 
 S3_ID = "s3_conn"
 POSTGRES_ID = "postgres_default"
-SCHEMA = 'tmf'
+SCHEMA = "tmf"
 TABLE = "bike_trips"
 
+
+# Define the PostgreSQL Table using SQLAlchemy
 metadata = sqlalchemy.MetaData(schema=SCHEMA)
 bike_trips = sqlalchemy.Table(
     TABLE,
     metadata,
-    sqlalchemy.Column('trip_id', sqlalchemy.Integer, primary_key=True, unique=True),
-    sqlalchemy.Column('bike_type', sqlalchemy.String),
-    sqlalchemy.Column('end_datetime', sqlalchemy.DateTime),
-    sqlalchemy.Column('end_station', sqlalchemy.Integer),
-    sqlalchemy.Column('end_station_name', sqlalchemy.String),
-    sqlalchemy.Column('name_group', sqlalchemy.String),
-    sqlalchemy.Column('optional_kiosk_id_group', sqlalchemy.String),
-    sqlalchemy.Column('start_datetime', sqlalchemy.DateTime),
-    sqlalchemy.Column('start_station', sqlalchemy.Integer),
-    sqlalchemy.Column('start_station_name', sqlalchemy.String),
-    sqlalchemy.Column('visible_id', sqlalchemy.Integer),
-    sqlalchemy.Column('distance', sqlalchemy.Float),
-    sqlalchemy.Column('duration', sqlalchemy.Float),
-    sqlalchemy.Column('est_calories', sqlalchemy.Float),
-    sqlalchemy.Column('est_carbon_offset', sqlalchemy.Float),
+    sqlalchemy.Column("trip_id", sqlalchemy.Integer, primary_key=True, unique=True),
+    sqlalchemy.Column("bike_type", sqlalchemy.String),
+    sqlalchemy.Column("end_datetime", sqlalchemy.DateTime),
+    sqlalchemy.Column("end_station", sqlalchemy.Integer),
+    sqlalchemy.Column("end_station_name", sqlalchemy.String),
+    sqlalchemy.Column("name_group", sqlalchemy.String),
+    sqlalchemy.Column("optional_kiosk_id_group", sqlalchemy.String),
+    sqlalchemy.Column("start_datetime", sqlalchemy.DateTime),
+    sqlalchemy.Column("start_station", sqlalchemy.Integer),
+    sqlalchemy.Column("start_station_name", sqlalchemy.String),
+    sqlalchemy.Column("visible_id", sqlalchemy.Integer),
+    sqlalchemy.Column("distance", sqlalchemy.Float),
+    sqlalchemy.Column("duration", sqlalchemy.Float),
+    sqlalchemy.Column("est_calories", sqlalchemy.Float),
+    sqlalchemy.Column("est_carbon_offset", sqlalchemy.Float),
 )
 
 
@@ -48,7 +55,7 @@ def check_columns(table, df):
         "INTEGER": "int64",
         "VARCHAR": "object",
         "FLOAT": "float64",
-        "DATETIME": "datetime64[ns]"
+        "DATETIME": "datetime64[ns]",
     }
     for column in table.columns:
         assert column.name in df.columns
@@ -59,17 +66,68 @@ def create_table(**kwargs):
     """
     Create the schema/tables to hold the bikeshare data.
     """
-    pgcon = PostgresHook.get_connection(POSTGRES_ID)
-    engine = pgcon.create_sqlalchemy_engine()
+    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
 
 
 def load_pg_data(**kwargs):
-    pgcon = PostgresHook.get_connection(POSTGRES_ID)
-    engine = pgcon.create_sqlalchemy_engine()
+    """
+    Load data from the Tableau server and upload it to Postgres.
+    """
+    # Sign in to the tableau server.
+    TABLEAU_SERVER = "https://10az.online.tableau.com"
+    TABLEAU_SITENAME = "echo"
+    TABLEAU_VERSION = "2.7"
+    TABLEAU_USER = Variable.get("BIKESHARE_TABLEAU_USER")
+    TABLEAU_PASSWORD = Variable.get("BIKESHARE_TABLEAU_PASSWORD")
+    TRIP_TABLE_VIEW_ID = "7530c937-887e-42da-aa50-2a11d279bf51"
+    tableau_auth = tableauserverclient.TableauAuth(
+        TABLEAU_USER, TABLEAU_PASSWORD, TABLEAU_SITENAME,
+    )
+    tableau_server = tableauserverclient.Server(TABLEAU_SERVER, TABLEAU_VERSION)
+    tableau_server.sign_in(tableau_auth)
+
+    # Get the Trips table view. This is a view specifically created for
+    # this DAG. Tableau server doesn't allow the download of underlying
+    # workbook data via the API (though one can from the UI). This view
+    # allows us to get around that.
+    all_views, _ = tableau_server.views.get()
+    view = next(v for v in all_views if v.id == TRIP_TABLE_VIEW_ID)
+    if not view:
+        raise Exception("Cannot find the trips table!")
+    tableau_server.views.populate_csv(view)
+    df = pandas.read_csv(
+        io.BytesIO(b"".join(view.csv)),
+        parse_dates=["Start Datetime", "End Datetime"],
+        thousands=",",
+    )
+
+    # The data has a weird structure where trip rows are duplicated, with variations
+    # on a "Measure" column, containing trip length, duration, etc. We pivot on that
+    # column to create a normalized table containing one row per trip.
+    df = pandas.merge(
+        df.set_index("Trip ID")
+        .groupby(level=0)
+        .first()
+        .drop(columns=["Measure Names", "Measure Values"]),
+        df.pivot(index="Trip ID", columns="Measure Names", values="Measure Values"),
+        left_index=True,
+        right_index=True,
+    ).reset_index()
+    df = df.rename(
+        {
+            n: n.lower().strip().replace(" ", "_").replace("(", "").replace(")", "")
+            for n in df.columns
+        },
+        axis="columns",
+    )
     check_columns(bike_trips, df)
+
+    # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
+    # datetime interfaace, psycopg can correctly handle the timestamps upon insert.
+    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
@@ -78,20 +136,15 @@ def load_pg_data(**kwargs):
 def load_s3_data(**kwargs):
     bucket = kwargs.get("bucket")
     name = kwargs.get("name", "bikeshare_trips.parquet")
-    pgcon = PostgresHook.get_connection(POSTGRES_ID)
-    engine = pgcon.create_sqlalchemy_engine()
+    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     s3con = S3Hook(S3_ID)
     if bucket:
         df = pandas.read_sql_table(TABLE, engine, schema=SCHEMA)
         path = os.path.join("/tmp", name)
-        ridership.to_parquet(path)
+        df.to_parquet(path)
         s3con = S3Hook("s3_conn")
         s3con.load_file(path, name, bucket, replace=True)
         os.remove(path)
-
-
-t1 = PythonOperator(
-    task_id="scrape-ridership-data",
 
 
 default_args = {
