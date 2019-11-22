@@ -21,7 +21,7 @@ from airflow.operators.python_operator import PythonOperator
 from mds.api.auth import AuthorizationToken
 from mds.versions import Version
 
-POSTGRES_URI = PostgresHook.get_connection("postgres_default").get_uri()
+POSTGRES_URI = PostgresHook.get_hook("postgres_default").get_uri()
 
 
 default_args = {
