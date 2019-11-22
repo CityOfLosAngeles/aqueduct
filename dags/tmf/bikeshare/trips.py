@@ -9,13 +9,12 @@ from datetime import datetime, timedelta
 
 import pandas
 import sqlalchemy
+import tableauserverclient
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
-
-import tableauserverclient
 
 S3_ID = "s3_conn"
 POSTGRES_ID = "postgres_default"
@@ -38,7 +37,7 @@ bike_trips = sqlalchemy.Table(
     sqlalchemy.Column("start_datetime", sqlalchemy.DateTime),
     sqlalchemy.Column("start_station", sqlalchemy.Integer),
     sqlalchemy.Column("start_station_name", sqlalchemy.String),
-    sqlalchemy.Column("visible_id", sqlalchemy.Integer),
+    sqlalchemy.Column("visible_id", sqlalchemy.String),
     sqlalchemy.Column("distance", sqlalchemy.Float),
     sqlalchemy.Column("duration", sqlalchemy.Float),
     sqlalchemy.Column("est_calories", sqlalchemy.Float),
@@ -68,7 +67,8 @@ def create_table(**kwargs):
     Create the schema/tables to hold the bikeshare data.
     """
     logging.info("Creating tables")
-    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
+    hook = PostgresHook.get_hook(POSTGRES_ID)
+    engine = hook.get_sqlalchemy_engine()
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
@@ -90,7 +90,7 @@ def load_pg_data(**kwargs):
         TABLEAU_USER, TABLEAU_PASSWORD, TABLEAU_SITENAME,
     )
     tableau_server = tableauserverclient.Server(TABLEAU_SERVER, TABLEAU_VERSION)
-    tableau_server.sign_in(tableau_auth)
+    tableau_server.auth.sign_in(tableau_auth)
 
     # Get the Trips table view. This is a view specifically created for
     # this DAG. Tableau server doesn't allow the download of underlying
@@ -106,6 +106,7 @@ def load_pg_data(**kwargs):
         io.BytesIO(b"".join(view.csv)),
         parse_dates=["Start Datetime", "End Datetime"],
         thousands=",",
+        dtype={"visible_id": str, "end_station": str, "start_station": str},
     )
 
     # The data has a weird structure where trip rows are duplicated, with variations
@@ -133,23 +134,25 @@ def load_pg_data(**kwargs):
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
     # datetime interfaace, psycopg can correctly handle the timestamps upon insert.
     logging.info("Uploading to PG")
-    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
+    engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
 
 
 def load_s3_data(**kwargs):
+    """
+    Load the table from PG and upload it as a parquet to S3.
+    """
     bucket = kwargs.get("bucket")
     name = kwargs.get("name", "bikeshare_trips.parquet")
-    engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
-    s3con = S3Hook(S3_ID)
     if bucket:
         logging.info("Uploading data to s3")
+        engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
         df = pandas.read_sql_table(TABLE, engine, schema=SCHEMA)
         path = os.path.join("/tmp", name)
         df.to_parquet(path)
-        s3con = S3Hook("s3_conn")
+        s3con = S3Hook(S3_ID)
         s3con.load_file(path, name, bucket, replace=True)
         os.remove(path)
 
@@ -190,3 +193,5 @@ t3 = PythonOperator(
     op_kwargs={"bucket": "tmf-data"},
     dag=dag,
 )
+
+t1 >> t2 >> t3
