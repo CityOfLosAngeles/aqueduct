@@ -3,6 +3,7 @@ Download Los Angeles Metro Bikeshare trip data from Tableau,
 upload to Postgres and S3.
 """
 import io
+import logging
 import os
 from datetime import datetime, timedelta
 
@@ -66,6 +67,7 @@ def create_table(**kwargs):
     """
     Create the schema/tables to hold the bikeshare data.
     """
+    logging.info("Creating tables")
     engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
@@ -83,6 +85,7 @@ def load_pg_data(**kwargs):
     TABLEAU_USER = Variable.get("BIKESHARE_TABLEAU_USER")
     TABLEAU_PASSWORD = Variable.get("BIKESHARE_TABLEAU_PASSWORD")
     TRIP_TABLE_VIEW_ID = "7530c937-887e-42da-aa50-2a11d279bf51"
+    logging.info("Authenticating with Tableau")
     tableau_auth = tableauserverclient.TableauAuth(
         TABLEAU_USER, TABLEAU_PASSWORD, TABLEAU_SITENAME,
     )
@@ -93,6 +96,7 @@ def load_pg_data(**kwargs):
     # this DAG. Tableau server doesn't allow the download of underlying
     # workbook data via the API (though one can from the UI). This view
     # allows us to get around that.
+    logging.info("Loading Trips view")
     all_views, _ = tableau_server.views.get()
     view = next(v for v in all_views if v.id == TRIP_TABLE_VIEW_ID)
     if not view:
@@ -107,6 +111,7 @@ def load_pg_data(**kwargs):
     # The data has a weird structure where trip rows are duplicated, with variations
     # on a "Measure" column, containing trip length, duration, etc. We pivot on that
     # column to create a normalized table containing one row per trip.
+    logging.info("Cleaning Data")
     df = pandas.merge(
         df.set_index("Trip ID")
         .groupby(level=0)
@@ -127,6 +132,7 @@ def load_pg_data(**kwargs):
 
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
     # datetime interfaace, psycopg can correctly handle the timestamps upon insert.
+    logging.info("Uploading to PG")
     engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
     conn = engine.connect()
@@ -139,6 +145,7 @@ def load_s3_data(**kwargs):
     engine = PostgresHook.get_connection(POSTGRES_ID).create_sqlalchemy_engine()
     s3con = S3Hook(S3_ID)
     if bucket:
+        logging.info("Uploading data to s3")
         df = pandas.read_sql_table(TABLE, engine, schema=SCHEMA)
         path = os.path.join("/tmp", name)
         df.to_parquet(path)
