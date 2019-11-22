@@ -67,8 +67,7 @@ def create_table(**kwargs):
     Create the schema/tables to hold the bikeshare data.
     """
     logging.info("Creating tables")
-    hook = PostgresHook.get_hook(POSTGRES_ID)
-    engine = hook.get_sqlalchemy_engine()
+    engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
