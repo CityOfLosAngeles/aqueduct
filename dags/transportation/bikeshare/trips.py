@@ -18,7 +18,7 @@ from airflow.operators.python_operator import PythonOperator
 
 S3_ID = "s3_conn"
 POSTGRES_ID = "postgres_default"
-SCHEMA = "tmf"
+SCHEMA = "transportation"
 TABLE = "bike_trips"
 
 
@@ -161,7 +161,7 @@ default_args = {
     "owner": "ianrose",
     "depends_on_past": False,
     "start_date": datetime(2019, 11, 21),
-    "email": ["ian.rose@lacity.org"],
+    "email": ["ITAData@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
     "retries": 1,

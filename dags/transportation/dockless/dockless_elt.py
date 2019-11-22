@@ -15,12 +15,13 @@ import mds.providers
 import requests
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from mds.api.auth import AuthorizationToken
 from mds.versions import Version
 
-pg_conn = BaseHook.get_connection("postgres_default")
+POSTGRES_URI = PostgresHook.get_connection("postgres_default").get_uri()
 
 
 default_args = {
@@ -224,14 +225,8 @@ def load_to_s3_pgdb(**kwargs):
     obj.put(Body=json.dumps(trips))
     logging.info(f"Wrote {company} trips to s3")
     logging.info("Connecting to DB")
-    user = pg_conn.login
-    password = pg_conn.get_password()
-    host = pg_conn.host
-    dbname = pg_conn.schema
-    logging.info(f"Logging into postgres://-----:----@{host}:5432/{dbname}")
-    db = mds.Database(
-        uri=f"postgres://{user}:{password}@{host}:5432/{dbname}", version=version
-    )
+    logging.info(f"Logging into postgres")
+    db = mds.Database(uri=POSTGRES_URI, version=version)
 
     if len(status_changes) != 0:
         logging.info("loading {company} status changes into DB")
