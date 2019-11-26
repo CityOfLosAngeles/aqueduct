@@ -82,7 +82,6 @@ def check_columns(table, df):
     }
     for column in table.columns:
         assert column.name in df.columns
-        print(column.name, str(column.type), str(df.dtypes[column.name]))
         assert type_map[str(column.type)] == str(df.dtypes[column.name])
 
 
