@@ -13,3 +13,4 @@ requests
 pyarrow
 s3fs
 arcgis
+tableauserverclient

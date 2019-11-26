@@ -1,16 +1,14 @@
-import os
 from datetime import datetime, timedelta
 from itertools import chain
 
 import pandas as pd
 from airflow import DAG
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from geoalchemy2 import Geometry, WKTElement
 from shapely.geometry import Point
 from sodapy import Socrata
-from sqlalchemy import create_engine
 
 SOCRATA_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
 SOCRATA_USERNAME = Variable.get("SOCRATA_USERNAME")
@@ -50,19 +48,9 @@ def load_to_postgres(**kwargs):
         lambda x: WKTElement(Point(x.longitude, x.latitude).wkt, srid=srid), axis=1
     )
     df = df.drop("location", axis=1)
+
     # Create the connection
-
-    pg_conn = BaseHook.get_connection("postgres_default")
-    user = pg_conn.login
-    password = pg_conn.get_password()
-    host = pg_conn.host
-    dbname = pg_conn.schema
-    connection_string = (
-        os.environ.get("POSTGRES_URI")
-        or f"postgres://{user}:{password}@{host}:5432/{dbname}"
-    )
-
-    engine = create_engine(connection_string)
+    engine = PostgresHook.get_hook("postgres_default").get_sqlalchemy_engine()
 
     # Write the dataframe to the database
     df.to_sql(
@@ -97,7 +85,7 @@ t1 = PythonOperator(
     task_id="load-to-postgres",
     provide_context=True,
     python_callable=load_to_postgres,
-    dag=dag
+    dag=dag,
 )
 
 if __name__ == "__main__":
