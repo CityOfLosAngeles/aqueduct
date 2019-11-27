@@ -126,6 +126,10 @@ def load_pg_data(ds, **kwargs):
     # Drop unnecesary driver info.
     df = df.drop(columns=["driver_first_name", "driver_last_name"])
 
+    # Drop null trip ids and make sure they are integers.
+    df = df.dropna(subset=["trip_id"])
+    df.trip_id = df.trip_id.astype("int64")
+
     # Set the timezone to local time with TZ info
     for col in time_cols:
         df[col] = df[col].dt.tz_localize("UTC").dt.tz_convert(LOCAL_TIMEZONE)
