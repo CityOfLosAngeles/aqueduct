@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import pandas
 import requests
 import sqlalchemy
+
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
@@ -122,6 +123,10 @@ def load_pg_data(ds, **kwargs):
             "depart_variance": float,
         },
     )
+    # The trips may be zero due to holidays or missing data.
+    if len(df) == 0:
+        logging.info("No trips found -- is this a holiday?")
+        return
 
     # Drop unnecesary driver info.
     df = df.drop(columns=["driver_first_name", "driver_last_name"])
