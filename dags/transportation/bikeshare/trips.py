@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 import pandas
 import sqlalchemy
+
 import tableauserverclient
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
@@ -59,6 +60,10 @@ def check_columns(table, df):
     }
     for column in table.columns:
         assert column.name in df.columns
+        logging.info(
+            f"Checking that {column.name}'s type {column.type} "
+            f"is consistent with {df.dtypes[column.name]}"
+        )
         assert type_map[str(column.type)] == str(df.dtypes[column.name])
 
 
@@ -105,7 +110,7 @@ def load_pg_data(**kwargs):
         io.BytesIO(b"".join(view.csv)),
         parse_dates=["Start Datetime", "End Datetime"],
         thousands=",",
-        dtype={"visible_id": str, "end_station": str, "start_station": str},
+        dtype={"Visible ID": str, "End Station": str, "Start Station": str},
     )
 
     # The data has a weird structure where trip rows are duplicated, with variations
@@ -131,7 +136,7 @@ def load_pg_data(**kwargs):
     check_columns(bike_trips, df)
 
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
-    # datetime interfaace, psycopg can correctly handle the timestamps upon insert.
+    # datetime interface, psycopg can correctly handle the timestamps upon insert.
     logging.info("Uploading to PG")
     engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
