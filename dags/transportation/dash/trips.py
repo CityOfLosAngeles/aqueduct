@@ -83,6 +83,10 @@ def check_columns(table, df):
     }
     for column in table.columns:
         assert column.name in df.columns
+        logging.info(
+            f"Checking that {column.name}'s type {column.type} "
+            f"is consistent with {df.dtypes[column.name]}"
+        )
         assert type_map[str(column.type)] == str(df.dtypes[column.name])
 
 
@@ -142,7 +146,7 @@ def load_pg_data(ds, **kwargs):
     check_columns(dash_trips, df)
 
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
-    # datetime interfaace, psycopg can correctly handle the timestamps upon insert.
+    # datetime interface, psycopg can correctly handle the timestamps upon insert.
     logging.info("Uploading to PG")
     engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
     insert = sqlalchemy.dialects.postgresql.insert(dash_trips).on_conflict_do_nothing()
