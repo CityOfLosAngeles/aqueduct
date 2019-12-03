@@ -3,21 +3,9 @@ os: linux
 files:
   - source: /
     destination: /home/ec2-user/aqueduct
-    overwrite: yes
-permissions:
-  - object: /home/ec2-user/aqueduct
-    pattern: "**"
-    owner: ec2-user
-    group: ec2-user
-    type:
-      - directory
-  - object: /home/ec2-user/aqueduct
-    pattern: "**"
-    owner: ec2-user
-    group: ec2-user
-    type:
-      - file
 hooks:
+  BeforeInstall:
+    - location: scripts/before_install.sh
   AfterInstall:
     - location: scripts/install.sh
       runas: ec2-user
