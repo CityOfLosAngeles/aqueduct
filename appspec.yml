@@ -18,6 +18,8 @@ permissions:
     type:
       - file
 hooks:
+  BeforeInstall:
+    - location: scripts/before_install.sh
   AfterInstall:
     - location: scripts/install.sh
       runas: ec2-user
