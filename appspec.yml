@@ -3,7 +3,6 @@ os: linux
 files:
   - source: /
     destination: /home/ec2-user/aqueduct
-    overwrite: yes
 permissions:
   - object: /home/ec2-user/aqueduct
     pattern: "**"
