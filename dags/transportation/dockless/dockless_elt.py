@@ -1,6 +1,7 @@
 """
 DAG for ETL Processing of Dockless Mobility Provider Data
 """
+
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ from mds.versions import Version
 
 POSTGRES_URI = PostgresHook.get_hook("postgres_default").get_uri()
 
+SCHEMA_NAME = 'mds'
 
 default_args = {
     "owner": "airflow",
@@ -194,7 +196,11 @@ def load_to_s3_pgdb(**kwargs):
     if len(status_changes) != 0:
         logging.info("loading {company} status changes into DB")
         db.load_status_changes(
-            source=status_changes, stage_first=5, before_load=normalize_status_changes
+            source=status_changes,
+                   stage_first=5,
+                   before_load=normalize_status_changes,
+                   table=SCHEMA_NAME + ".status_changes"
+
         )
     else:
         logging.info(
@@ -204,7 +210,10 @@ def load_to_s3_pgdb(**kwargs):
 
     if len(trips) != 0:
         logging.info("loading {company} trips into DB")
-        db.load_trips(source=trips, stage_first=5, before_load=normalize_trips)
+        db.load_trips(source=trips, 
+                      stage_first=5,
+                      before_load=normalize_trips,
+                      table=SCHEMA_NAME + '.trips')
     else:
         logging.info(
             "Warning: not loading trip data for {company} as no data was received"
@@ -224,7 +233,7 @@ CREATE TYPE vehicle_types AS ENUM (
     'scooter'
 );
 
-CREATE TYPE  propulsion_types AS ENUM (
+CREATE TYPE propulsion_types AS ENUM (
     'human',
     'electric_assist',
     'electric',
@@ -256,7 +265,7 @@ CREATE TYPE event_type_reasons AS ENUM (
 
 status_changes = """
 
-CREATE TABLE IF NOT EXISTS status_changes (
+CREATE TABLE IF NOT EXISTS mds.status_changes (
     id SERIAL PRIMARY KEY,
     provider_id UUID NOT NULL,
     provider_name TEXT NOT NULL,
@@ -272,8 +281,8 @@ CREATE TABLE IF NOT EXISTS status_changes (
     battery_pct FLOAT,
     associated_trip UUID
 );
-ALTER TABLE status_changes DROP CONSTRAINT unique_event;
-ALTER TABLE status_changes
+ALTER TABLE mds.status_changes DROP CONSTRAINT unique_event;
+ALTER TABLE mds.status_changes
     ADD CONSTRAINT  unique_event
     UNIQUE (provider_id,
             device_id,
@@ -285,7 +294,7 @@ ALTER TABLE status_changes
 
 trips = """
 
-CREATE TABLE  IF NOT EXISTS trips (
+CREATE TABLE  IF NOT EXISTS mds.trips (
     provider_id UUID NOT NULL,
     provider_name TEXT NOT NULL,
     device_id UUID NOT NULL,
@@ -304,9 +313,9 @@ CREATE TABLE  IF NOT EXISTS trips (
     actual_cost INT,
     publication_time timestamptz
 );
-ALTER TABLE trips DROP CONSTRAINT pk_trip;
+ALTER TABLE mds.trips DROP CONSTRAINT pk_trip;
 
-ALTER TABLE trips
+ALTER TABLE mds.trips
     ADD CONSTRAINT pk_trip
 PRIMARY KEY (provider_id, trip_id);
 """

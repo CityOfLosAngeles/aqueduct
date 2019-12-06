@@ -35,12 +35,12 @@ default_args = {
 dag = DAG(dag_id="scooter-stat", default_args=default_args, schedule_interval="@daily")
 
 refresh_materialized_status = """
-REFRESH MATERIALIZED VIEW v_status_changes;
+REFRESH MATERIALIZED VIEW mds.v_status_changes;
 """
 
 refresh_materialized_trips = """
 SET work_mem = '64MB';
-REFRESH MATERIALIZED VIEW v_trips;
+REFRESH MATERIALIZED VIEW mds.v_trips;
 """
 
 task1 = PostgresOperator(
@@ -79,16 +79,16 @@ def set_xcom_variables(**kwargs):
             MAX(trip_distance_miles) as max_trip_length,
             COUNT(trip_id)::FLOAT / COUNT (DISTINCT(device_id)) as avg_rides_per_device,
             COUNT (DISTINCT (device_id)) as num_devices_doing_trips
-    FROM v_trips
+    FROM mds.v_trips
     WHERE DATE(start_time_local) = '{yesterday}'
     GROUP BY provider_name, vehicle_type ;
     """
     trips = pd.read_sql(
-        f"""SELECT * FROM v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
+        f"""SELECT * FROM mds.v_trips WHERE end_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
         con=engine,
     )
     status_changes = pd.read_sql(
-        f"""SELECT * FROM v_status_changes WHERE event_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
+        f"""SELECT * FROM mds.v_status_changes WHERE event_time_local BETWEEN '{yesterday}' AND '{today}'""",  # noqa: E501
         con=engine,
     )
     sum_table = pd.read_sql(sum_table_sql, con=engine).to_html()

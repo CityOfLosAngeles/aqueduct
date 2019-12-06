@@ -6,7 +6,7 @@ A series of DAGs, created in Apache Airflow, created to process data from dockle
 #### Tasks
 1. Make trips table
 2. Make status change table
-3. use the [mds-provider](http://github.com/cityofsantamonica/mds-provider) library to load a providers data into python, save to s3, then load in to the database under `public.trips` or `public.status_changes`.
+3. use the [mds-provider](http://github.com/cityofsantamonica/mds-provider) library to load a providers data into python, save to s3, then load in to the database under `mds.trips` or `mds.status_changes`.
 
 #### Connections
 The DAG expects the following connections to be configured in Airflow:

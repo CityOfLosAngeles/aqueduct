@@ -32,13 +32,13 @@ $BODY$
 language plpgsql;
 /* trigger itself */
 CREATE OR REPLACE TRIGGER route_process
-     AFTER INSERT ON trips
+     AFTER INSERT ON mds.trips
      FOR EACH ROW
      EXECUTE PROCEDURE geom_copy();
 
 /* create a status_change_geoms table */
 CREATE TABLE IF NOT EXISTS status_change_geoms (
-	status_change_id INTEGER NOT NULL REFERENCES status_changes(id),
+	status_change_id INTEGER NOT NULL REFERENCES mds.status_changes(id),
 	event_location_geom GEOMETRY
 );
 /* process location function function */
@@ -67,6 +67,6 @@ $BODY$
 language plpgsql;
 /* trigger itself */
 CREATE OR REPLACE TRIGGER status_change_processor
-     AFTER INSERT ON status_changes
+     AFTER INSERT ON mds.status_changes
      FOR EACH ROW
      EXECUTE PROCEDURE status_geom_copy();
