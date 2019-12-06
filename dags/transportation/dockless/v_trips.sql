@@ -17,9 +17,9 @@ AS
     mt.trips.trip_distance::numeric * 0.000621371192 AS trip_distance_miles,
     mt.trips.route as route_json,
     mt.trips.start_time,
-    timezone('PST'::text, trips.start_time) AS start_time_local,
+    timezone('PST'::text, mt.trips.start_time) AS start_time_local,
     mt.trips.end_time,
-    timezone('PST'::text, trips.end_time) AS end_time_local,
+    timezone('PST'::text, mt.trips.end_time) AS end_time_local,
     mt.trips.parking_verification_url,
     mt.trips.standard_cost,
     mt.trips.actual_cost,
@@ -83,7 +83,6 @@ GRANT SELECT ON TABLE mds.v_status_changes TO dot_vlad_ro;
 CREATE INDEX idx_status_change_geometry
     ON mds.v_status_changes USING gist
     (event_location_geom)
-
 
 CREATE INDEX idx_trip_start
     ON mds.v_trips USING gist
