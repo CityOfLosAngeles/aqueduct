@@ -205,7 +205,8 @@ def load_to_s3_pgdb(**kwargs):
     end_time = kwargs["execution_date"]
     # test is provider is jump, up hours because their ETL is slow.
     if client.provider.provider_id == "c20e08cf-8488-46a6-a66c-5d8fb827f7e0":
-        start_time = end_time - timedelta(hours=25)
+        end_time = endtime - timedelta(hours=25)
+        start_time = endtime - timedelta(hours=12)
     else:
         start_time = end_time - timedelta(hours=12)
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
@@ -355,8 +356,8 @@ task0 = PostgresOperator(
     postgres_conn_id='postgres_default',
     dag=dag
     )
-
 """
+
 task1 = PostgresOperator(
     task_id="create_status_changes",
     sql=status_changes,
