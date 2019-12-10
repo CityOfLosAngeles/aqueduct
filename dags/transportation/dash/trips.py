@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import pandas
 import requests
 import sqlalchemy
-
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.S3_hook import S3Hook
