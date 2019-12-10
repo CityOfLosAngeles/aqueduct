@@ -22,7 +22,7 @@ from mds.versions import Version
 
 POSTGRES_URI = PostgresHook.get_hook("postgres_default").get_uri()
 
-SCHEMA_NAME = 'mds'
+SCHEMA_NAME = "mds"
 
 default_args = {
     "owner": "airflow",
@@ -197,10 +197,9 @@ def load_to_s3_pgdb(**kwargs):
         logging.info("loading {company} status changes into DB")
         db.load_status_changes(
             source=status_changes,
-                   stage_first=5,
-                   before_load=normalize_status_changes,
-                   table=SCHEMA_NAME + ".status_changes"
-
+            stage_first=5,
+            before_load=normalize_status_changes,
+            table=f'{SCHEMA_NAME}"' + '."status_changes',
         )
     else:
         logging.info(
@@ -210,10 +209,12 @@ def load_to_s3_pgdb(**kwargs):
 
     if len(trips) != 0:
         logging.info("loading {company} trips into DB")
-        db.load_trips(source=trips, 
-                      stage_first=5,
-                      before_load=normalize_trips,
-                      table=SCHEMA_NAME + '.trips')
+        db.load_trips(
+            source=trips,
+            stage_first=5,
+            before_load=normalize_trips,
+            table=f'{SCHEMA_NAME}"' + '."trips',
+        )
     else:
         logging.info(
             "Warning: not loading trip data for {company} as no data was received"

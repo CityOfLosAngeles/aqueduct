@@ -1,6 +1,6 @@
 -- View: mds.v_trips
 
-DROP MATERIALIZED VIEW mds.v_trips CASCADE;
+DROP IF EXISTS MATERIALIZED VIEW mds.v_trips CASCADE;
 
 CREATE MATERIALIZED VIEW mds.v_trips
 TABLESPACE pg_default
@@ -44,7 +44,7 @@ GRANT SELECT ON TABLE mds.v_trips TO dot_vlad_ro;
 
 -- view mds.v_status_changes
 
-DROP MATERIALIZED VIEW mds.v_status_changes CASCADE;
+DROP IF EXISTS MATERIALIZED VIEW mds.v_status_changes CASCADE;
 
 CREATE MATERIALIZED VIEW mds.v_status_changes
 TABLESPACE pg_default
