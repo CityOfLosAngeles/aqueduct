@@ -87,6 +87,3 @@ t1 = PythonOperator(
     python_callable=load_to_postgres,
     dag=dag,
 )
-
-if __name__ == "__main__":
-    load_to_postgres()
