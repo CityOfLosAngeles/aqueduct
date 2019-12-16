@@ -18,14 +18,13 @@ from sqlalchemy import MetaData, create_engine
 
 filename = "/tmp/myla311.csv"
 
-MY_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
-USERNAME = Variable.get("SOCRATA_USERNAME")
-PASSWORD = Variable.get("SOCRATA_PASSWORD")
-
 
 def retrieve_save_data(**kwargs):
     # Using Authenticated Client:
     # API Document: https://dev.socrata.com/foundry/data.lacity.org/aub4-z9pc
+    MY_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
+    USERNAME = Variable.get("SOCRATA_USERNAME")
+    PASSWORD = Variable.get("SOCRATA_PASSWORD")
 
     client = Socrata("data.lacity.org", MY_APP_TOKEN, USERNAME, PASSWORD)
     # Getting the total number of rows in the dataset
