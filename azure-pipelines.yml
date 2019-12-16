@@ -14,14 +14,14 @@ jobs:
       - bash: pip install -r requirements.txt
         displayName: Install custom requirements
       - bash: |
+          set -e
           airflow initdb
           for dagfile in `grep -lr --include=*.py "airflow.*DAG" dags/`
           do
             echo "Testing DAG $dagfile"
-            python -W ignore $dagfile
+            python $dagfile
           done
         displayName: Testing DAG integrity
-        failOnStderr: true
       - bash: |
           pip install pre-commit
           pre-commit install
