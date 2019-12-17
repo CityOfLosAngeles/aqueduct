@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 
 import pandas
 import sqlalchemy
-
 import tableauserverclient
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook

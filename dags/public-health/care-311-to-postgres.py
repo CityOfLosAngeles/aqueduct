@@ -10,10 +10,6 @@ from geoalchemy2 import Geometry, WKTElement
 from shapely.geometry import Point
 from sodapy import Socrata
 
-SOCRATA_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
-SOCRATA_USERNAME = Variable.get("SOCRATA_USERNAME")
-SOCRATA_PASSWORD = Variable.get("SOCRATA_PASSWORD")
-
 
 def load_to_postgres(**kwargs):
     """
@@ -21,6 +17,10 @@ def load_to_postgres(**kwargs):
     to postgres as an upsert
     """
     dataset_id = "jvre-2ecm"
+    SOCRATA_APP_TOKEN = Variable.get("SOCRATA_APP_TOKEN")
+    SOCRATA_USERNAME = Variable.get("SOCRATA_USERNAME")
+    SOCRATA_PASSWORD = Variable.get("SOCRATA_PASSWORD")
+
     client = Socrata(
         "data.lacity.org",
         SOCRATA_APP_TOKEN,
@@ -87,6 +87,3 @@ t1 = PythonOperator(
     python_callable=load_to_postgres,
     dag=dag,
 )
-
-if __name__ == "__main__":
-    load_to_postgres()

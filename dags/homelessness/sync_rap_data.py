@@ -4,12 +4,11 @@ Pull data from RAP FTP and sync with ArcGIS Online
 import ftplib
 from datetime import datetime, timedelta
 
+import arcgis
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
-
-import arcgis
 
 
 def get_file(ftphost, ftpuser, ftppassword, filename):

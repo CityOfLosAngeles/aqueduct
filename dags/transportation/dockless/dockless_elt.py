@@ -12,13 +12,11 @@ import botocore
 import mds
 import mds.db
 import mds.providers
-import requests
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from mds.api.auth import AuthorizationToken
 from mds.versions import Version
 
 POSTGRES_URI = PostgresHook.get_hook("postgres_default").get_uri()
