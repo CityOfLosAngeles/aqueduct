@@ -180,7 +180,7 @@ def load_s3_data(**kwargs):
 default_args = {
     "owner": "ianrose",
     "depends_on_past": False,
-    "start_date": datetime(2019, 11, 25),
+    "start_date": datetime(2019, 10, 1),
     "email": ["ITAData@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
