@@ -27,7 +27,7 @@ metadata = sqlalchemy.MetaData(schema=SCHEMA)
 dash_trips = sqlalchemy.Table(
     TABLE,
     metadata,
-    sqlalchemy.Column("trip_id", sqlalchemy.Integer, primary_key=True),
+    # Add the columns
     sqlalchemy.Column("arrival_passengers", sqlalchemy.Integer),
     sqlalchemy.Column("arrive", sqlalchemy.DateTime(timezone=True)),
     sqlalchemy.Column("arrive_variance", sqlalchemy.Float),
@@ -48,10 +48,15 @@ dash_trips = sqlalchemy.Table(
     sqlalchemy.Column("scheduled_depart", sqlalchemy.DateTime(timezone=True)),
     sqlalchemy.Column("stop_href", sqlalchemy.String),
     sqlalchemy.Column("stop_name", sqlalchemy.String),
+    sqlalchemy.Column("trip_id", sqlalchemy.Integer),
     sqlalchemy.Column("trip_href", sqlalchemy.String),
     sqlalchemy.Column("trip_name", sqlalchemy.String),
     sqlalchemy.Column("vehicle_href", sqlalchemy.String),
     sqlalchemy.Column("vehicle_name", sqlalchemy.String),
+    # Add constraints. We want to consider a single stop on a single day
+    # to be unique, so we combine 'trip_id' (which is shared across multiple
+    # days and stops) with 'stop_name' and 'scheduled_arrive'
+    sqlalchemy.UniqueConstraint("scheduled_arrive", "stop_name", "trip_id"),
 )
 
 
