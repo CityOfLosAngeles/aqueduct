@@ -27,7 +27,7 @@ metadata = sqlalchemy.MetaData(schema=SCHEMA)
 dash_trips = sqlalchemy.Table(
     TABLE,
     metadata,
-    sqlalchemy.Column("trip_id", sqlalchemy.Integer, primary_key=True),
+    # Add the columns
     sqlalchemy.Column("arrival_passengers", sqlalchemy.Integer),
     sqlalchemy.Column("arrive", sqlalchemy.DateTime(timezone=True)),
     sqlalchemy.Column("arrive_variance", sqlalchemy.Float),
@@ -48,10 +48,15 @@ dash_trips = sqlalchemy.Table(
     sqlalchemy.Column("scheduled_depart", sqlalchemy.DateTime(timezone=True)),
     sqlalchemy.Column("stop_href", sqlalchemy.String),
     sqlalchemy.Column("stop_name", sqlalchemy.String),
+    sqlalchemy.Column("trip_id", sqlalchemy.Integer),
     sqlalchemy.Column("trip_href", sqlalchemy.String),
     sqlalchemy.Column("trip_name", sqlalchemy.String),
     sqlalchemy.Column("vehicle_href", sqlalchemy.String),
     sqlalchemy.Column("vehicle_name", sqlalchemy.String),
+    # Add constraints. We want to consider a single stop on a single day
+    # to be unique, so we combine 'trip_id' (which is shared across multiple
+    # days and stops) with 'stop_name' and 'scheduled_arrive'
+    sqlalchemy.UniqueConstraint("scheduled_arrive", "stop_name", "trip_id"),
 )
 
 
@@ -153,29 +158,36 @@ def load_pg_data(ds, **kwargs):
     conn.execute(insert, *df.to_dict(orient="record"))
 
 
-def load_s3_data(**kwargs):
+def load_s3_data(ds, **kwargs):
     """
     Load the table from PG and upload it as a parquet to S3.
     """
     bucket = kwargs.get("bucket")
-    name = kwargs.get("name", "dash_trips.parquet")
     if bucket:
         logging.info("Uploading data to s3")
+        yesterday = pandas.to_datetime(ds) - pandas.Timedelta(days=1)
+        sql = f"""
+        SELECT *
+        FROM "{SCHEMA}"."{TABLE}"
+        WHERE DATE(scheduled_depart) = '{str(yesterday.date())}'
+        """
         engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
-        df = pandas.read_sql_table(TABLE, engine, schema=SCHEMA)
+        df = pandas.read_sql_query(sql, engine)
+
+        name = kwargs.get("name", "dash-trips-{}.parquet".format(ds))
         path = os.path.join("/tmp", name)
         # Write to parquet, allowing timestamps to be truncated to millisecond.
         # This is much more precision than we will ever need or get.
         df.to_parquet(path, allow_truncated_timestamps=True)
         s3con = S3Hook(S3_ID)
-        s3con.load_file(path, name, bucket, replace=True)
+        s3con.load_file(path, f"dash/{name}", bucket, replace=True)
         os.remove(path)
 
 
 default_args = {
     "owner": "ianrose",
     "depends_on_past": False,
-    "start_date": datetime(2019, 11, 25),
+    "start_date": datetime(2019, 10, 1),
     "email": ["ITAData@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -204,7 +216,7 @@ t2 = PythonOperator(
 
 t3 = PythonOperator(
     task_id="load_s3_data",
-    provide_context=False,
+    provide_context=True,
     python_callable=load_s3_data,
     op_kwargs={"bucket": "tmf-data"},
     dag=dag,
