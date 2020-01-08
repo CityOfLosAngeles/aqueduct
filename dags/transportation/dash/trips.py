@@ -173,8 +173,11 @@ def load_s3_data(ds, **kwargs):
         """
         engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
         df = pandas.read_sql_query(sql, engine)
+        if len(df) == 0:
+            logging.info(f"Got no trips for {yesterday.date()}. Exiting early")
+            return
 
-        name = kwargs.get("name", "dash-trips-{}.parquet".format(ds))
+        name = kwargs.get("name", "dash-trips-{}.parquet".format(yesterday.date()))
         path = os.path.join("/tmp", name)
         # Write to parquet, allowing timestamps to be truncated to millisecond.
         # This is much more precision than we will ever need or get.
