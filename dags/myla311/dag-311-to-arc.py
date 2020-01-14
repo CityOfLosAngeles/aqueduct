@@ -7,54 +7,90 @@ import os
 import shutil
 import pathlib
 
-print('reading init CSV')
-df = pd.read_csv('./service_requests.csv')
+from airflow import DAG
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
+from datetime import datetime, timedelta
 
-print('logging into ESRI')
-
-gis = GIS("http://lahub.maps.arcgis.com/home/index.html", 
-          os.environ.get('LAHUB_USERNAME'),
-          os.environ.get('LAHUB_PASSWORD'))
-
-df[["Latitude", "Longitude"]] = df[["Latitude", "Longitude"]].apply(pd.to_numeric)
-gdf = gpd.GeoDataFrame(
-      df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude))
-
-print(f'Loaded Geodataframe, currently at {len(gdf)} rows')
-gdf.crs = {'init': 'epsg:4326'}
-
-gdf_small = gdf.head(10)
-
-def prep_gdf(gdf, file_path='/tmp/requests-311', file_name='/test.shp'):
+def overwrite_layer(**kwargs):
     """
-    Given a geodataframe, 
-    return a path with a zipped shapefile 
+    Overwrites the layer 
+    on a ESRI GIS
     """
-    # make a folder 
-    pathlib.Path(file_path).mkdir(parents=True, exist_ok=True)
-    gdf_small.to_file(file_path + file_name, driver="ESRI Shapefile")
+    print('logging into ESRI')
 
-    print('zipping file')
-    # zip the file
-    data_file_location = file_path 
-    path = shutil.make_archive(data_file_location, 'zip', file_path)
-    return path
+    gis = GIS("http://lahub.maps.arcgis.com/home/index.html", 
+            os.environ.get('LAHUB_USERNAME'),
+            os.environ.get('LAHUB_PASSWORD'))
+    # get the item 
 
-data_file_location = prep_gdf(gdf_small)
-print('uploading')
-item_prop = {'title':'311_test',
-             'type': 'Shapefile'}
-item = gis.content.add(item_properties = item_prop, data=data_file_location)
-feature_layer_item = item.publish()
+    my_content = gis.content.search(query="311_test owner:" + gis.users.me.username, 
+                                item_type="Feature Layer", 
+                                max_items=15)
+    item=my_content[0]
+    print(f'item is {item}')
+    print("overwriting")
+    # overwrite the file 
+    feature_layer_collection = FeatureLayerCollection.fromitem(item)
+    large_path = '/tmp/service_requests.zip'
+    print(feature_layer_collection.manager.overwrite(large_path))
+    return True
 
-print("published initial dataset")
-# load the new file 
-gdf_slightly_larger = gdf.head(100)
-large_path = prep_gdf(gdf_slightly_larger, file_path='/tmp/requests-larger')
+default_args = {
+    'owner': 'hunterowens',
+    'depends_on_past': False,
+    'start_date': datetime(2020, 1, 10),
+    'email': ['ITAData@lacity.org'],
+    'email_on_failure': False,
+    'email_on_retry': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+    # 'queue': 'bash_queue',
+    # 'pool': 'backfill',
+    # 'priority_weight': 10,
+    # 'end_date': datetime(2016, 1, 1),
+}
 
-print("overwriting")
-# overwrite the file 
-feature_layer_collection = FeatureLayerCollection.fromitem(feature_layer_item)
+dag = DAG('311-sync', default_args=default_args, schedule_interval=timedelta(days=1))
 
-print(feature_layer_collection.manager.overwrite(large_path))
+t1 = BashOperator(
+    task_id='download_date',
+    bash_command='',
+    dag=dag)
+
+t2 = BashOperator(
+    task_id='make_directory',
+    bash_command="mkdir -p /tmp/service-requests",
+    dag=dag)
+
+ogr_command = """ogr2ogr \ 
+                 -s_srs EPSG:4326 \
+                 -t_srs EPSG:4326  \
+                 -f "ESRI Shapefile" \
+                 /tmp/service-requests/service-requests.shp DOWNLOADED_FILE.CSV
+                 """
+
+t3 = BashOperator(
+    task_id='covert_to_shp',
+    bash_command=ogr_command,
+    dag=dag)
+)
+
+t4 = BashOperator(
+    task_id='zip_file',
+    bash_command='zip -r /tmp/service_requests.zip /tmp/service_requests/*'
+)
+
+t5 = PythonOperator(
+    task_id="upload_to_esri", 
+    provide_context=True,
+    python_callable=overwrite_layer,
+    dag=dag
+)
+
+t1 >> t2 >> t3 >> t4
+
+t4 >> t5
+
+## add postgres insert task here 
 
