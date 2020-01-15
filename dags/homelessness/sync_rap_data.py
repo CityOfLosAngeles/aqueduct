@@ -2,12 +2,14 @@
 Pull data from RAP FTP and sync with ArcGIS Online
 """
 import ftplib
+import os
 from datetime import datetime, timedelta
 
 import arcgis
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python_operator import PythonOperator
 
 
@@ -33,6 +35,12 @@ def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(filename)
+
+
+def upload_to_s3(filename, bucket):
+    path = "/tmp/%s" % filename
+    s3 = S3Hook("s3_conn")
+    s3.load_file(path, filename, bucket, replace=True)
 
 
 default_args = {
@@ -74,6 +82,10 @@ def update_rap_data(**kwargs):
     arcpassword = arcconnection.password
     arcfeatureid = kwargs.get("arcfeatureid")
     update_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+
+    # Upload to s3
+    upload_to_s3(filename, "public-health-dashboard")
+    os.remove("/tmp/%s" % filename)
 
 
 # Sync ServiceRequestData.csv
