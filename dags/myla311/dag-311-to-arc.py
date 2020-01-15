@@ -20,14 +20,10 @@ def overwrite_layer(**kwargs):
     print('logging into ESRI')
 
     gis = GIS("http://lahub.maps.arcgis.com/home/index.html", 
-            os.environ.get('LAHUB_USERNAME'),
-            os.environ.get('LAHUB_PASSWORD'))
+            os.environ.get('AIRFLOW_CONN_LAHUB_USERNAME'),
+            os.environ.get('AIRFLOW_CONN_LAHUB_PASSWORD'))
     # get the item 
-
-    my_content = gis.content.search(query="311_test owner:" + gis.users.me.username, 
-                                item_type="Feature Layer", 
-                                max_items=15)
-    item=my_content[0]
+    item=gis_item = gis.content.get('0e7e2be182e54142be89c2488f25296b')
     print(f'item is {item}')
     print("overwriting")
     # overwrite the file 
@@ -54,43 +50,17 @@ default_args = {
 dag = DAG('311-sync', default_args=default_args, schedule_interval=timedelta(days=1))
 
 t1 = BashOperator(
-    task_id='download_date',
-    bash_command='',
+    task_id='download_data',
+    bash_command="bash download-data.sh",
     dag=dag)
 
-t2 = BashOperator(
-    task_id='make_directory',
-    bash_command="mkdir -p /tmp/service-requests",
-    dag=dag)
-
-ogr_command = """ogr2ogr \ 
-                 -s_srs EPSG:4326 \
-                 -t_srs EPSG:4326  \
-                 -f "ESRI Shapefile" \
-                 /tmp/service-requests/service-requests.shp DOWNLOADED_FILE.CSV
-                 """
-
-t3 = BashOperator(
-    task_id='covert_to_shp',
-    bash_command=ogr_command,
-    dag=dag)
-)
-
-t4 = BashOperator(
-    task_id='zip_file',
-    bash_command='zip -r /tmp/service_requests.zip /tmp/service_requests/*'
-)
-
-t5 = PythonOperator(
+t2 = PythonOperator(
     task_id="upload_to_esri", 
     provide_context=True,
     python_callable=overwrite_layer,
     dag=dag
 )
 
-t1 >> t2 >> t3 >> t4
-
-t4 >> t5
-
+t1 >> t2
 ## add postgres insert task here 
 
