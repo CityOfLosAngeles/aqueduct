@@ -29,8 +29,7 @@ dag = DAG("code-55", default_args=default_args, schedule_interval="@daily")
 def get_code_55_df(urlnumber, stage):
     # make request to feature service url
     url = (
-        r"https://production.sanstarla.com/FeatureService/REST/services"
-        "/Authorizations/FeatureServer/%s/query" % urlnumber
+        r"https://production.sanstarla.com/FeatureService/REST/services/Authorizations/FeatureServer/%s/query" % urlnumber
     )
     resp = requests.get(url)
 
