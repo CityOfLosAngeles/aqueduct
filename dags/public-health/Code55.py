@@ -69,7 +69,7 @@ def get_code_55_df(urlnumber, stage):
     return df
 
 
-def update_code_55():
+def update_code_55(**kwargs):
     # Collecting each dataset
     code_55_closed_last_90 = get_code_55_df(0, "Closed")
     code_55_pending_schedule = get_code_55_df(1, "Pending Scheduled")
@@ -135,7 +135,7 @@ def update_code_55():
     # Deleting old records
     object_id_list = ",".join(list(df["CompositeID"].astype(str)))
     engine.connect().execute(
-        'DELETE FROM "public-health".code55s WHERE CompositeID IN (%s)' % object_id_list
+        'DELETE FROM "public-health".code55s WHERE "CompositeID" IN (%s)' % object_id_list
     )
 
     # Sending updates and new records to postgres
