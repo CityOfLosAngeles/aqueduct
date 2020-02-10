@@ -100,6 +100,7 @@ def update_code_55(**kwargs):
 
     # Creating table if does not exist
     engine = PostgresHook.get_hook("postgres_default").get_sqlalchemy_engine()
+    engine.connect().execute('CREATE SCHEMA IF NOT EXISTS "public-health"')
     create_table_statement = """CREATE TABLE IF NOT EXISTS "public-health"."code55s" (
     index BIGINT,
     "Id" BIGINT,
@@ -134,7 +135,8 @@ def update_code_55(**kwargs):
     engine.connect().execute(create_table_statement)
 
     # Deleting old records
-    object_id_list = ",".join(list(df["CompositeID"].astype(str)))
+    object_id_list = "','".join(list(df["CompositeID"]))
+    object_id_list = "'" + object_id_list + "'"
     engine.connect().execute(
         'DELETE FROM "public-health".code55s WHERE "CompositeID" IN (%s)' % object_id_list
     )
