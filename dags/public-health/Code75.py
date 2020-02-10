@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 import arcgis
-
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.postgres_hook import PostgresHook
@@ -72,6 +71,6 @@ t1 = PythonOperator(
     task_id="Update_Code_75_Data",
     provide_context=True,
     python_callable=update_code_75,
-    op_kwargs={"arcfeatureid": "6b757be10dd04edb9c139894805425a1",},
+    op_kwargs={"arcfeatureid": "6b757be10dd04edb9c139894805425a1"},
     dag=dag,
 )

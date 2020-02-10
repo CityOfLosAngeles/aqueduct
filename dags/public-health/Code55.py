@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import requests
-
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.python_operator import PythonOperator
@@ -138,7 +137,8 @@ def update_code_55(**kwargs):
     object_id_list = "','".join(list(df["CompositeID"]))
     object_id_list = "'" + object_id_list + "'"
     engine.connect().execute(
-        'DELETE FROM "public-health".code55s WHERE "CompositeID" IN (%s)' % object_id_list
+        'DELETE FROM "public-health".code55s WHERE "CompositeID" IN (%s)'
+        % object_id_list
     )
 
     # Sending updates and new records to postgres
