@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import arcgis
+
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.hooks.postgres_hook import PostgresHook
@@ -56,7 +57,7 @@ def update_code_75(**kwargs):
     engine.connect().execute(create_table_statement)
 
     # Deleting old records
-    object_id_list = ",".join(list(sdf["OBJECTID"]))
+    object_id_list = ",".join(list(sdf["OBJECTID"].astype(str)))
     engine.connect().execute(
         'DELETE FROM "public-health".code75s WHERE "OBJECTID" IN (%s)' % object_id_list
     )
