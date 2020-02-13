@@ -31,9 +31,6 @@ AS
 		trips.trip_id = trips_geoms.trip_id
 WITH DATA;
 
-CREATE INDEX idx_trips_start_time ON v_trips(start_time_local);
-CREATE INDEX idx_trips_end_time ON v_trips(end_time_local);
-
 ALTER TABLE public.v_trips
     OWNER TO dbadmin;
 
@@ -68,8 +65,6 @@ AS
    ON status_changes.id = status_change_geoms.status_change_id
 WITH DATA;
 
-CREATE INDEX idx_status_change_event_time ON v_status_changes(event_time_local);
-
 ALTER TABLE public.v_status_changes
     OWNER TO dbadmin;
 
@@ -77,18 +72,3 @@ GRANT SELECT ON TABLE public.v_status_changes TO dot_mony_ro;
 GRANT SELECT ON TABLE public.v_status_changes TO dot_paul_ro;
 GRANT ALL ON TABLE public.v_status_changes TO dbadmin;
 GRANT SELECT ON TABLE public.v_status_changes TO dot_vlad_ro;
-
---- make some indexes
-
-CREATE INDEX idx_status_change_geometry
-    ON public.v_status_changes USING gist
-    (event_location_geom)
-
-
-CREATE INDEX idx_trip_start
-    ON public.v_trips USING gist
-    (start_point);
-
-CREATE INDEX idx_trip_end
-    ON public.v_trips USING gist
-    (end_point);
