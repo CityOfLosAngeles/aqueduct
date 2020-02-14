@@ -25,13 +25,14 @@ SELECT trips.provider_id,
 FROM trips INNER JOIN trips_geoms
 ON trips.trip_id = trips_geoms.trip_id
 
-ALTER VIEW public.v_trips
+ALTER TABLE public.v_trips
     OWNER TO dbadmin;
 
-GRANT SELECT ON VIEW public.v_trips TO dot_mony_ro;
-GRANT SELECT ON VIEW public.v_trips TO dot_paul_ro;
-GRANT SELECT ON VIEW public.v_trips TO dot_vlad_ro;
-GRANT ALL ON VIEW public.v_trips TO dbadmin;
+GRANT SELECT ON TABLE public.v_trips TO dot_mony_ro;
+GRANT SELECT ON TABLE public.v_trips TO dot_paul_ro;
+GRANT SELECT ON TABLE public.v_trips TO dot_romeo_ro;
+GRANT SELECT ON TABLE public.v_trips TO dot_vlad_ro;
+GRANT ALL ON TABLE public.v_trips TO dbadmin;
 
 -- view v.status_changes
 
@@ -54,10 +55,11 @@ SELECT status_changes.provider_id,
 FROM status_changes INNER JOIN status_change_geoms
 ON status_changes.id = status_change_geoms.status_change_id
 
-ALTER VIEW public.v_status_changes
+ALTER TABLE public.v_status_changes
     OWNER TO dbadmin;
 
-GRANT SELECT ON VIEW public.v_status_changes TO dot_mony_ro;
-GRANT SELECT ON VIEW public.v_status_changes TO dot_paul_ro;
-GRANT SELECT ON VIEW public.v_status_changes TO dot_vlad_ro;
-GRANT ALL ON VIEW public.v_status_changes TO dbadmin;
+GRANT SELECT ON TABLE public.v_status_changes TO dot_mony_ro;
+GRANT SELECT ON TABLE public.v_status_changes TO dot_paul_ro;
+GRANT SELECT ON TABLE public.v_status_changes TO dot_romeo_ro;
+GRANT SELECT ON TABLE public.v_status_changes TO dot_vlad_ro;
+GRANT ALL ON TABLE public.v_status_changes TO dbadmin;
