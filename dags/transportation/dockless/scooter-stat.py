@@ -34,7 +34,7 @@ default_args = {
 dag = DAG(dag_id="scooter-stat", default_args=default_args, schedule_interval="@daily")
 
 
-def set_xcom_variables(**kwargs):
+def compute_scooter_stats(**kwargs):
     logging.info("Connecting to DB")
     user = pg_conn.login
     password = pg_conn.get_password()
@@ -121,17 +121,17 @@ def email_callback(**kwargs):
     return True
 
 
-email_task = PythonOperator(
+send_stats_email = PythonOperator(
     task_id="scoot_stat_email",
     python_callable=email_callback,
     provide_context=True,
     dag=dag,
 )
-set_xcom = PythonOperator(
+compute_stats = PythonOperator(
     task_id="computing_stats",
     provide_context=True,
-    python_callable=set_xcom_variables,
+    python_callable=compute_scooter_stats,
     dag=dag,
 )
 
-email_task.set_upstream(set_xcom)
+compute_stats >> send_stats_email
