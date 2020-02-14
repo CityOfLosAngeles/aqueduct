@@ -6,7 +6,6 @@ import pendulum
 import sqlalchemy
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
 
@@ -34,32 +33,8 @@ default_args = {
 
 dag = DAG(dag_id="scooter-stat", default_args=default_args, schedule_interval="@daily")
 
-refresh_materialized_status = """
-REFRESH MATERIALIZED VIEW v_status_changes;
-"""
 
-refresh_materialized_trips = """
-SET work_mem = '64MB';
-REFRESH MATERIALIZED VIEW v_trips;
-"""
-
-task1 = PostgresOperator(
-    task_id="update_materilized_view_status",
-    sql=refresh_materialized_status,
-    postgres_conn_id="postgres_default",
-    dag=dag,
-)
-
-
-task2 = PostgresOperator(
-    task_id="update_materilized_view_trips",
-    sql=refresh_materialized_trips,
-    postgres_conn_id="postgres_default",
-    dag=dag,
-)
-
-
-def set_xcom_variables(**kwargs):
+def compute_scooter_stats(**kwargs):
     logging.info("Connecting to DB")
     user = pg_conn.login
     password = pg_conn.get_password()
@@ -146,19 +121,17 @@ def email_callback(**kwargs):
     return True
 
 
-email_task = PythonOperator(
+send_stats_email = PythonOperator(
     task_id="scoot_stat_email",
     python_callable=email_callback,
     provide_context=True,
     dag=dag,
 )
-set_xcom = PythonOperator(
+compute_stats = PythonOperator(
     task_id="computing_stats",
     provide_context=True,
-    python_callable=set_xcom_variables,
+    python_callable=compute_scooter_stats,
     dag=dag,
 )
 
-task1.set_downstream(set_xcom)
-task2.set_downstream(set_xcom)
-email_task.set_upstream(set_xcom)
+compute_stats >> send_stats_email

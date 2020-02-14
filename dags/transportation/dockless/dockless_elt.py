@@ -272,7 +272,7 @@ CREATE TABLE IF NOT EXISTS status_changes (
     battery_pct FLOAT,
     associated_trip UUID
 );
-ALTER TABLE status_changes DROP CONSTRAINT unique_event;
+ALTER TABLE status_changes DROP CONSTRAINT IF EXISTS unique_event;
 ALTER TABLE status_changes
     ADD CONSTRAINT  unique_event
     UNIQUE (provider_id,
