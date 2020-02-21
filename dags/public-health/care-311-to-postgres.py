@@ -61,6 +61,17 @@ def load_to_postgres(**kwargs):
         dtype={"geom": Geometry("POINT", srid=srid)},
     )
 
+    # Grant ita_readonly and iteam_ro permissions to read the table.
+    # We need to do this every time due to replacing existing tables,
+    # which wipes previous permissions.
+    engine.execute(
+        'GRANT SELECT ON TABLE "public-health"."311-cases-homelessness" '
+        "TO ita_readonly"
+    )
+    engine.execute(
+        'GRANT SELECT ON TABLE "public-health"."311-cases-homelessness" ' "TO iteam_ro"
+    )
+
     return True
 
 
