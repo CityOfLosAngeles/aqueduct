@@ -11,18 +11,20 @@ The City of LA initially built a dashboard pulling data directly from JHU's ESRI
 
 JHU publishes new CSVs daily with city/county level counts for the world. We schedule our ETL around these CSVs made available on GitHub and repackage them into 2 public ESRI feature layers:
 1. Time-series data available at the city/county level of confirmed cases, deaths, and recovered.
-2. The *current date's* city/county data of confirmed cases, deaths, and recovered and state and country totals for cases, deaths, and recovered.
+2. The *current date's* city/county data of confirmed cases, deaths. In the coming days, we hope to update or publish a new feature layer that contains the state's and country's total cases, deaths, and recovered.
 
 ## Important City of LA source materials:
 * [City of LA COVID-19 Dashboard](https://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/82b3434c38ac4fad80cc281efbeb96ca)
-* Time-series feature layer
-* Current date's feature layer with state and country totals
+* [Time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580)
+* [Current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59)
 * [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health)
 
 We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel", and we welcome collaboration and pull requests on our work!
 
 ### Disclaimer
-We rely on Johns Hopkins data, which in turn relies on a compilation of multiple, sometimes conflicting, sources. While JHU does perform manual validation of information readily made public, data available during an evolving crisis is always a "best guess" of the unknown. However, it is crucial to have a single source of the "best guess", and we know most US cities and media are using JHU data. Nevertheless, reliance on this site and its contents herein, including data, mapping, and analysis for medical guidance or commerce is strictly prohibited.
+We are using the Johns Hopkins data for our ETL and ESRI feature services. Their disclaimer is below:
+
+This website and its contents herein, including all data, mapping, and analysis (“Website”), copyright 2020 Johns Hopkins University, all rights reserved, is provided to the public strictly for educational and academic research purposes. The Website relies upon publicly available data from multiple sources, that do not always agree. The names of locations correspond with the official designations used by the U.S. State Department, including for Taiwan. The Johns Hopkins University hereby disclaims any and all representations and warranties with respect to the Website, including accuracy, fitness for use, and merchantability. Reliance on the Website for medical guidance or use of the Website in commerce is strictly prohibited.
 
 
 ### Contributors
