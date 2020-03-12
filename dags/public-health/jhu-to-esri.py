@@ -146,7 +146,7 @@ default_args = {
     "email_on_failure": True,
     "email_on_retry": False,
     "retries": 1,
-    "retry_delay": timedelta(days=1),
+    "retry_delay": timedelta(hours=1),
 }
 
 dag = DAG("jhu-to-esri", default_args=default_args, schedule_interval="@daily")
