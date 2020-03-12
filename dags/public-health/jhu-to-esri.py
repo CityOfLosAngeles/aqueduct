@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 import arcgis
@@ -26,6 +27,7 @@ RECOVERED_URL = (
 )
 
 time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
+current_featureid = "191df200230642099002039816dc8c59"
 
 
 def parse_columns(df):
@@ -106,8 +108,15 @@ def load_jhu_to_esri(**kwargs):
     )
 
     # Output to CSV
-    filename = "/tmp/jhu_covid19_time_series.csv"
-    df.to_csv(filename, index=False)
+    time_series_filename = "/tmp/jhu_covid19_time_series.csv"
+    df.to_csv(time_series_filename, index=False)
+
+    # Also output the most current date as a separate CSV for convenience
+    most_recent_date_filename = "/tmp/jhu_covid19_current.csv"
+    current_df = df.assign(date=pd.to_datetime(df.date))
+    current_df[current_df.date == current_df.date.max()].to_csv(
+        most_recent_date_filename, index=False
+    )
 
     # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
@@ -115,10 +124,18 @@ def load_jhu_to_esri(**kwargs):
     arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
-    # Overwrite the existing layer
+    # Overwrite the existing layers
     gis_item = gis.content.get(time_series_featureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(filename)
+    gis_layer_collection.manager.overwrite(time_series_filename)
+
+    gis_item = gis.content.get(current_featureid)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(most_recent_date_filename)
+
+    # Clean up
+    os.remove(time_series_filename)
+    os.remove(most_recent_date_filename)
 
 
 default_args = {
