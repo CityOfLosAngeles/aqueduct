@@ -91,19 +91,19 @@ def load_jhu_to_esri(**kwargs):
     assert (
         df.loc[(df["Province/State"] == "Los Angeles, CA") & (df["date"] == "3/11/20")][
             "number_of_cases"
-        ].item()
+        ].iloc[0]
         == 27
     )
     assert (
         df.loc[(df["Province/State"] == "Los Angeles, CA") & (df["date"] == "3/11/20")][
             "number_of_deaths"
-        ].item()
+        ].iloc[0]
         == 1
     )
     assert (
         df.loc[(df["Province/State"] == "Shanghai") & (df["date"] == "3/11/20")][
             "number_of_recovered"
-        ].item()
+        ].iloc[0]
         == 320
     )
 
