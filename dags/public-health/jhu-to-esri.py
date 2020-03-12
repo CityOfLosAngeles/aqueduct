@@ -86,6 +86,7 @@ def load_jhu_to_esri(**kwargs):
     # join
     df["number_of_deaths"] = deaths_df.number_of_deaths
     df["number_of_recovered"] = recovered_df.number_of_recovered
+
     # make some simple asserts to assure that the data structures haven't changed and
     # some old numbers are still correct
     assert (
@@ -107,7 +108,9 @@ def load_jhu_to_esri(**kwargs):
         == 320
     )
 
-    # Output to CSV
+    # drop
+    df = df.loc[(df['Country/Region'] == 'US') & (df['Province/State'].str[-4:-3] == ',')]  
+    
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
 
