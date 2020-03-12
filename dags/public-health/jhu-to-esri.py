@@ -63,8 +63,6 @@ def load_jhu_to_esri(**kwargs):
     assert df.loc[(df['Province/State'] == 'Los Angeles, CA') & (df['date'] == '3/11/20')]['number_of_cases'].item() == 27
     assert df.loc[(df['Province/State'] == 'Los Angeles, CA') & (df['date'] == '3/11/20')]['number_of_deaths'].item() == 1
     assert df.loc[(df['Province/State'] == 'Shanghai') & (df['date'] == '3/11/20')]['number_of_recovered'].item() == 320
-
-    df.loc[(df['Province/State'] == 'Los Angeles, CA') & (df['date'] == '3/11/20')]
     gdf = geopandas.GeoDataFrame(df, geometry=geopandas.points_from_xy(df.Longitude, df.Latitude))
     gdf.to_file('/tmp/jhu-dataset.shp')
 
