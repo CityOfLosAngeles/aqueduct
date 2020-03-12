@@ -3,6 +3,9 @@ version: '2'
 services:
   db:
     image: postgres:9.6
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=secret
 
   postgres-default:
     image: postgres:9.6
@@ -23,6 +26,7 @@ services:
     command: "true"
     environment:
       - AIRFLOW_CONN_POSTGRES_DEFAULT=postgres://ita:secret@postgres-default:5432/ita
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgres://airflow:secret@db:5432/airflow
 
   web:
     extends:
