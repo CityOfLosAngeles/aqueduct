@@ -110,6 +110,9 @@ def load_jhu_to_esri(**kwargs):
 
     # drop
     df = df.loc[(df['Country/Region'] == 'US') & (df['Province/State'].str[-4:-3] == ',')]  
+    # this means we only have non counties in it, ensuring that
+    # the data is excluding Diamond Princess cases / but also 
+    # not doubling counting statewide numbers
     
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
