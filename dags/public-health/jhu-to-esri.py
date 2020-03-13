@@ -10,26 +10,28 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
+JHU_COUNTY_BRANCH = "a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f"
+
 DEATHS_URL = (
-    "https://github.com/CSSEGISandData/COVID-19/"
-    "raw/a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f/"
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
     "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv"
 )
 
 CASES_URL = (
-    "https://github.com/CSSEGISandData/COVID-19/"
-    "raw/a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f/"
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
     "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"
 )
 
 RECOVERED_URL = (
-    "https://github.com/CSSEGISandData/COVID-19/"
-    "raw/a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f/"
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
     "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv"
 )
 
 time_series_featureid = "d61924e1d8344a09a1298707cfff388c"
 current_featureid = "523a372d71014bd491064d74e3eba2c7"
+
+jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
+jhu_current_featureid = "191df200230642099002039816dc8c59"
 
 date = pd.Timestamp.now(tz="US/Pacific").date()
 
@@ -52,16 +54,15 @@ def parse_columns(df):
     return id_vars, dates
 
 
-def load_jhu_time_series():
+def load_jhu_time_series(branch="master"):
     """
-    A single python ETL function.
     Loads the JHU data, transforms it so we are happy
     with it. This is a historical dataset, since JHU is
     no longer uploading county-level data.
     """
-    cases = pd.read_csv(CASES_URL)
-    deaths = pd.read_csv(DEATHS_URL)
-    recovered = pd.read_csv(RECOVERED_URL)
+    cases = pd.read_csv(CASES_URL.format(branch))
+    deaths = pd.read_csv(DEATHS_URL.format(branch))
+    recovered = pd.read_csv(RECOVERED_URL.format(branch))
     # melt cases
     id_vars, dates = parse_columns(cases)
     df = pd.melt(
@@ -81,6 +82,23 @@ def load_jhu_time_series():
     # join
     df["deaths"] = deaths_df.deaths
     df["recovered"] = recovered_df.recovered
+
+    return df
+
+
+def load_jhu_state_time_series():
+    df = load_jhu_time_series()
+
+    # Drop county level data
+    df = df[~((df["Country/Region"] == "US") & df["Province/State"].str.contains(","))]
+
+    return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
+        drop=True
+    )
+
+
+def load_jhu_county_time_series():
+    df = load_jhu_time_series()
 
     # filter to SCAG counties
     df = df[
@@ -233,6 +251,40 @@ def scrape_county_public_health_data():
     return df
 
 
+def load_state_covid_data(**kwargs):
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    df = load_jhu_state_time_series()
+
+    # Output to CSV
+    time_series_filename = "/tmp/jhu_covid19_time_series.csv"
+    df.to_csv(time_series_filename, index=False)
+
+    # Also output the most current date as a separate CSV for convenience
+    most_recent_date_filename = "/tmp/jhu_covid19_current.csv"
+    current_df = df.assign(date=pd.to_datetime(df.date))
+    current_df[current_df.date == current_df.date.max()].to_csv(
+        most_recent_date_filename, index=False
+    )
+
+    # Overwrite the existing layers
+    gis_item = gis.content.get(jhu_time_series_featureid)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(time_series_filename)
+
+    gis_item = gis.content.get(jhu_current_featureid)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(most_recent_date_filename)
+
+    # Clean up
+    os.remove(time_series_filename)
+    os.remove(most_recent_date_filename)
+
+
 def load_county_covid_data(**kwargs):
     # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
@@ -241,7 +293,7 @@ def load_county_covid_data(**kwargs):
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
     # Loaded JHU once, from then on we append to the ESRI layer.
-    # prev_data = load_jhu_time_series()
+    # prev_data = load_jhu_county_time_series(JHU_COUNTY_BRANCH)
     prev_data = load_esri_time_series(gis)
 
     county_data = scrape_county_public_health_data()
@@ -275,6 +327,11 @@ def load_county_covid_data(**kwargs):
     os.remove(most_recent_date_filename)
 
 
+def load_data(**kwargs):
+    load_county_covid_data()
+    load_state_covid_data()
+
+
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -293,7 +350,7 @@ dag = DAG("jhu-to-esri", default_args=default_args, schedule_interval="@daily")
 t1 = PythonOperator(
     task_id="sync-jhu-to-esri",
     provide_context=True,
-    python_callable=load_county_covid_data,
+    python_callable=load_data,
     op_kwargs={},
     dag=dag,
 )
