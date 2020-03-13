@@ -119,6 +119,16 @@ def load_jhu_time_series():
     return df.sort_values(["date", "county"]).reset_index(drop=True)
 
 
+def load_esri_time_series(gis):
+    gis_item = gis.content.get(time_series_featureid)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
+        subset=["date", "county"]
+    )
+    return sdf
+
+
 columns = [
     "state",
     "county",
@@ -224,9 +234,18 @@ def scrape_county_public_health_data():
 
 
 def load_county_covid_data(**kwargs):
-    jhu_data = load_jhu_time_series()
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    # Loaded JHU once, from then on we append to the ESRI layer.
+    # prev_data = load_jhu_time_series()
+    prev_data = load_esri_time_series(gis)
+
     county_data = scrape_county_public_health_data()
-    df = jhu_data.append(county_data, sort=False).reset_index(drop=True)
+    df = prev_data.append(county_data, sort=False).reset_index(drop=True)
 
     # Add placeholder data for California and non-SCAG totals.
     df = df.assign(ca_total=0, non_scag_total=0)
@@ -241,12 +260,6 @@ def load_county_covid_data(**kwargs):
     current_df[current_df.date == current_df.date.max()].to_csv(
         most_recent_date_filename, index=False
     )
-
-    # Login to ArcGIS
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
     # Overwrite the existing layers
     gis_item = gis.content.get(time_series_featureid)
