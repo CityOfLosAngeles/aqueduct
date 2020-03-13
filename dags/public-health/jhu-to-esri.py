@@ -138,7 +138,7 @@ columns = [
 def scrape_la_county_public_health_data():
     # Los Angeles
     text = requests.get("http://publichealth.lacounty.gov/media/Coronavirus/").text
-    soup = bs4.BeautifulSoup(text)
+    soup = bs4.BeautifulSoup(text, "lxml")
     counter_data = soup.find_all("div", class_="counter-block counter-text")
     counts = [int(c.contents[0]) for c in counter_data]
     cases, deaths = counts
@@ -160,19 +160,10 @@ def scrape_imperial_county_public_health_data():
     # Imperial County
     df = pd.read_html(
         "http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/"
-    )[0]
-    try:
-        cases = (
-            df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
-        )
-    except IndexError:
-        cases = 0
-    try:
-        deaths = (
-            df[df.iloc[:, 0].str.lower().str.contains("death")].iloc[:, 1][0].iloc[0]
-        )
-    except IndexError:
-        deaths = 0
+    )[0].dropna()
+    cases = int(
+        df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
+    )
     return {
         "state": "CA",
         "county": "Imperial",
@@ -180,10 +171,41 @@ def scrape_imperial_county_public_health_data():
         "longitude": -115.57,
         "date": date,
         "cases": cases,
-        "deaths": deaths,
+        "deaths": None,
         "recovered": None,
         "travel_based": None,
         "locally_acquired": None,
+    }
+
+
+def scrape_orange_county_public_health_data():
+    # Orange County
+    df = pd.read_html(
+        "http://www.ochealthinfo.com"
+        "/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus",
+        match="Orange County Coronavirus",
+    )[0].dropna()
+    cases = int(df.loc[df.loc[:, 0].str.lower().str.contains("confirmed")].iloc[0, 1])
+    deaths = int(df.loc[df.loc[:, 0].str.lower().str.contains("deaths")].iloc[0, 1])
+    travel_based = int(
+        df.loc[df.loc[:, 0].str.lower().str.contains("travel")].iloc[0, 1]
+    )
+    locally_acquired = int(
+        df.loc[df.loc[:, 0].str.lower().str.contains("person to person")].iloc[0, 1]
+    ) + int(
+        df.loc[df.loc[:, 0].str.lower().str.contains("community acquired")].iloc[0, 1]
+    )
+    return {
+        "state": "CA",
+        "county": "Orange",
+        "latitude": 33.74,
+        "longitude": -117.88,
+        "date": date,
+        "cases": cases,
+        "deaths": deaths,
+        "recovered": None,
+        "travel_based": travel_based,
+        "locally_acquired": locally_acquired,
     }
 
 
@@ -193,7 +215,8 @@ def scrape_county_public_health_data():
     df = df.append(
         [
             scrape_la_county_public_health_data(),
-            # scrape_imperial_county_public_health_data(),
+            scrape_imperial_county_public_health_data(),
+            scrape_orange_county_public_health_data(),
         ],
         ignore_index=True,
     )
