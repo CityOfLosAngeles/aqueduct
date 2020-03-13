@@ -13,11 +13,21 @@ JHU publishes new CSVs daily with city/county level counts for the world. We sch
 1. Time-series data available at the city/county level of confirmed cases, deaths, and recovered.
 2. The *current date's* city/county data of confirmed cases, deaths. In the coming days, we hope to update or publish a new feature layer that contains the state's and country's total cases, deaths, and recovered.
 
-## Important City of LA source materials:
+## Important City of LA source materials
 * [City of LA COVID-19 Dashboard](https://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/82b3434c38ac4fad80cc281efbeb96ca)
 * [Time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580)
 * [Current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59)
 * [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health)
+
+
+### Feature Layer Usage
+Starting from 3/10/2020, the JHU dataset includes both county-level and state-level observations. [JHU GitHub issue discussing this change.](https://github.com/CSSEGISandData/COVID-19/issues/559) For example: Province/State == "Los Angeles, CA" and other CA counties each appear as a row. But, there is also one row where Province/State == "California" that shows the **sum** of all CA counties.
+
+When using these layers in ArcGIS Online, take extra precaution to **filter correctly.** Two equivalent ways of displaying the correct CA state total are:
+1. Country/Region is equal to "US" AND Province/State is equal to "California"
+2. Country/Region is equal to "US" AND Province/State ends with ", CA".
+
+Time-series data with dates prior to 3/10/2020 will show a zero when Province/State == "California", when in fact, summing across CA counties show non-zero values. We are working on a fix to make this less confusing!
 
 We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel", and we welcome collaboration and pull requests on our work!
 
