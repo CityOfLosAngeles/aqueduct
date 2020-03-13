@@ -28,8 +28,8 @@ RECOVERED_URL = (
     "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv"
 )
 
-time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
-current_featureid = "191df200230642099002039816dc8c59"
+time_series_featureid = "f8ddbacfc9774e2d837fe2176d1f8617"
+current_featureid = "fdef8acd7d84495ab22275c8e2412b5d"
 
 date = pd.Timestamp.now(tz="US/Pacific").date()
 
