@@ -3,6 +3,8 @@ arcgis==1.7.0
 beautifulsoup4==4.8.1
 boto3==1.10.19
 geoalchemy2==0.6.3
+html5lib==1.0.1
+lxml==4.5.0
 matplotlib==3.1.1
 git+https://github.com/CityofSantaMonica/mds-provider@6ffa334#egg=mds_provider
 html5lib==1.0.1
