@@ -91,6 +91,13 @@ def load_jhu_state_time_series():
 
     # Drop county level data
     df = df[~((df["Country/Region"] == "US") & df["Province/State"].str.contains(","))]
+    df = df.rename(
+        columns={
+            "cases": "number_of_cases",
+            "deaths": "number_of_deaths",
+            "recovered": "number_of_recovered",
+        }
+    )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
         drop=True
