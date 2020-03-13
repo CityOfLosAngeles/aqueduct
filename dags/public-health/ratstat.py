@@ -8,16 +8,24 @@ from datetime import datetime, timedelta
 import logging
 pg_conn = BaseHook.get_connection('postgres_default') 
 
+
+RAT_STAT_ID = "9e7caafab26b490e8ad7f02e5518758c"
+
 def ratstat_loader():
     """
     load the ratstat data 
     into a postgres DB
     """ 
-    hub = arcgis.gis.GIS(url='https://lahub.maps.arcgis.com',
-                         username=os.environ.get('LAHUB_USERNAME'),
-                         password=os.environ.get('LAHUB_PASSWORD'))
-    rat_stat_group = arcgis.gis.Group(hub, 
-                                      '7f3d66478dd846598e76a8e334a03988') #this is the groupid of the ratstat group       
+
+
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = arcgis.gis.GIS(url='https://lahub.maps.arcgis.com',
+                         username=arcuser,
+                         password=arcpassword))
+    rat_stat_group = arcgis.gis.Group(gis, 
+                                      RAT_STAT_ID) #this is the groupid of the ratstat group       
     logging.info("Logged into hub and accessed rat stat group.")
     content = rat_stat_group.content()
     feature_layers = []
