@@ -130,6 +130,8 @@ columns = [
     "recovered",
     "travel_based",
     "locally_acquired",
+    "ca_total",
+    "non_scag_total",
 ]
 
 
@@ -191,7 +193,7 @@ def scrape_county_public_health_data():
     df = df.append(
         [
             scrape_la_county_public_health_data(),
-            scrape_imperial_county_public_health_data(),
+            # scrape_imperial_county_public_health_data(),
         ],
         ignore_index=True,
     )
@@ -203,12 +205,15 @@ def load_county_covid_data(**kwargs):
     county_data = scrape_county_public_health_data()
     df = jhu_data.append(county_data, sort=False).reset_index(drop=True)
 
+    # Add placeholder data for California and non-SCAG totals.
+    df = df.assign(ca_total=0, non_scag_total=0)
+
     # Output to CSV
-    time_series_filename = "covid19_time_series.csv"
+    time_series_filename = "/tmp/covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
 
     # Also output the most current date as a separate CSV for convenience
-    most_recent_date_filename = "covid19_current.csv"
+    most_recent_date_filename = "/tmp/covid19_current.csv"
     current_df = df.assign(date=pd.to_datetime(df.date))
     current_df[current_df.date == current_df.date.max()].to_csv(
         most_recent_date_filename, index=False
