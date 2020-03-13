@@ -160,11 +160,15 @@ def scrape_imperial_county_public_health_data():
         "http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/"
     )[0]
     try:
-        cases = df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1][0]
+        cases = (
+            df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
+        )
     except IndexError:
         cases = 0
     try:
-        deaths = df[df.iloc[:, 0].str.lower().str.contains("death")].iloc[:, 1][0]
+        deaths = (
+            df[df.iloc[:, 0].str.lower().str.contains("death")].iloc[:, 1][0].iloc[0]
+        )
     except IndexError:
         deaths = 0
     return {
