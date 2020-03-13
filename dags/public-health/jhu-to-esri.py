@@ -191,8 +191,10 @@ def load_esri_time_series(gis):
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
     # Drop some ESRI faf
     sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
-        subset=["date", "county"]
+        subset=["date", "county"], keep="last",
     )
+    # Convert from timestamp to date for later comparisons
+    sdf = sdf.assign(date=sdf.date.dt.date)
     return sdf
 
 
@@ -345,7 +347,11 @@ def load_county_covid_data(**kwargs):
     prev_data = load_esri_time_series(gis)
 
     county_data = scrape_county_public_health_data()
-    df = prev_data.append(county_data, sort=False).reset_index(drop=True)
+    df = (
+        prev_data.append(county_data, sort=False)
+        .drop_duplicates(subset=["date", "county"], keep="last")
+        .reset_index(drop=True)
+    )
 
     # Add placeholder data for California and non-SCAG totals.
     df = df.assign(ca_total=0, non_scag_total=0)
