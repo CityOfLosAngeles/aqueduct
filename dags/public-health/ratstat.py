@@ -31,7 +31,8 @@ def ratstat_loader():
     feature_layers = []
     for item in content:
         try:
-            [feature_layers.append(feature_layer) for feature_layer in item.layers]
+            for layer in item.layers:
+                feature_layers.append(layer)
         except KeyError: 
             pass
     dfs = {layer.properties['name']: layer.query(as_df=True, as_shapely=True) for layer in feature_layers}
