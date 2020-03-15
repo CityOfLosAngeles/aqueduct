@@ -254,15 +254,15 @@ def scrape_orange_county_public_health_data():
         "/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus",
         match="Orange County Coronavirus",
     )[0].dropna()
-    cases = int(df.loc[df.loc[:, 0].str.lower().str.contains("confirmed")].iloc[0, 1])
-    deaths = int(df.loc[df.loc[:, 0].str.lower().str.contains("deaths")].iloc[0, 1])
+    cases = pd.to_numeric(df[1][6])  
+    deaths = int(df[1][10])
     travel_based = int(
-        df.loc[df.loc[:, 0].str.lower().str.contains("travel")].iloc[0, 1]
+        df[1][7]
     )
     locally_acquired = int(
-        df.loc[df.loc[:, 0].str.lower().str.contains("person to person")].iloc[0, 1]
+        df[1][8]
     ) + int(
-        df.loc[df.loc[:, 0].str.lower().str.contains("community acquired")].iloc[0, 1]
+        df[1][9]
     )
     return {
         "state": "CA",
@@ -283,13 +283,25 @@ def scrape_county_public_health_data():
     Scrape data from many public health departments.
     """
     df = pd.DataFrame(columns=columns)
-
+    # make robust 
+    county_dfs = []
+    try: 
+        county_dfs.append(scrape_la_county_public_health_data())
+    except (Exception, ArithmeticError): 
+        pass
+    
+    try: 
+        county_dfs.append(scrape_imperial_county_public_health_data())
+    except (Exception, ArithmeticError): 
+        pass
+    
+    try: 
+        county_dfs.append(scrape_orange_county_public_health_data())
+    except (Exception, ArithmeticError): 
+        pass
+        
     df = df.append(
-        [
-            scrape_la_county_public_health_data(),
-            scrape_imperial_county_public_health_data(),
-            scrape_orange_county_public_health_data(),
-        ],
+        county_dfs,
         ignore_index=True,
     )
     return df
