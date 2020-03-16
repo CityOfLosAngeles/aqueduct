@@ -1,5 +1,9 @@
 trigger:
   - master
+pr:
+  branches:
+    include:
+      - '*'
 jobs:
   - job: 'test_airflow'
     pool:

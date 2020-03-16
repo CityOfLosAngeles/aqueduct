@@ -1,3 +1,8 @@
+"""
+ETL for COVID-19 Data.
+Pulls from Johns-Hopkins CSSE data as well as local government agencies.
+"""
+import logging
 import os
 from datetime import datetime, timedelta
 
@@ -254,16 +259,10 @@ def scrape_orange_county_public_health_data():
         "/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus",
         match="Orange County Coronavirus",
     )[0].dropna()
-    cases = pd.to_numeric(df[1][6])  
+    cases = pd.to_numeric(df[1][6])
     deaths = int(df[1][10])
-    travel_based = int(
-        df[1][7]
-    )
-    locally_acquired = int(
-        df[1][8]
-    ) + int(
-        df[1][9]
-    )
+    travel_based = int(df[1][7])
+    locally_acquired = int(df[1][8]) + int(df[1][9])
     return {
         "state": "CA",
         "county": "Orange",
@@ -283,27 +282,27 @@ def scrape_county_public_health_data():
     Scrape data from many public health departments.
     """
     df = pd.DataFrame(columns=columns)
-    # make robust 
+    # make robust
     county_dfs = []
-    try: 
+    try:
+        logging.info("Loading data from LA County")
         county_dfs.append(scrape_la_county_public_health_data())
-    except (Exception, ArithmeticError): 
-        pass
-    
-    try: 
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from Orange County")
+
+    try:
+        logging.info("Loading data from Imperial County")
         county_dfs.append(scrape_imperial_county_public_health_data())
-    except (Exception, ArithmeticError): 
-        pass
-    
-    try: 
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from Orange County")
+
+    try:
+        logging.info("Loading data from Orange County")
         county_dfs.append(scrape_orange_county_public_health_data())
-    except (Exception, ArithmeticError): 
-        pass
-        
-    df = df.append(
-        county_dfs,
-        ignore_index=True,
-    )
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from Orange County")
+
+    df = df.append(county_dfs, ignore_index=True,)
     return df
 
 
@@ -344,7 +343,7 @@ def load_state_covid_data():
     os.remove(most_recent_date_filename)
 
 
-def load_county_covid_data(**kwargs):
+def load_county_covid_data():
     """
     Load County level COVID-19 data from JHU/ESRI/Public Health departments.
     """
@@ -397,8 +396,14 @@ def load_data(**kwargs):
     """
     Entry point for the DAG, loading state and county data to ESRI.
     """
-    load_county_covid_data()
-    load_state_covid_data()
+    try:
+        load_county_covid_data()
+    except Exception as e:
+        logging.warning("Failed to load county-level data" + str(e))
+    try:
+        load_state_covid_data()
+    except Exception as e:
+        logging.warning("Failed to load state-level data" + str(e))
 
 
 default_args = {
@@ -412,7 +417,7 @@ default_args = {
     "retry_delay": timedelta(hours=1),
 }
 
-dag = DAG("jhu-to-esri", default_args=default_args, schedule_interval="@daily")
+dag = DAG("jhu-to-esri_v2", default_args=default_args, schedule_interval="@hourly")
 
 
 t1 = PythonOperator(

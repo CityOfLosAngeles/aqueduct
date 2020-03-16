@@ -9,7 +9,7 @@ The Johns Hopkins Center for Systems Science and Engineering has open sourced da
 
 The City of LA initially built a dashboard pulling data directly from JHU's ESRI feature service, but since 3/10/2020, JHU changed the underlying data published from city/county level to state level. To meet the City of LA's own dashboard needs, we used Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs, to make available the original city/county level data.
 
-**3/13/2020 update:** JHU's CSVs will be at the state level, and not at the city/county level anymore, [as noted in their GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382). Since JHU's feature layers weren't connecting to our dashboard, we adapted our ETL to continue to grab province/state level data for the world and will publish these as 2 public ESRI feature layers (#1, #2). 
+**3/13/2020 update:** JHU's CSVs will be at the state level, and not at the city/county level anymore, [as noted in their GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382). Since JHU's feature layers weren't connecting to our dashboard, we adapted our ETL to continue to grab province/state level data for the world and will publish these as 2 public ESRI feature layers (#1, #2).
 
 In addition, we are scraping the websites for Southern California counties belonging in the Southern California Association of Governments (SCAG) region. We have data from Los Angeles, Orange County, and Imperial Counties. In the coming days, we will add Ventura, Riverside, and San Bernardino Counties. We have combined JHU county data up to 3/12/2020 with our own compilation of counts, and will publish these as 2 public ESRI feature layers (#3, #4).
 
