@@ -417,7 +417,7 @@ default_args = {
     "retry_delay": timedelta(hours=1),
 }
 
-dag = DAG("jhu-to-esri", default_args=default_args, schedule_interval="@daily")
+dag = DAG("jhu-to-esri_v2", default_args=default_args, schedule_interval="@hourly")
 
 
 t1 = PythonOperator(
