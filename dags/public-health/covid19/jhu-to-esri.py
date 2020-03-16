@@ -366,6 +366,28 @@ def scrape_riverside_county_public_health_data():
     }
 
 
+def scrape_ventura_county_public_health_data():
+    """
+    Scrape data from the Ventura County Department of Public Health.
+    """
+    text = requests.get("https://www.vcemergency.com/").text
+    soup = bs4.BeautifulSoup(text, "lxml")
+    cases_tbl = soup.find_all("table", id="tblStats2")[0]
+    cases = locale.atoi(cases_tbl.find_next("td").contents[0])
+    return {
+        "state": "CA",
+        "county": "Ventura",
+        "latitude": 34.275,
+        "longitude": -119.228,
+        "date": date,
+        "cases": cases,
+        "deaths": None,
+        "recovered": None,
+        "travel_based": None,
+        "locally_acquired": None,
+    }
+
+
 def scrape_county_public_health_data():
     """
     Scrape data from many public health departments.
@@ -402,6 +424,12 @@ def scrape_county_public_health_data():
         county_dfs.append(scrape_riverside_county_public_health_data())
     except (Exception, ArithmeticError):
         logging.warning("Failed to load data from Riverside County")
+
+    try:
+        logging.info("Loading data from Ventura County")
+        county_dfs.append(scrape_ventura_county_public_health_data())
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from Ventura County")
 
     df = df.append(county_dfs, ignore_index=True,)
     return df
