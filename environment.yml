@@ -1,0 +1,29 @@
+name: aqueduct
+channels:
+  - conda-forge
+dependencies:
+    - python=3.6
+    - pip
+    - pandas
+    - geopandas
+    - lxml
+    - matplotlib
+    - altair
+    - boto3
+    - s3fs
+    - html5lib
+    - geoalchemy2
+    - beautifulsoup4
+    - psycopg2
+    - pyarrow
+    - requests
+    - seaborn
+    - pip:
+        - arcgis==1.7.0
+        - git+https://github.com/CityofSantaMonica/mds-provider@6ffa334#egg=mds_provider
+        - sodapy
+        - tableauserverclient
+        - apache-airflow[celery,postgres,hive,hdfs,jdbc,async,password,crypto,github_enterprise,datadog,statsd,s3]==1.10.5
+        - redis==3.3.11
+        - hiredis==1.0.0
+        - Werkzeug==0.16.0
