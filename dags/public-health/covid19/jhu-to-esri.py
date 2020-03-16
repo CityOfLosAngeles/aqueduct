@@ -2,8 +2,10 @@
 ETL for COVID-19 Data.
 Pulls from Johns-Hopkins CSSE data as well as local government agencies.
 """
+import locale
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 
 import arcgis
@@ -210,7 +212,7 @@ def scrape_la_county_public_health_data():
     text = requests.get("http://publichealth.lacounty.gov/media/Coronavirus/").text
     soup = bs4.BeautifulSoup(text, "lxml")
     counter_data = soup.find_all("div", class_="counter-block counter-text")
-    counts = [int(c.contents[0]) for c in counter_data]
+    counts = [locale.atoi(c.contents[0]) for c in counter_data]
     cases, deaths = counts
     return {
         "state": "CA",
@@ -233,7 +235,7 @@ def scrape_imperial_county_public_health_data():
     df = pd.read_html(
         "http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/"
     )[0].dropna()
-    cases = int(
+    cases = locale.atoi(
         df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
     )
     return {
@@ -260,9 +262,9 @@ def scrape_orange_county_public_health_data():
         match="Orange County Coronavirus",
     )[0].dropna()
     cases = pd.to_numeric(df[1][6])
-    deaths = int(df[1][10])
-    travel_based = int(df[1][7])
-    locally_acquired = int(df[1][8]) + int(df[1][9])
+    deaths = locale.atoi(df[1][10])
+    travel_based = locale.atoi(df[1][7])
+    locally_acquired = locale.atoi(df[1][8]) + locale.atoi(df[1][9])
     return {
         "state": "CA",
         "county": "Orange",
@@ -271,6 +273,69 @@ def scrape_orange_county_public_health_data():
         "date": date,
         "cases": cases,
         "deaths": deaths,
+        "recovered": None,
+        "travel_based": travel_based,
+        "locally_acquired": locally_acquired,
+    }
+
+
+def scrape_san_bernardino_county_public_health_data():
+    """
+    Scrape data from the San Bernardino County Department of Public Health.
+    """
+    text = requests.get("http://wp.sbcounty.gov/dph/coronavirus/").text
+    soup = bs4.BeautifulSoup(text, "lxml")
+    counter_data = soup.find_all("div", class_="et_pb_number_counter")[0]
+    cases = locale.atoi(counter_data.attrs["data-number-value"])
+    return {
+        "state": "CA",
+        "county": "San Bernardino",
+        "latitude": 34.1,
+        "longitude": -117.3,
+        "date": date,
+        "cases": cases,
+        "deaths": None,
+        "recovered": None,
+        "travel_based": None,
+        "locally_acquired": None,
+    }
+
+
+def scrape_riverside_county_public_health_data():
+    """
+    Scrape data from the Riverside County Department of Public Health.
+    """
+    text = requests.get("https://www.rivcoph.org/coronavirus").text
+    soup = bs4.BeautifulSoup(text, "lxml")
+    regex = re.compile(r"^:?\s*([0-9,]+)")
+    strong = soup.find_all("strong")
+
+    cases_content = next(
+        s for s in strong if "confirmed cases" in s.contents[0].lower()
+    )
+    match = regex.match(cases_content.next_sibling.replace("\xa0", ""))
+    cases = locale.atoi(match.groups()[0]) if match else None
+
+    travel_based_content = next(
+        s for s in strong if "travel associated" in s.contents[0].lower()
+    )
+    match = regex.match(travel_based_content.next_sibling.replace("\xa0", ""))
+    travel_based = locale.atoi(match.groups()[0]) if match else None
+
+    locally_acquired_content = next(
+        s for s in strong if "locally acquired" in s.contents[0].lower()
+    )
+    match = regex.match(locally_acquired_content.next_sibling.replace("\xa0", ""))
+    locally_acquired = locale.atoi(match.groups()[0]) if match else None
+
+    return {
+        "state": "CA",
+        "county": "Riverside",
+        "latitude": 33.948,
+        "longitude": -117.396,
+        "date": date,
+        "cases": cases,
+        "deaths": None,
         "recovered": None,
         "travel_based": travel_based,
         "locally_acquired": locally_acquired,
@@ -301,6 +366,18 @@ def scrape_county_public_health_data():
         county_dfs.append(scrape_orange_county_public_health_data())
     except (Exception, ArithmeticError):
         logging.warning("Failed to load data from Orange County")
+
+    try:
+        logging.info("Loading data from San Bernardino County")
+        county_dfs.append(scrape_san_bernardino_county_public_health_data())
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from San Bernardino County")
+
+    try:
+        logging.info("Loading data from Riverside County")
+        county_dfs.append(scrape_riverside_county_public_health_data())
+    except (Exception, ArithmeticError):
+        logging.warning("Failed to load data from Riverside County")
 
     df = df.append(county_dfs, ignore_index=True,)
     return df
