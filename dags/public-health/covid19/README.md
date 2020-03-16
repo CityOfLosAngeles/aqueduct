@@ -9,14 +9,15 @@ The Johns Hopkins Center for Systems Science and Engineering has open sourced da
 
 The City of LA initially built a dashboard pulling data directly from JHU's ESRI feature service, but since 3/10/2020, JHU changed the underlying data published from city/county level to state level. To meet the City of LA's own dashboard needs, we used Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs, to make available the original city/county level data.
 
-**3/13/2020 update:** JHU's CSVs will be at the state level, and not at the city/county level anymore, [as noted in their GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382). Since JHU's feature layers weren't connecting to our dashboard, we adapted our ETL to continue to grab province/state level data for the world and will publish these as 2 public ESRI feature layers (#1, #2).
 
-In addition, we are scraping the websites for Southern California counties belonging in the Southern California Association of Governments (SCAG) region. We have data from Los Angeles, Orange County, and Imperial Counties. In the coming days, we will add Ventura, Riverside, and San Bernardino Counties. We have combined JHU county data up to 3/12/2020 with our own compilation of counts, and will publish these as 2 public ESRI feature layers (#3, #4).
+**3/13/2020 update:** JHU's CSVs will be at the state level, and not at the city/county level anymore, [as noted in their GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382). Since JHU's feature layers weren't connecting to our dashboard, we adapted our ETL to continue to grab province/state level data for the world and will publish these as 2 public ESRI feature layers (#1, #2). Our ETL checks JHU data ***every hour***.
+
+In addition, we are scraping the websites for Southern California counties belonging in the Southern California Association of Governments (SCAG) region. We have data from [Los Angeles](http://publichealth.lacounty.gov/media/Coronavirus/), [Orange County](http://www.ochealthinfo.com/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus), and [Imperial](http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/) Counties. In the coming days, we will add [Ventura](https://www.ventura.org/covid19/), [Riverside](https://www.rivcoph.org/coronavirus), and [San Bernardino](http://wp.sbcounty.gov/dph/coronavirus/) Counties. We have combined JHU county data up to 3/12/2020 with our own compilation of counts, and will publish these as 2 public ESRI feature layers (#3, #4). Our ETL scrapes case counts published by county public health agency websites ***every hour***.
 
 1. Worldwide time-series data available at the state level of confirmed cases, deaths, and recovered.
 2. Worldwide *current date's* data available at the state level of confirmed cases, deaths, and recovered.
 3. SCAG Region time-series data available at the county level of confirmed cases, travel-related cases, and community spread cases. Not all counties report the breakdown due to travel vs. community spread, but we grab it if it's available.
-4. SCAG Region *current date's* data available at the county level of confirmed cases, recovered, travel-related cases, and community spread cases.
+4. SCAG Region *current date's* data available at the county level of confirmed cases, travel-related cases, and community spread cases.
 
 ## Important City of LA Source Materials
 * [City of LA COVID-19 Dashboard](https://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/82b3434c38ac4fad80cc281efbeb96ca)
@@ -24,10 +25,10 @@ In addition, we are scraping the websites for Southern California counties belon
 * [Worldwide state level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59)
 * [SCAG Region county level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=d61924e1d8344a09a1298707cfff388c)
 * [SCAG Region county level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=523a372d71014bd491064d74e3eba2c7)
-* [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health)
+* [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/)
 
 
-We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel", and we welcome collaboration and pull requests on our work!
+We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel"; we welcome collaboration and pull requests on our work!
 
 
 ### Prior Updates to Workflow
@@ -43,6 +44,6 @@ This website and its contents herein, including all data, mapping, and analysis 
 
 
 ### Contributors
-* Hunter Owens
-* Ian Rose
-* Tiffany Chu
+* [Hunter Owens](https://github.com/hunterowens)
+* [Ian Rose](https://github.com/ian-r-rose)
+* [Tiffany Chu](https://github.com/tiffanychu90)
