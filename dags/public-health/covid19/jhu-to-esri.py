@@ -373,7 +373,9 @@ def scrape_ventura_county_public_health_data():
     text = requests.get("https://www.vcemergency.com/").text
     soup = bs4.BeautifulSoup(text, "lxml")
     cases_tbl = soup.find_all("table", id="tblStats2")[0]
-    cases = locale.atoi(cases_tbl.find_next("td").contents[0])
+    cases_content = cases_tbl.find_all("td")
+    assert cases_content[1].contents[0].lower() == "positive cases"
+    cases = locale.atoi(cases_content[0].contents[0])
     return {
         "state": "CA",
         "county": "Ventura",
