@@ -409,7 +409,7 @@ def load_data(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime(2020, 3, 1),
+    "start_date": datetime(2020, 3, 16),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
