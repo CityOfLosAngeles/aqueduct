@@ -85,6 +85,30 @@ def parse_columns(df):
     return id_vars, dates
 
 
+def coerce_integer(df):
+    """
+    Coerce nullable columns to integers for CSV export.
+
+    TODO: recent versions of pandas (>=0.25) support nullable integers.
+    Once we can safely upgrade, we should use those and remove this function.
+    """
+
+    def integrify(x):
+        return int(float(x)) if not pd.isna(x) else None
+
+    cols = [
+        "cases",
+        "deaths",
+        "recovered",
+        "travel_based",
+        "locally_acquired",
+        "ca_total",
+        "non_scag_total",
+    ]
+    new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
+    return df.assign(**new_cols)
+
+
 def load_jhu_time_series(branch="master"):
     """
     Loads the JHU data, transforms it so we are happy with it.
@@ -439,6 +463,7 @@ def load_county_covid_data():
         prev_data.append(county_data, sort=False)
         .drop_duplicates(subset=["date", "county"], keep="last")
         .reset_index(drop=True)
+        .pipe(coerce_integer)
     )
 
     # Add placeholder data for California and non-SCAG totals.
@@ -476,11 +501,11 @@ def load_data(**kwargs):
     try:
         load_county_covid_data()
     except Exception as e:
-        logging.warning("Failed to load county-level data" + str(e))
+        logging.warning("Failed to load county-level data with error: " + str(e))
     try:
         load_state_covid_data()
     except Exception as e:
-        logging.warning("Failed to load state-level data" + str(e))
+        logging.warning("Failed to load state-level data with error: " + str(e))
 
 
 default_args = {
