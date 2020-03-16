@@ -3,11 +3,11 @@ A shared pipeline for building ETLs and batch jobs that we run at the City of LA
 
 Lots of the following code and documentation was based on the excellent [Mozilla-Telemetry](https://raw.githubusercontent.com/mozilla/telemetry-airflow/master/README.md) project.'
 
-## Structure 
+## Structure
 
-This repo consists off both the code need to run the ETLs (primarily in the `dags` folder) and the code needed to setup the dev and prod environments (elsewhere). 
+This repo consists off both the code need to run the ETLs (primarily in the `dags` folder) and the code needed to setup the dev and prod environments (elsewhere).
 
-To create a new dag, see if it fits an existing folder description in `dags`, and then use one of the [Airflow Examples](https://airflow.apache.org/docs/stable/tutorial.html) or an existing DAG and create a new `.py` file. 
+To create a new dag, see if it fits an existing folder description in `dags`, and then use one of the [Airflow Examples](https://airflow.apache.org/docs/stable/tutorial.html) or an existing DAG and create a new `.py` file.
 
 ## Contributors
 * Robert Pangalian
@@ -15,9 +15,9 @@ To create a new dag, see if it fits an existing folder description in `dags`, an
 * Bryan Blackford
 * Eirik Lin
 * Ian Rose
-* Tiffany Chu 
-* Brendan Bailey 
-* Anthony Lyons 
+* Tiffany Chu
+* Brendan Bailey
+* Anthony Lyons
 
 ### Prerequisites
 
