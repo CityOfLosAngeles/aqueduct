@@ -409,7 +409,7 @@ def load_data(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime(2020, 3, 1),
+    "start_date": datetime(2020, 3, 16),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -417,7 +417,7 @@ default_args = {
     "retry_delay": timedelta(hours=1),
 }
 
-dag = DAG("jhu-to-esri_v2", default_args=default_args, schedule_interval="@hourly")
+dag = DAG("jhu-to-esri_v3", default_args=default_args, schedule_interval="@hourly")
 
 
 t1 = PythonOperator(
