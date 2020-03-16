@@ -95,6 +95,15 @@ generating backfill runs based on the DAG's configured start date, which could g
 (set `schedule_interval=None` in your DAG definition to prevent these scheduled runs).
 You'll likely want to toggle the DAG back to "Off" as soon as your desired task starts running.
 
+#### Pre Commit Install
+
+Please note, this project uses Black as a code formatter. To setup the pre-commit installs, run
+
+`pre-commit install`
+
+to ensure your code formatting is correct before opening a PR. If pre-commit is not already installed, run
+
+`pip install pre-commit`
 
 #### Workaround for permission issues
 
