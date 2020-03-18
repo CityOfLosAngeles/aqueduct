@@ -49,7 +49,7 @@ jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
 jhu_current_featureid = "191df200230642099002039816dc8c59"
 
 # The date at the time of execution.
-date = pd.Timestamp.now(tz="US/Pacific").date()
+date = pd.Timestamp.now(tz="US/Pacific").normalize()
 
 # Columns expected for our county level timeseries.
 columns = [
@@ -216,7 +216,7 @@ def load_jhu_county_time_series():
         state="CA",
         travel_based=None,
         locally_acquired=None,
-        date=pd.to_datetime(df.date).dt.date,
+        date=pd.to_datetime(df.date).normalize(),
     ).drop(columns=["Country/Region"])
 
     return df.sort_values(["date", "county"]).reset_index(drop=True)
@@ -233,8 +233,9 @@ def load_esri_time_series(gis):
     sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
         subset=["date", "county"], keep="last",
     )
-    # Convert from timestamp to date for later comparisons
-    sdf = sdf.assign(date=sdf.date.dt.date)
+    # Make sure the date is a localized timestamp, otherwise ESRI assumes UTC
+    # and can show the wrong date on dashboard elements.
+    sdf = sdf.assign(date=sdf.date.dt.tz_localize("US/Pacific").dt.normalize())
     return sdf
 
 
