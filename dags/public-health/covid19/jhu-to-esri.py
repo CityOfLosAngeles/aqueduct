@@ -68,6 +68,15 @@ columns = [
 ]
 
 
+def atoi(string):
+    """
+    Sometimes there are asterixes in scraped values.
+    This is a thin wrapper around locale.atoi() which also
+    removes those.
+    """
+    return locale.atoi(string.strip("*"))
+
+
 def parse_columns(df):
     """
     quick helper function to parse columns into values
@@ -236,7 +245,7 @@ def scrape_la_county_public_health_data():
     text = requests.get("http://publichealth.lacounty.gov/media/Coronavirus/").text
     soup = bs4.BeautifulSoup(text, "lxml")
     counter_data = soup.find_all("div", class_="counter-block counter-text")
-    counts = [locale.atoi(c.contents[0]) for c in counter_data]
+    counts = [atoi(c.contents[0]) for c in counter_data]
     cases, deaths = counts
     return {
         "state": "CA",
@@ -259,7 +268,7 @@ def scrape_imperial_county_public_health_data():
     df = pd.read_html(
         "http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/"
     )[0].dropna()
-    cases = locale.atoi(
+    cases = atoi(
         df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
     )
     return {
@@ -286,9 +295,9 @@ def scrape_orange_county_public_health_data():
         match="Orange County Coronavirus",
     )[0].dropna()
     cases = pd.to_numeric(df[1][6])
-    deaths = locale.atoi(df[1][10])
-    travel_based = locale.atoi(df[1][7])
-    locally_acquired = locale.atoi(df[1][8]) + locale.atoi(df[1][9])
+    deaths = atoi(df[1][10])
+    travel_based = atoi(df[1][7])
+    locally_acquired = atoi(df[1][8]) + atoi(df[1][9])
     return {
         "state": "CA",
         "county": "Orange",
@@ -310,7 +319,7 @@ def scrape_san_bernardino_county_public_health_data():
     text = requests.get("http://wp.sbcounty.gov/dph/coronavirus/").text
     soup = bs4.BeautifulSoup(text, "lxml")
     counter_data = soup.find_all("div", class_="et_pb_number_counter")[0]
-    cases = locale.atoi(counter_data.attrs["data-number-value"])
+    cases = atoi(counter_data.attrs["data-number-value"])
     return {
         "state": "CA",
         "county": "San Bernardino",
@@ -338,19 +347,19 @@ def scrape_riverside_county_public_health_data():
         s for s in strong if "confirmed cases" in s.contents[0].lower()
     )
     match = regex.match(cases_content.next_sibling.replace("\xa0", ""))
-    cases = locale.atoi(match.groups()[0]) if match else None
+    cases = atoi(match.groups()[0]) if match else None
 
     travel_based_content = next(
         s for s in strong if "travel associated" in s.contents[0].lower()
     )
     match = regex.match(travel_based_content.next_sibling.replace("\xa0", ""))
-    travel_based = locale.atoi(match.groups()[0]) if match else None
+    travel_based = atoi(match.groups()[0]) if match else None
 
     locally_acquired_content = next(
         s for s in strong if "locally acquired" in s.contents[0].lower()
     )
     match = regex.match(locally_acquired_content.next_sibling.replace("\xa0", ""))
-    locally_acquired = locale.atoi(match.groups()[0]) if match else None
+    locally_acquired = atoi(match.groups()[0]) if match else None
 
     return {
         "state": "CA",
@@ -374,8 +383,8 @@ def scrape_ventura_county_public_health_data():
     soup = bs4.BeautifulSoup(text, "lxml")
     cases_tbl = soup.find_all("table", id="tblStats2")[0]
     cases_content = cases_tbl.find_all("td")
-    assert cases_content[1].contents[0].lower() == "positive cases"
-    cases = locale.atoi(cases_content[0].contents[0])
+    assert "confirmed" in cases_content[1].contents[0].lower()
+    cases = atoi(cases_content[0].contents[0])
     return {
         "state": "CA",
         "county": "Ventura",
