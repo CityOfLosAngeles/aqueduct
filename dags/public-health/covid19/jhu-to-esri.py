@@ -383,7 +383,7 @@ def scrape_ventura_county_public_health_data():
     soup = bs4.BeautifulSoup(text, "lxml")
     cases_tbl = soup.find_all("table", id="tblStats2")[0]
     cases_content = cases_tbl.find_all("td")
-    assert "confirmed" in cases_content[1].contents[0].lower()
+    assert "covid-19 cases" in cases_content[1].contents[0].lower()
     cases = atoi(cases_content[0].contents[0])
     return {
         "state": "CA",
