@@ -236,9 +236,9 @@ def load_esri_time_series(gis):
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
     # Drop some ESRI faf
     sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
-        subset=["date", "county"], keep="last",
+        subset=["date", "county"], keep="last"
     )
-    return sdf
+    return sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
 
 
 def scrape_la_county_public_health_data():
@@ -517,10 +517,7 @@ def load_county_covid_data():
 
     # Also output the most current date as a separate CSV for convenience
     most_recent_date_filename = "/tmp/covid19_current.csv"
-    current_df = df.assign(date=pd.to_datetime(df.date))
-    current_df[current_df.date == current_df.date.max()].to_csv(
-        most_recent_date_filename, index=False
-    )
+    df[df.date == df.date.max()].to_csv(most_recent_date_filename, index=False)
 
     # Overwrite the existing layers
     gis_item = gis.content.get(time_series_featureid)
