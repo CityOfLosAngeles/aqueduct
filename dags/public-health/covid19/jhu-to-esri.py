@@ -238,11 +238,6 @@ def load_esri_time_series(gis):
     sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
         subset=["date", "county"], keep="last",
     )
-    # Make sure the date is a localized timestamp, otherwise ESRI assumes UTC
-    # and can show the wrong date on dashboard elements.
-    sdf = sdf.assign(
-        date=sdf.date.dt.tz_localize("US/Pacific").dt.normalize().dt.tz_convert("UTC")
-    )
     return sdf
 
 
