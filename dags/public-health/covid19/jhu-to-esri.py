@@ -48,8 +48,10 @@ current_featureid = "523a372d71014bd491064d74e3eba2c7"
 jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
 jhu_current_featureid = "191df200230642099002039816dc8c59"
 
-# The date at the time of execution.
-date = pd.Timestamp.now(tz="US/Pacific").date()
+# The date at the time of execution. We choose midnight in the US/Pacific timezone,
+# but then convert to UTC since that is what AGOL expects. When the feature layer
+# is viewed in a dashboard it is converted back to local time.
+date = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
 
 # Columns expected for our county level timeseries.
 columns = [
@@ -216,7 +218,10 @@ def load_jhu_county_time_series():
         state="CA",
         travel_based=None,
         locally_acquired=None,
-        date=pd.to_datetime(df.date).dt.date,
+        date=pd.to_datetime(df.date)
+        .dt.tz_localize("US/Pacific")
+        .dt.normalize()
+        .dt.tz_convert("UTC"),
     ).drop(columns=["Country/Region"])
 
     return df.sort_values(["date", "county"]).reset_index(drop=True)
@@ -233,8 +238,6 @@ def load_esri_time_series(gis):
     sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
         subset=["date", "county"], keep="last",
     )
-    # Convert from timestamp to date for later comparisons
-    sdf = sdf.assign(date=sdf.date.dt.date)
     return sdf
 
 
