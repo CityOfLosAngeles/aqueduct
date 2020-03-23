@@ -295,12 +295,17 @@ def scrape_orange_county_public_health_data():
     df = pd.read_html(
         "http://www.ochealthinfo.com"
         "/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus",
-        match="Orange County Coronavirus",
+        match="COVID-19 Case Counts",
     )[0].dropna()
-    cases = pd.to_numeric(df[1][6])
-    deaths = atoi(df[1][10])
-    travel_based = atoi(df[1][7])
-    locally_acquired = atoi(df[1][8]) + atoi(df[1][9])
+    assert "cases" in df[0][16].lower()
+    cases = atoi(df[1][16])
+    assert "death" in df[0][17].lower()
+    deaths = atoi(df[1][17])
+    assert "travel" in df[0][18].lower()
+    travel_based = atoi(df[1][18])
+    assert "person to person" in df[0][19].lower()
+    assert "community" in df[0][20].lower()
+    locally_acquired = atoi(df[1][19]) + atoi(df[1][20])
     return {
         "state": "CA",
         "county": "Orange",
@@ -384,10 +389,17 @@ def scrape_ventura_county_public_health_data():
     """
     text = requests.get("https://www.vcemergency.com/").text
     soup = bs4.BeautifulSoup(text, "lxml")
-    cases_tbl = soup.find_all("table", id="tblStats2")[0]
+
+    cases_tbl = soup.find_all("table", id="tblStats1")[0]
     cases_content = cases_tbl.find_all("td")
     assert "covid-19 cases" in cases_content[1].contents[0].lower()
-    cases = atoi(cases_content[0].contents[0])
+    cases = atoi(cases_content[0].contents[0].contents[0])
+
+    deaths_tbl = soup.find_all("table", id="tblStats2")[0]
+    deaths_content = deaths_tbl.find_all("td")
+    assert "death" in deaths_content[1].contents[0].lower()
+    deaths = atoi(deaths_content[0].contents[0].contents[0])
+
     return {
         "state": "CA",
         "county": "Ventura",
@@ -395,7 +407,7 @@ def scrape_ventura_county_public_health_data():
         "longitude": -119.228,
         "date": date,
         "cases": cases,
-        "deaths": None,
+        "deaths": deaths,
         "recovered": None,
         "travel_based": None,
         "locally_acquired": None,
