@@ -36,9 +36,14 @@ def load_data(**kwargs):
     df = df.rename({'Shelter Site? ': 'ParksName'}, axis = 1)      
 
     # need to string match join here, which is a pain. 
-
+    # this is only a tier 1 pass for now. 
+    
     df = df.replace(to_replace='109th Recreation Center', value='109th Street Recreation Center')
-
+    df = df.replace(to_replace='Granada Hills Recreation Center', value='Granada Hills Youth Recreation Center')
+    df = df.replace(to_replace='Central Recreation Center', value='Central Park Recreation Center')
+    df = df.replace(to_replace='Cheviot Hills Recreation Center', value='Cheviot Hills Park and Recreation Center')
+    df = df.replace(to_replace='Granada Hills Recreation Center', value='Granada Hills Youth Recreation Center')
+    df = df.replace(to_replace='Echo Park Community Center', value='Echo Park Boys & Girls Club') 
     # merge on parksname
     # this preserves the number of entries (tested.)
     gdf = gdf.merge(df, on='ParksName') 
@@ -48,7 +53,7 @@ def load_data(**kwargs):
     gdf['Longitude'] = gdf.geometry.y
     time_series_filename = "/tmp/shelter_timeseries_current.csv"
 
-    pd.DataFrame(gdf).to_csv(time_series_filename, index=False)
+    pd.DataFrame(gdf).drop(['geometry'], axis =1).to_csv(time_series_filename, index=False)
     ## TODO: Write an assert to make sure all rows are in resultant GDF 
         # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
