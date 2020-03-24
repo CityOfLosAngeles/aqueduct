@@ -472,7 +472,6 @@ def load_state_covid_data():
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
     df = load_jhu_state_time_series()
-
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
@@ -522,6 +521,10 @@ def load_county_covid_data():
 
     # Add placeholder data for California and non-SCAG totals.
     df = df.assign(ca_total=0, non_scag_total=0)
+
+
+    # coerce cases to into int
+    df['number_of_cases'] = pd.to_numeric(df['number_of_cases'])
 
     # Output to CSV
     time_series_filename = "/tmp/covid19_time_series.csv"
