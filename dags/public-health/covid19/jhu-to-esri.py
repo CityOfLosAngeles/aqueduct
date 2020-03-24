@@ -461,6 +461,7 @@ def load_state_covid_data():
 
     df = load_jhu_state_time_series()
 
+    df['number_of_cases'] = pd.to_numeric(df['number_of_cases'])
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
