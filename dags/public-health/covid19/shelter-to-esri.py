@@ -26,7 +26,7 @@ TIER_2_META_URL = "https://services1.arcgis.com/X1hcdGx5Fxqn4d0j/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"
 
-SHELTER_ID = "282aff8ca27447c8b4e7792671bc9dc3"
+SHELTER_ID = "8238401d03a046008208cf0e71bc8e43"
 def load_data(**kwargs):
     """
     Entry point for the DAG, loading shelter to ESRI.
@@ -37,7 +37,7 @@ def load_data(**kwargs):
 
     # need to string match join here, which is a pain. 
     # this is only a tier 1 pass for now. 
-    
+
     df = df.replace(to_replace='109th Recreation Center', value='109th Street Recreation Center')
     df = df.replace(to_replace='Granada Hills Recreation Center', value='Granada Hills Youth Recreation Center')
     df = df.replace(to_replace='Central Recreation Center', value='Central Park Recreation Center')
@@ -49,13 +49,13 @@ def load_data(**kwargs):
     gdf = gdf.merge(df, on='ParksName') 
 
     # export to CSV
-    gdf['Latitude'] = gdf.geometry.x
-    gdf['Longitude'] = gdf.geometry.y
-    time_series_filename = "/tmp/shelter_timeseries_current.csv"
+    gdf['Latitude'] = gdf.geometry.y
+    gdf['Longitude'] = gdf.geometry.x
+    time_series_filename = "./shelter_timeseries_current.csv"
 
     pd.DataFrame(gdf).drop(['geometry'], axis =1).to_csv(time_series_filename, index=False)
     ## TODO: Write an assert to make sure all rows are in resultant GDF 
-        # Login to ArcGIS
+    # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
