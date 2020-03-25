@@ -63,7 +63,7 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "./shelter_timeseries_current.csv"
+    time_series_filename = "/tmp/shelter_timeseries_current.csv"
 
     pd.DataFrame(gdf).drop(["geometry"], axis=1).to_csv(
         time_series_filename, index=False
@@ -87,7 +87,7 @@ def load_data(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime(2020, 3, 16),
+    "start_date": datetime(2020, 3, 25),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
