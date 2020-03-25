@@ -63,6 +63,7 @@ def load_data(**kwargs):
     df['reported_datetime'] = pd.to_datetime(df.date.astype(str)+' '+df.time.astype(str), errors = 'coerce') 
     df['reported_datetime'] = df.reported_datetime.dt.tz_localize(tz="US/Pacific")  
     df['Date '] = df.reported_datetime.dt.tz_convert('UTC')
+    df['Time'] = df.reported_datetime.dt.tz_convert('UTC')
     
     # timestamp 
     df['Timestamp'] = pd.to_datetime(df.Timestamp).dt.tz_localize(tz="US/Pacific").dt.tz_convert('UTC')
