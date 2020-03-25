@@ -8,10 +8,11 @@ import os
 import re
 from datetime import datetime, timedelta
 
-import arcgis
 import bs4
 import pandas as pd
 import requests
+
+import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -140,7 +141,7 @@ def load_jhu_time_series(branch="master"):
     deaths_df = pd.melt(deaths, id_vars=id_vars, value_vars=dates, value_name="deaths")
 
     # melt recovered
-    id_vars, dates = parse_columns(deaths)
+    id_vars, dates = parse_columns(recovered)
     recovered_df = pd.melt(
         recovered, id_vars=id_vars, value_vars=dates, value_name="recovered"
     )
@@ -473,7 +474,7 @@ def load_state_covid_data():
 
     df = load_jhu_state_time_series()
 
-    df['number_of_cases'] = pd.to_numeric(df['number_of_cases'])
+    df["number_of_cases"] = pd.to_numeric(df["number_of_cases"])
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
