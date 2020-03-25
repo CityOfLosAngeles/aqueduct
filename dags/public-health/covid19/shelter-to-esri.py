@@ -57,12 +57,15 @@ def load_data(**kwargs):
         to_replace="Echo Park Community Center", value="Echo Park Boys & Girls Club"
     )
 
-    # change timestamp to pacific time
+    # change reported time to pacific time
     df['date'] =  df['Date '].apply(pd.to_datetime, format='%m/%d/%Y', errors='coerce').dt.date   
     df['time'] = df['Time'].apply(pd.to_datetime, format='%I:%M %p', errors='coerce').dt.time     
     df['reported_datetime'] = pd.to_datetime(df.date.astype(str)+' '+df.time.astype(str), errors = 'coerce') 
     df['reported_datetime'] = df.reported_datetime.dt.tz_localize(tz="US/Pacific")  
-    df['reported_datetime'] = df.reported_datetime.dt.tz_convert('UTC')
+    df['Date '] = df.reported_datetime.dt.tz_convert('UTC')
+    
+    # timestamp 
+    df['Timestamp'] = pd.to_datetime(df.Timestamp).dt.tz_localize(tz="US/Pacific").dt.tz_convert('UTC')
     # merge on parksname
     # this preserves the number of entries (tested.)
     gdf = gdf.merge(df, on="ParksName")
@@ -72,7 +75,7 @@ def load_data(**kwargs):
     gdf["Longitude"] = gdf.geometry.x
     time_series_filename = "/tmp/shelter_timeseries_current.csv"
 
-    pd.DataFrame(gdf).drop(["geometry", 'date', 'time'], axis=1).to_csv(
+    pd.DataFrame(gdf).drop(["geometry", 'date', 'time', 'reported_datetime'], axis=1).to_csv(
         time_series_filename, index=False
     )
     # TODO: Write an assert to make sure all rows are in resultant GDF
