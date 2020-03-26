@@ -18,8 +18,8 @@ default_args = {
     "start_date": datetime(2018, 10, 30, tzinfo=local_tz),
     "email": [
         "hunter.owens@lacity.org",
-        "mony.patel@lacity.org",
-        "paul.tsan@lacity.org",
+        "ian.rose@lacity.org",
+        "vladimir.gallegos@lacity.org"
     ],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -106,12 +106,13 @@ def email_callback(**kwargs):
             "hunter.owens@lacity.org",
             "marcel.porras@lacity.org",
             "jose.elias@lacity.org",
-            "paul.tsan@lacity.org",
             "vladimir.gallegos@lacity.org",
             "sean@ellis-and-associates.com",
             "john@ellis-and-associates.com",
             "max@ellis-and-associates.com",
             "ian.rose@lacity.org",
+            "janna.smith@lacity.org",
+            "jarvis.murray@lacity.org"
         ],
         subject=f"Dockless Stats for { kwargs['yesterday_ds'] }",
         html_content=email_template,
