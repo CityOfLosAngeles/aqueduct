@@ -28,8 +28,9 @@ default_args = {
     "start_date": datetime(2018, 10, 30),
     "email": [
         "hunter.owens@lacity.org",
-        "mony.patel@lacity.org",
-        "paul.tsan@lacity.org",
+        "ian.rose@lacity.org",
+        "janna.smith@lacity.org",
+        "vladimir.gallegos@lacity.org"
     ],
     "email_on_failure": True,
     "email_on_retry": False,
