@@ -8,11 +8,10 @@ import os
 import re
 from datetime import datetime, timedelta
 
+import arcgis
 import bs4
 import pandas as pd
 import requests
-
-import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -294,19 +293,18 @@ def scrape_orange_county_public_health_data():
     Scrape data from the Orange County Department of Public Health.
     """
     df = pd.read_html(
-        "http://www.ochealthinfo.com"
-        "/phs/about/epidasmt/epi/dip/prevention/novel_coronavirus",
+        "https://occovid19.ochealthinfo.com/coronavirus-in-oc",
         match="COVID-19 Case Counts",
     )[0].dropna()
-    assert "cases" in df[0][16].lower()
-    cases = atoi(df[1][16])
-    assert "death" in df[0][17].lower()
-    deaths = atoi(df[1][17])
-    assert "travel" in df[0][18].lower()
-    travel_based = atoi(df[1][18])
-    assert "person to person" in df[0][19].lower()
-    assert "community" in df[0][20].lower()
-    locally_acquired = atoi(df[1][19]) + atoi(df[1][20])
+    assert "cases" in df[0][3].lower()
+    cases = atoi(df[1][3])
+    assert "death" in df[0][4].lower()
+    deaths = atoi(df[1][4])
+    assert "travel" in df[0][5].lower()
+    travel_based = atoi(df[1][5])
+    assert "person to person" in df[0][6].lower()
+    assert "community" in df[0][7].lower()
+    locally_acquired = atoi(df[1][6]) + atoi(df[1][7])
     return {
         "state": "CA",
         "county": "Orange",
@@ -327,8 +325,15 @@ def scrape_san_bernardino_county_public_health_data():
     """
     text = requests.get("http://wp.sbcounty.gov/dph/coronavirus/").text
     soup = bs4.BeautifulSoup(text, "lxml")
-    counter_data = soup.find_all("div", class_="et_pb_number_counter")[0]
-    cases = atoi(counter_data.attrs["data-number-value"])
+
+    strong = soup.find_all("strong")
+    cases_label = next(s for s in strong if s.contents[0].startswith("COVID-19 CASES"))
+    cases = atoi(cases_label.parent.parent.contents[1].contents[0].contents[0])
+    deaths_label = next(
+        s for s in strong if s.contents[0].startswith("COVID-19 ASSOCIATED DEATH")
+    )
+    deaths = atoi(deaths_label.parent.parent.contents[1].contents[0].contents[0])
+
     return {
         "state": "CA",
         "county": "San Bernardino",
@@ -336,7 +341,7 @@ def scrape_san_bernardino_county_public_health_data():
         "longitude": -117.3,
         "date": date,
         "cases": cases,
-        "deaths": None,
+        "deaths": deaths,
         "recovered": None,
         "travel_based": None,
         "locally_acquired": None,
@@ -391,15 +396,14 @@ def scrape_ventura_county_public_health_data():
     text = requests.get("https://www.vcemergency.com/").text
     soup = bs4.BeautifulSoup(text, "lxml")
 
-    cases_tbl = soup.find_all("table", id="tblStats1")[0]
-    cases_content = cases_tbl.find_all("td")
-    assert "covid-19 cases" in cases_content[1].contents[0].lower()
-    cases = atoi(cases_content[0].contents[0].contents[0])
+    tbl = soup.find_all("table", id="tblStats1")[0]
+    tr = tbl.find_all("tr")
 
-    deaths_tbl = soup.find_all("table", id="tblStats2")[0]
-    deaths_content = deaths_tbl.find_all("td")
-    assert "death" in deaths_content[1].contents[0].lower()
-    deaths = atoi(deaths_content[0].contents[0].contents[0])
+    assert "positive cases" in tr[1].contents[0].contents[0].contents[0].lower()
+    cases = atoi(tr[0].contents[0].contents[0].contents[0])
+
+    assert "death" in tr[3].contents[0].contents[0].contents[0].lower()
+    deaths = atoi(tr[2].contents[0].contents[0].contents[0])
 
     return {
         "state": "CA",
