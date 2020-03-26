@@ -47,47 +47,6 @@ dag = DAG(dag_id="dockless-elt", default_args=default_args, schedule_interval="@
 
 # Util Functions
 
-
-def parse_config(path):
-    """
-    Helper to parse a config file at :path:, which defaults to `.config`.
-    """
-    path = path or os.path.join(os.getcwd(), ".config")
-
-    if not os.path.exists(path):
-        print("Could not find config file: ", path)
-        exit(1)
-
-    print("Reading config file:", path)
-
-    config = ConfigParser()
-    config.read(path)
-
-    return config
-
-
-def provider_names(providers):
-    """
-    Returns the names of the :providers:, separated by commas.
-    """
-    return ", ".join([p.provider_name for p in providers])
-
-
-def filter_providers(providers, names):
-    """
-    Filters the list of :providers: given one or more :names:.
-    """
-    if names is None or len(names) == 0:
-        return providers
-
-    if isinstance(names, str):
-        names = [names]
-
-    names = [n.lower() for n in names]
-
-    return [p for p in providers if p.provider_name.lower() in names]
-
-
 def connect_aws_s3():
     """ Connect to AWS and return a boto S3 session """
     if os.environ.get("env") == "dev":
