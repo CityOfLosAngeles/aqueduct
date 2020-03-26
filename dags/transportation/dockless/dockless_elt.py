@@ -30,7 +30,7 @@ default_args = {
         "hunter.owens@lacity.org",
         "ian.rose@lacity.org",
         "janna.smith@lacity.org",
-        "paul.tsan@lacity.org",
+        "vladimir.gallegos@lacity.org"
     ],
     "email_on_failure": True,
     "email_on_retry": False,
