@@ -25,6 +25,8 @@ SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSW
 
 SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f#"
 
+LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
+
 
 def load_data(**kwargs):
     """
@@ -94,9 +96,31 @@ def load_data(**kwargs):
     gdf["Longitude"] = gdf.geometry.x
     time_series_filename = "/tmp/shelter_timeseries_current_v2.csv"
 
-    pd.DataFrame(gdf).drop(
+    df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
-    ).to_csv(time_series_filename, index=False)
+    )
+    df.to_csv(time_series_filename, index=False)
+
+    # make latest layer
+    latest_df = df[
+        df.groupby("ParksName")["Timestamp"].transform(max) == df["Timestamp"]
+    ]
+
+    latest_df["open_beds_computed"] = (
+        latest_df["Number of Open Beds - MEN"]
+        + latest_df["Number of Open Beds - WOMEN"]
+    )
+    latest_df["occupied_beds_computed"] = (
+        latest_df["Total Men Currently at Site"]
+        + latest_df["Total Men Currently at Site"]
+    )
+
+    latest_df["total_capacity"] = (
+        latest_df.open_beds_computed + latest_df.occupied_beds_computed
+    )
+    latest_filename = "/tmp/latest-shelters-v2.csv"
+    latest_df.to_csv(latest_filename, index=False)
+
     # TODO: Write an assert to make sure all rows are in resultant GDF
     # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
@@ -108,8 +132,14 @@ def load_data(**kwargs):
     gis_item = gis.content.get(SHELTER_ID)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(time_series_filename)
+
+    gis_item = gis.content.get(LATEST_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(latest_filename)
+
     # Clean up
     os.remove(time_series_filename)
+    os.remove(latest_filename)
     return True
 
 
