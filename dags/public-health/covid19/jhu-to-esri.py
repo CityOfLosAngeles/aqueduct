@@ -25,19 +25,22 @@ JHU_COUNTY_BRANCH = "a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f"
 # URL to JHU confirmed cases time series.
 CASES_URL = (
     "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
-    "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"
+    "csse_covid_19_data/csse_covid_19_time_series/"
+    "time_series_covid19_confirmed_global.csv"
 )
 
 # URL to JHU deaths time series.
 DEATHS_URL = (
     "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
-    "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv"
+    "csse_covid_19_data/csse_covid_19_time_series/"
+    "time_series_covid19_deaths_global.csv"
 )
 
 # URL to JHU recoveries time series
 RECOVERED_URL = (
     "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
-    "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv"
+    "csse_covid_19_data/csse_covid_19_time_series/"
+    "time_series_covid19_recovered_global.csv"
 )
 
 # Feature IDs for county level time series and current status
@@ -120,11 +123,9 @@ def coerce_integer(df):
     return df.assign(**new_cols)
 
 
-def load_jhu_time_series(branch="master"):
+def load_jhu_global_time_series(branch="master"):
     """
-    Loads the JHU data, transforms it so we are happy with it.
-    This mostly reshapes and joins the CSVs, any filtering and
-    renaming is done downstream.
+    Loads the JHU global timeseries data, transforms it so we are happy with it.
     """
     cases = pd.read_csv(CASES_URL.format(branch))
     deaths = pd.read_csv(DEATHS_URL.format(branch))
@@ -132,7 +133,11 @@ def load_jhu_time_series(branch="master"):
     # melt cases
     id_vars, dates = parse_columns(cases)
     df = pd.melt(
-        cases, id_vars=id_vars, value_vars=dates, value_name="cases", var_name="date",
+        cases,
+        id_vars=id_vars,
+        value_vars=dates,
+        value_name="number_of_cases",
+        var_name="date",
     )
 
     # melt deaths
@@ -146,85 +151,13 @@ def load_jhu_time_series(branch="master"):
     )
 
     # join
-    df["deaths"] = deaths_df.deaths
-    df["recovered"] = recovered_df.recovered
-
-    return df
-
-
-def load_jhu_state_time_series():
-    """
-    Load time series for JHU at the state/province level.
-    """
-    # Load the overall time series
-    df = load_jhu_time_series()
-
-    # Drop county level data
-    df = df[~((df["Country/Region"] == "US") & df["Province/State"].str.contains(","))]
-
-    # Rename some columns to conform to a previous schema for the CSV.
-    df = df.rename(
-        columns={
-            "cases": "number_of_cases",
-            "deaths": "number_of_deaths",
-            "recovered": "number_of_recovered",
-        }
+    df = df.assign(
+        number_of_deaths=deaths_df.deaths, number_of_recovered=recovered_df.recovered,
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
         drop=True
     )
-
-
-def load_jhu_county_time_series():
-    """
-    Load time series for JHU at the Southern California county level.
-
-    This is mostly a historical dataset, since JHU no longer updates county-level
-    data. Instead, we load it once into our feature server, then continually update
-    that feature server with county level data.
-    """
-    # Load the overall time series.
-    df = load_jhu_time_series(branch=JHU_COUNTY_BRANCH)
-
-    # filter to SCAG counties
-    df = df[
-        (df["Province/State"] == "Los Angeles, CA")
-        | (df["Province/State"] == "Riverside County, CA")
-        | (df["Province/State"] == "Ventura, CA")
-        | (df["Province/State"] == "Orange County, CA")
-    ]
-    # make some simple asserts to assure that the data structures haven't changed and
-    # some old numbers are still correct
-    assert (
-        df.loc[(df["Province/State"] == "Los Angeles, CA") & (df["date"] == "3/11/20")][
-            "cases"
-        ].iloc[0]
-        == 27
-    )
-    assert (
-        df.loc[(df["Province/State"] == "Los Angeles, CA") & (df["date"] == "3/11/20")][
-            "deaths"
-        ].iloc[0]
-        == 1
-    )
-
-    # Rename columns and rows to match schema
-    df = df.rename(
-        columns={"Province/State": "county", "Lat": "latitude", "Long": "longitude"}
-    )
-    df = df.assign(
-        county=df.county.str.rstrip(", CA").str.rstrip("County").str.strip(),
-        state="CA",
-        travel_based=None,
-        locally_acquired=None,
-        date=pd.to_datetime(df.date)
-        .dt.tz_localize("US/Pacific")
-        .dt.normalize()
-        .dt.tz_convert("UTC"),
-    ).drop(columns=["Country/Region"])
-
-    return df.sort_values(["date", "county"]).reset_index(drop=True)
 
 
 def load_esri_time_series(gis):
@@ -430,13 +363,13 @@ def scrape_county_public_health_data():
         logging.info("Loading data from LA County")
         county_dfs.append(scrape_la_county_public_health_data())
     except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from Orange County")
+        logging.warning("Failed to load data from LA County")
 
     try:
         logging.info("Loading data from Imperial County")
         county_dfs.append(scrape_imperial_county_public_health_data())
     except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from Orange County")
+        logging.warning("Failed to load data from LA County")
 
     try:
         logging.info("Loading data from Orange County")
@@ -466,9 +399,9 @@ def scrape_county_public_health_data():
     return df
 
 
-def load_state_covid_data():
+def load_global_covid_data():
     """
-    Load State/Province level COVID-19 data from JHU.
+    Load global COVID-19 data from JHU.
     """
     # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
@@ -476,9 +409,13 @@ def load_state_covid_data():
     arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
-    df = load_jhu_state_time_series()
+    df = load_jhu_global_time_series()
 
-    df["number_of_cases"] = pd.to_numeric(df["number_of_cases"])
+    df = df.assign(
+        number_of_cases=pd.to_numeric(df.number_of_cases),
+        number_of_deaths=pd.to_numeric(df.number_of_deaths),
+        number_of_recovered=pd.to_numeric(df.number_of_recovered),
+    )
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
@@ -560,9 +497,9 @@ def load_data(**kwargs):
     except Exception as e:
         logging.warning("Failed to load county-level data with error: " + str(e))
     try:
-        load_state_covid_data()
+        load_global_covid_data()
     except Exception as e:
-        logging.warning("Failed to load state-level data with error: " + str(e))
+        logging.warning("Failed to load global data with error: " + str(e))
 
 
 default_args = {
