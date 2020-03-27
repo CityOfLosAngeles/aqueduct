@@ -48,7 +48,7 @@ The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 
 
 `Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for. 
 
-Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhear to social distancing in the shelters.
+Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
 
 ### Contributors
 * [Hunter Owens](https://github.com/hunterowens)
