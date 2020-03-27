@@ -67,6 +67,10 @@ def load_data(**kwargs):
     
     # timestamp 
     df['Timestamp'] = pd.to_datetime(df.Timestamp).dt.tz_localize(tz="US/Pacific").dt.tz_convert('UTC')
+    df['string-ts'] = df['Timestamp'].dt.strftime('%B %d, %Y, %r')
+
+    df['string-ti'] = df['Time'].dt.strftime('%B %d, %Y, %r')
+
     # merge on parksname
     # this preserves the number of entries (tested.)
     gdf = gdf.merge(df, on="ParksName")
@@ -74,7 +78,7 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/shelter_timeseries_current.csv"
+    time_series_filename = "/tmp/shelter_timeseries_current_v2.csv"
 
     pd.DataFrame(gdf).drop(["geometry", 'date', 'time', 'reported_datetime'], axis=1).to_csv(
         time_series_filename, index=False
