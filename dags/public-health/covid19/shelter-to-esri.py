@@ -70,6 +70,8 @@ def load_data(**kwargs):
     df['string-ts'] = df['Timestamp'].dt.strftime('%B %d, %Y, %r')
 
     df['string-ti'] = df['Time'].dt.strftime('%B %d, %Y, %r')
+    # do something horrifying 
+    df['string-ts'].iloc[1] = "None"
 
     # merge on parksname
     # this preserves the number of entries (tested.)
@@ -78,7 +80,7 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/shelter_timeseries_current_v2.csv"
+    time_series_filename = "./shelter_timeseries_current_v2.csv"
 
     pd.DataFrame(gdf).drop(["geometry", 'date', 'time', 'reported_datetime'], axis=1).to_csv(
         time_series_filename, index=False
