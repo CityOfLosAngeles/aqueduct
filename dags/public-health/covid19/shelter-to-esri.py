@@ -5,12 +5,13 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
-import arcgis
-import geopandas as gpd
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
+
+import arcgis
+import geopandas as gpd
 from arcgis.gis import GIS
 
 # Shelter locations from Oscar
@@ -58,20 +59,31 @@ def load_data(**kwargs):
     )
 
     # change reported time to pacific time
-    df['date'] =  df['Date '].apply(pd.to_datetime, format='%m/%d/%Y', errors='coerce').dt.date   
-    df['time'] = df['Time'].apply(pd.to_datetime, format='%I:%M %p', errors='coerce').dt.time     
-    df['reported_datetime'] = pd.to_datetime(df.date.astype(str)+' '+df.time.astype(str), errors = 'coerce') 
-    df['reported_datetime'] = df.reported_datetime.dt.tz_localize(tz="US/Pacific")  
-    df['Date '] = df.reported_datetime.dt.tz_convert('UTC')
-    df['Time'] = df.reported_datetime.dt.tz_convert('UTC')
-    
-    # timestamp 
-    df['Timestamp'] = pd.to_datetime(df.Timestamp).dt.tz_localize(tz="US/Pacific").dt.tz_convert('UTC')
-    df['string-ts'] = df['Timestamp'].dt.strftime('%B %d, %Y, %r')
+    df["date"] = (
+        df["Date "].apply(pd.to_datetime, format="%m/%d/%Y", errors="coerce").dt.date
+    )
+    df["time"] = (
+        df["Time"].apply(pd.to_datetime, format="%I:%M %p", errors="coerce").dt.time
+    )
+    df["reported_datetime"] = pd.to_datetime(
+        df.date.astype(str) + " " + df.time.astype(str), errors="coerce"
+    )
+    df["reported_datetime"] = df.reported_datetime.dt.tz_localize(tz="US/Pacific")
+    df["Date "] = df.reported_datetime.dt.tz_convert("UTC")
+    df["Time"] = df.reported_datetime.dt.tz_convert("UTC")
 
-    df['string-ti'] = df['Time'].dt.strftime('%B %d, %Y, %r')
-    # do something horrifying 
-    df['string-ts'].iloc[1] = "None"
+    # timestamp
+    df["Timestamp"] = (
+        pd.to_datetime(df.Timestamp)
+        .dt.tz_localize(tz="US/Pacific")
+        .dt.tz_convert("UTC")
+    )
+    df["string-ts"] = df["Timestamp"].dt.strftime("%B %d, %Y, %r")
+
+    df["string-ti"] = df["Time"].dt.strftime("%B %d, %Y, %r")
+    # do something horrifying
+
+    df["string-ts"].iloc[1] = "None"
 
     # merge on parksname
     # this preserves the number of entries (tested.)
@@ -80,11 +92,11 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "./shelter_timeseries_current_v2.csv"
+    time_series_filename = "/tmp/shelter_timeseries_current_v2.csv"
 
-    pd.DataFrame(gdf).drop(["geometry", 'date', 'time', 'reported_datetime'], axis=1).to_csv(
-        time_series_filename, index=False
-    )
+    pd.DataFrame(gdf).drop(
+        ["geometry", "date", "time", "reported_datetime"], axis=1
+    ).to_csv(time_series_filename, index=False)
     # TODO: Write an assert to make sure all rows are in resultant GDF
     # Login to ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
