@@ -71,6 +71,76 @@ columns = [
 ]
 
 
+# https://gist.github.com/rogerallen/1583593
+us_state_abbrev = {
+    'Alabama': 'AL',
+    'Alaska': 'AK',
+    'American Samoa': 'AS',
+    'Arizona': 'AZ',
+    'Arkansas': 'AR',
+    'California': 'CA',
+    'Colorado': 'CO',
+    'Connecticut': 'CT',
+    'Delaware': 'DE',
+    'District of Columbia': 'DC',
+    'Florida': 'FL',
+    'Georgia': 'GA',
+    'Guam': 'GU',
+    'Hawaii': 'HI',
+    'Idaho': 'ID',
+    'Illinois': 'IL',
+    'Indiana': 'IN',
+    'Iowa': 'IA',
+    'Kansas': 'KS',
+    'Kentucky': 'KY',
+    'Louisiana': 'LA',
+    'Maine': 'ME',
+    'Maryland': 'MD',
+    'Massachusetts': 'MA',
+    'Michigan': 'MI',
+    'Minnesota': 'MN',
+    'Mississippi': 'MS',
+    'Missouri': 'MO',
+    'Montana': 'MT',
+    'Nebraska': 'NE',
+    'Nevada': 'NV',
+    'New Hampshire': 'NH',
+    'New Jersey': 'NJ',
+    'New Mexico': 'NM',
+    'New York': 'NY',
+    'North Carolina': 'NC',
+    'North Dakota': 'ND',
+    'Northern Mariana Islands':'MP',
+    'Ohio': 'OH',
+    'Oklahoma': 'OK',
+    'Oregon': 'OR',
+    'Pennsylvania': 'PA',
+    'Puerto Rico': 'PR',
+    'Rhode Island': 'RI',
+    'South Carolina': 'SC',
+    'South Dakota': 'SD',
+    'Tennessee': 'TN',
+    'Texas': 'TX',
+    'Utah': 'UT',
+    'Vermont': 'VT',
+    'Virgin Islands': 'VI',
+    'Virginia': 'VA',
+    'Washington': 'WA',
+    'West Virginia': 'WV',
+    'Wisconsin': 'WI',
+    'Wyoming': 'WY',
+    # Add some other ones we found applicable
+    'US Virgin Islands': 'VI', 
+    'United States Virgin Islands': 'VI',
+    'Grand Princess': 'Grand Princess',
+    'Diamond Princess': 'Diamond Princess', 
+    'From Diamond Princess': 'Diamond Princess', 
+    'Diamond Princess cruise ship': 'Diamond Princess'
+}
+
+# reverse the dict
+abbrev_us_state = dict(map(reversed, us_state_abbrev.items()))
+
 def atoi(string):
     """
     Sometimes there are asterixes in scraped values.
@@ -95,6 +165,16 @@ def parse_columns(df):
         else:
             id_vars.append(c)
     return id_vars, dates
+
+
+def rename_geog_cols(df):
+    """
+    # Rename geography columns to be the same as future schemas
+    """
+    df.rename(columns = {'Country/Region':'Country_Region', 
+                         'Province/State': 'Province_State', 
+                         'Long': 'Lon'}, inplace = True)
+    return df
 
 
 def coerce_integer(df):
