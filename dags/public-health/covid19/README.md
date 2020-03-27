@@ -42,6 +42,13 @@ We are using the Johns Hopkins data for our ETL and ESRI feature services. Their
 
 This website and its contents herein, including all data, mapping, and analysis (“Website”), copyright 2020 Johns Hopkins University, all rights reserved, is provided to the public strictly for educational and academic research purposes. The Website relies upon publicly available data from multiple sources, that do not always agree. The names of locations correspond with the official designations used by the U.S. State Department, including for Taiwan. The Johns Hopkins University hereby disclaims any and all representations and warranties with respect to the Website, including accuracy, fitness for use, and merchantability. Reliance on the Website for medical guidance or use of the Website in commerce is strictly prohibited.
 
+## Shelter Data
+
+The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 8 intervals a day) and pushes it into the City of LA geohub by merging it with the the official shelter data from LASAN / RAP GIS staff. We do some timezone data cleaning and publish.
+
+`Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for. 
+
+Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
 
 ### Contributors
 * [Hunter Owens](https://github.com/hunterowens)
