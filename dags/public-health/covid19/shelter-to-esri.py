@@ -28,6 +28,29 @@ SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f#"
 LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
 
 
+def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
+    """
+    A quick helper function to upload a data frame
+    to ESRI as a featurelayer backed CSV
+
+    recommend: no geometries, lat/long columns
+    remember ESRI is UTC only.
+    """
+    df.to_csv(filename, index=False)
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    gis_item = gis.content.get(layer_id)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(filename)
+
+    os.remove(filename)
+    return True
+
+
 def load_data(**kwargs):
     """
     Entry point for the DAG, loading shelter to ESRI.
@@ -99,7 +122,6 @@ def load_data(**kwargs):
     df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
     )
-    df.to_csv(time_series_filename, index=False)
 
     # make latest layer
     latest_df = df[
@@ -122,24 +144,9 @@ def load_data(**kwargs):
     latest_df.to_csv(latest_filename, index=False)
 
     # TODO: Write an assert to make sure all rows are in resultant GDF
-    # Login to ArcGIS
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
-    # Overwrite the existing layers
-    gis_item = gis.content.get(SHELTER_ID)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(time_series_filename)
-
-    gis_item = gis.content.get(LATEST_ID)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(latest_filename)
-
-    # Clean up
-    os.remove(time_series_filename)
-    os.remove(latest_filename)
+    upload_to_esri(latest_df, LATEST_ID, filename=latest_filename)
+    upload_to_esri(df, SHELTER_ID, filename=time_series_filename)
     return True
 
 
