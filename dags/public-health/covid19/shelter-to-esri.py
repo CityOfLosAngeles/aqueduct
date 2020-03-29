@@ -5,13 +5,13 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
+import arcgis
+import geopandas as gpd
 import pandas as pd
+import pytz
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
-
-import arcgis
-import geopandas as gpd
 from arcgis.gis import GIS
 
 # Shelter locations from Oscar
@@ -26,6 +26,8 @@ SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSW
 SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f"
 
 LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
+
+STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -143,10 +145,24 @@ def load_data(**kwargs):
     latest_filename = "/tmp/latest-shelters-v2.csv"
     latest_df.to_csv(latest_filename, index=False)
 
+    # Compute a number of open and reporting shelter beds
+    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
+    report_interval = utc_now - pd.Timedelta("24H")
+
+    stats = {
+        "Number_of_Reporting_Shelters": df.ParksName.nunique(),
+        "Number_of_Reporting_Shelters_last_24H": df[
+            df.Timestamp >= report_interval
+        ].ParksName.nunique(),
+    }
+    stats_df = pd.DataFrame.from_dict(
+        stats, orient="index", columns=["Count"]
+    ).transpose()
     # TODO: Write an assert to make sure all rows are in resultant GDF
 
     upload_to_esri(latest_df, LATEST_ID, filename=latest_filename)
     upload_to_esri(df, SHELTER_ID, filename=time_series_filename)
+    upload_to_esri(stats_df, STATS_ID, filename="/tmp/stats.csv")
     return True
 
 
