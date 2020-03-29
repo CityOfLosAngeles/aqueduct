@@ -146,7 +146,7 @@ def load_data(**kwargs):
     latest_df.to_csv(latest_filename, index=False)
 
     # Compute a number of open and reporting shelter beds
-    utc_now = pytz.utc.localize(datetime.datetime.utcnow())
+    utc_now = pytz.utc.localize(datetime.utcnow())
     report_interval = utc_now - pd.Timedelta("24H")
 
     stats = {
