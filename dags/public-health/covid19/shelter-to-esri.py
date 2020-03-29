@@ -23,7 +23,7 @@ TIER_2_META_URL = "https://services1.arcgis.com/X1hcdGx5Fxqn4d0j/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f#"
+SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f"
 
 LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
 
