@@ -22,11 +22,11 @@ def coerce_fips_integer(df):
 
 
 def correct_county_fips(row):
-    if len(str(row.fips)) == 5:
-        return str(row.fips)
-    elif len(str(row.fips)) ==4:
-        return "0" + str(row.fips)
-    elif (row.fips is None) or (row.fips == np.nan):
+    if len(row.fips) == 5:
+        return row.fips
+    elif (len(row.fips) == 4) and (row.fips != "None"):
+        return "0" + row.fips
+    elif row.fips == "None":
         return ""
 
 
@@ -46,7 +46,12 @@ def clean_nyt_county(df):
     # Create new columns to store what JHU reports
     df["incident_rate"] = np.nan
     df["people_tested"] = np.nan
+    # Fix column type
+    df = coerce_fips_integer(df)
+    df["fips"] = df.fips.astype(str)
+    df["fips"] = df.apply(correct_county_fips, axis=1)
     return df
+
 
 county = clean_nyt_county(county)
 
@@ -61,10 +66,7 @@ jhu["date"] = pd.to_datetime(jhu.date)
 
 
 # Bring in the NYT's way of naming geographies, use FIPS to merge
-nyt_geog = county[county.fips.notna()][["fips", "county", "state"]].drop_duplicates()
-
-nyt_geog = coerce_fips_integer(nyt_geog)
-nyt_geog["fips"] = nyt_geog.apply(correct_county_fips, axis=1)
+nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
 
 
 # Clean JHU data to match NYT schema
@@ -117,6 +119,7 @@ def clean_jhu_county(df):
 
     return df
 
+
 jhu = clean_jhu_county(jhu)
 
 
@@ -125,17 +128,26 @@ us_county = county.append(jhu, sort=False)
 
 
 def fill_missing_stuff(df):
-    not_missing_coords = df[df.Lat.notna()][["state",
-                        "county", "Lat", "Lon"]].drop_duplicates()
+    not_missing_coords = df[df.Lat.notna()][
+        ["state", "county", "Lat", "Lon"]
+    ].drop_duplicates()
 
-    df = pd.merge(df.drop(columns = ["Lat", "Lon"]), not_missing_coords,
-            on=["state", "county"], how = "left")
+    df = pd.merge(
+        df.drop(columns=["Lat", "Lon"]),
+        not_missing_coords,
+        on=["state", "county"],
+        how="left",
+    )
 
     # Drop duplicates and keep last observation
     group_cols = ["state", "county", "fips", "date"]
+    for col in ["cases", "deaths"]:
+        df[col] = df.groupby(group_cols)[col].transform("max")
+
     df = df.drop_duplicates(subset=group_cols, keep="last")
 
     return df
+
 
 us_county = fill_missing_stuff(us_county)
 
@@ -150,14 +162,14 @@ JHU_LOOKUP_URL = (
 # Fix values with missing lat/lon (NYT breaks out Kansas City, MO and NYC, NY)
 jhu_lookup = pd.read_csv(JHU_LOOKUP_URL)
 cols_to_keep = ["Province_State", "Lat", "Long_"]
-jhu_lookup = jhu_lookup[jhu_lookup.Country_Region=="US"][cols_to_keep]
-jhu_lookup.rename(columns = {'Province_State':'state', "Long_":"Lon"}, inplace=True)
+jhu_lookup = jhu_lookup[jhu_lookup.Country_Region == "US"][cols_to_keep]
+jhu_lookup.rename(columns={"Province_State": "state", "Long_": "Lon"}, inplace=True)
 
 # Fix the different types of missing lat/lon
 cond1 = "us_county.Lat.isna()"
 cond2 = "us_county.county.notna()"
-fix_county = us_county[(cond1) and (cond2) and (us_county.county!="Unknown")]
-fix_state = us_county[(cond1) and (cond2) and (us_county.county=="Unknown")]
+fix_county = us_county[(cond1) and (cond2) and (us_county.county != "Unknown")]
+fix_state = us_county[(cond1) and (cond2) and (us_county.county == "Unknown")]
 rest_of_df = us_county[us_county.Lat.notna()]
 
 fix_county_lat = {
@@ -171,50 +183,51 @@ fix_county_lon = {
 fix_county["Lat"] = fix_county.county.map(fix_county_lat)
 fix_county["Lon"] = fix_county.county.map(fix_county_lon)
 
-fix_state = pd.merge(fix_state.drop(columns=["Lat", "Lon"]), jhu_lookup, on="state", how="left")
+fix_state = pd.merge(
+    fix_state.drop(columns=["Lat", "Lon"]), jhu_lookup, on="state", how="left"
+)
 
 
 # Append
-us_county = rest_of_df.append(fix_county, sort=False).append(fix_state).reset_index(drop=True)
-us_county = us_county.sort_values(["fips", "state", "county", "date", "cases"]).drop_duplicates(
-                                    subset=["fips", "state", "county", "date"], keep="last")
+us_county = (
+    rest_of_df.append(fix_county, sort=False).append(fix_state).reset_index(drop=True)
+)
+us_county = us_county.sort_values(
+    ["fips", "state", "county", "date", "cases", "Lat", "Lon"],
+    ascending=[True, True, True, True, True, True, True],
+).drop_duplicates(subset=["fips", "state", "county", "date"], keep="first")
 
 
 # Calculate US State totals
 def us_state_totals(df):
 
-    state_grouping_cols = ['state', 'date']
+    state_grouping_cols = ["state", "date"]
 
     state_totals = df.groupby(state_grouping_cols).agg(
-        {'cases':'sum', 'deaths':'sum'})
+        {"cases": "sum", "deaths": "sum"}
+    )
 
-    state_totals.rename(columns = {'cases': 'state_cases',
-                                  'deaths': 'state_deaths'}, inplace = True)
+    state_totals.rename(
+        columns={"cases": "state_cases", "deaths": "state_deaths"}, inplace=True
+    )
 
-    df = pd.merge(df, state_totals, on = state_grouping_cols)
+    df = pd.merge(df, state_totals, on=state_grouping_cols)
 
     return df
+
 
 us_county = us_state_totals(us_county)
 
 
 def fix_column_dtypes(df):
-    def coerce_integer(df):
-        def integrify(x):
-            return int(float(x)) if not pd.isna(x) else None
-
-        cols = [
-            "cases",
-            "deaths",
-            "state_cases",
-            "state_deaths"
-        ]
-
-        new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
-
-        return df.assign(**new_cols)
-
     df["date"] = pd.to_datetime(df.date)
+
+    # integrify wouldn't work?
+    for col in ["cases", "deaths", "state_cases", "state_deaths"]:
+        df[col] = df[col].astype(int)
+
+    for col in ["incident_rate", "people_tested"]:
+        df[col] = df[col].astype(float)
 
     # Sort columns
     col_order = [
@@ -229,37 +242,21 @@ def fix_column_dtypes(df):
         "incident_rate",
         "people_tested",
         "state_cases",
-        "state_deaths"
+        "state_deaths",
     ]
 
     df = df.reindex(columns=col_order).sort_values(
         ["state", "county", "fips", "date", "cases"]
     )
 
-    # Set data types for cases and deaths? Seems ok for now....
-    for col in ["incident_rate", "people_tested"]:
-        df[col] = df[col].astype(float)
-
-    # There are still duplicates, keep the max count
-    df = df.sort_values(["state", "county", "fips", "date", "cases"],
-                        ascending=[True, True, True, True, True])
-
-    # Drop duplicates
-    # Either: (1) values are updated throughout the day, or
-    # (2) slight discrepancies between NYT and JHU.
-    # Regardless, take the max value for cases and deaths for each date.
-    group_cols = ["state", "county", "fips", "date"]
-    for col in ["cases", "deaths"]:
-        df[col] = df.groupby(group_cols).transform("max")
-
-    df = df.drop_duplicates(subset=group_cols)
-
     return df
+
 
 us_county = fix_column_dtypes(us_county)
 
 print(us_county.dtypes)
 
 # Export as csv
-us_county.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv",
-    index = False)
+us_county.to_csv(
+    f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv", index=False
+)
