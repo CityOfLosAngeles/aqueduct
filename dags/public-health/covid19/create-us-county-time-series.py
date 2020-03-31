@@ -84,7 +84,7 @@ def clean_jhu_county(df):
     ]
 
     df = df[keep_cols]
-    
+
     df.rename(
         columns={
             "Confirmed": "cases",
@@ -125,10 +125,10 @@ us_county = county.append(jhu, sort=False)
 
 
 def fill_missing_stuff(df):
-    not_missing_coords = df[df.Lat.notna()][["state", 
+    not_missing_coords = df[df.Lat.notna()][["state",
                         "county", "Lat", "Lon"]].drop_duplicates()
 
-    df = pd.merge(df.drop(columns = ["Lat", "Lon"]), not_missing_coords, 
+    df = pd.merge(df.drop(columns = ["Lat", "Lon"]), not_missing_coords,
             on=["state", "county"], how = "left")
 
     # Drop duplicates and keep last observation
@@ -182,15 +182,15 @@ us_county = us_county.sort_values(["fips", "state", "county", "date", "cases"]).
 
 # Calculate US State totals
 def us_state_totals(df):
-    
+
     state_grouping_cols = ['state', 'date']
-    
+
     state_totals = df.groupby(state_grouping_cols).agg(
         {'cases':'sum', 'deaths':'sum'})
-    
+
     state_totals.rename(columns = {'cases': 'state_cases',
                                   'deaths': 'state_deaths'}, inplace = True)
-    
+
     df = pd.merge(df, state_totals, on = state_grouping_cols)
 
     return df
@@ -207,7 +207,7 @@ def fix_column_dtypes(df):
             "cases",
             "deaths",
             "state_cases",
-            "state_deaths" 
+            "state_deaths"
         ]
 
         new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
@@ -239,10 +239,20 @@ def fix_column_dtypes(df):
     # Set data types for cases and deaths? Seems ok for now....
     for col in ["incident_rate", "people_tested"]:
         df[col] = df[col].astype(float)
-    
+
     # There are still duplicates, keep the max count
-    df = df.sort_values(["state", "county", "fips", "date", "cases"], 
+    df = df.sort_values(["state", "county", "fips", "date", "cases"],
                         ascending=[True, True, True, True, True])
+
+    # Drop duplicates
+    # Either: (1) values are updated throughout the day, or
+    # (2) slight discrepancies between NYT and JHU.
+    # Regardless, take the max value for cases and deaths for each date.
+    group_cols = ["state", "county", "fips", "date"]
+    for col in ["cases", "deaths"]:
+        df[col] = df.groupby(group_cols).transform("max")
+
+    df = df.drop_duplicates(subset=group_cols)
 
     return df
 
@@ -251,5 +261,5 @@ us_county = fix_column_dtypes(us_county)
 print(us_county.dtypes)
 
 # Export as csv
-us_county.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv", 
+us_county.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv",
     index = False)
