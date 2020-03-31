@@ -5,13 +5,14 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
-import arcgis
-import geopandas as gpd
 import pandas as pd
 import pytz
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
+
+import arcgis
+import geopandas as gpd
 from arcgis.gis import GIS
 
 # Shelter locations from Oscar
@@ -57,7 +58,9 @@ def load_data(**kwargs):
     """
     Entry point for the DAG, loading shelter to ESRI.
     """
-    gdf = gpd.read_file(TIER_1_META_URL, driver="GeoJSON")
+    tier_1 = gpd.read_file(TIER_1_META_URL, driver="GeoJSON")
+    tier_2 = gpd.read_file(TIER_2_META_URL, driver="GeoJSON")
+    gdf = pd.concat([tier_1, tier_2])
     df = pd.read_csv(SHELTER_CSV_URL)
     df = df.rename({"Shelter Site? ": "ParksName"}, axis=1)
 
@@ -82,7 +85,8 @@ def load_data(**kwargs):
         value="Granada Hills Youth Recreation Center",
     )
     df = df.replace(
-        to_replace="Echo Park Community Center", value="Echo Park Boys & Girls Club"
+        to_replace=["Echo Park Community Center", "Echo Park Community Ctr"],
+        value="Echo Park Boys & Girls Club",
     )
 
     # change reported time to pacific time
