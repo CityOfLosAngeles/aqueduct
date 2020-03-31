@@ -30,7 +30,7 @@ default_args = {
         "hunter.owens@lacity.org",
         "ian.rose@lacity.org",
         "janna.smith@lacity.org",
-        "vladimir.gallegos@lacity.org"
+        "vladimir.gallegos@lacity.org",
     ],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -46,6 +46,7 @@ default_args = {
 dag = DAG(dag_id="dockless-elt", default_args=default_args, schedule_interval="@hourly")
 
 # Util Functions
+
 
 def connect_aws_s3():
     """ Connect to AWS and return a boto S3 session """

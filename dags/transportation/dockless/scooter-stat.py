@@ -19,7 +19,7 @@ default_args = {
     "email": [
         "hunter.owens@lacity.org",
         "ian.rose@lacity.org",
-        "vladimir.gallegos@lacity.org"
+        "vladimir.gallegos@lacity.org",
     ],
     "email_on_failure": True,
     "email_on_retry": False,
@@ -112,7 +112,7 @@ def email_callback(**kwargs):
             "max@ellis-and-associates.com",
             "ian.rose@lacity.org",
             "janna.smith@lacity.org",
-            "jarvis.murray@lacity.org"
+            "jarvis.murray@lacity.org",
         ],
         subject=f"Dockless Stats for { kwargs['yesterday_ds'] }",
         html_content=email_template,

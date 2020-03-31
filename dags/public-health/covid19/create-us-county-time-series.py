@@ -29,7 +29,8 @@ def correct_county_fips(row):
 
 
 # Bring in NYT US county level data
-# pin this to https://github.com/nytimes/covid-19-data/commit/80f9cc25057e64750db23460c8c9dcbe3fe4b577
+# pin this to https://github.com/nytimes/covid-19-data/
+# commit/80f9cc25057e64750db23460c8c9dcbe3fe4b577
 nyt_county_url = (
     "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
 )
@@ -164,5 +165,5 @@ def fill_missing_stuff(df):
 
 us_county_time_series = fill_missing_stuff(us_county_time_series)
 
-## NEED TO EXPORT THIS SOMEWHERE?
+# NEED TO EXPORT THIS SOMEWHERE?
 us_county_time_series.to_csv()
