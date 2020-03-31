@@ -76,7 +76,7 @@ nyt_geog = coerce_fips_integer(nyt_geog)
 nyt_geog["fips"] = nyt_geog.apply(correct_county_fips, axis=1)
 
 
-# Clean JHU data from 3/25 - 3/27
+# Clean JHU data to match NYT schema
 def clean_jhu_county(df):
     # Only keep certain columns and rename them to match NYT schema
     keep_cols = [
