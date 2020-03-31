@@ -5,14 +5,13 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
+import arcgis
+import geopandas as gpd
 import pandas as pd
 import pytz
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
-
-import arcgis
-import geopandas as gpd
 from arcgis.gis import GIS
 
 # Shelter locations from Oscar

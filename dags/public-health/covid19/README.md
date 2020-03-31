@@ -46,7 +46,7 @@ This website and its contents herein, including all data, mapping, and analysis 
 
 The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 8 intervals a day) and pushes it into the City of LA geohub by merging it with the the official shelter data from LASAN / RAP GIS staff. We do some timezone data cleaning and publish.
 
-`Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for. 
+`Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for.
 
 Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
 
