@@ -1,5 +1,6 @@
 """
 Run this once to set the schema for US county-level data
+This grabs NYT data up to 3/30 and sample JHU data for 3/30 to append
 """
 import geopandas as gpd
 import pandas as pd
@@ -29,46 +30,39 @@ def correct_county_fips(row):
 
 
 # Bring in NYT US county level data
-# pin this to https://github.com/nytimes/covid-19-data/commit/80f9cc25057e64750db23460c8c9dcbe3fe4b577
-nyt_county_url = (
-    "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-counties.csv"
+NYT_330_COMMIT = "99b30cbf4181e35bdcc814e2b29671f38d7860a7"
+NYT_COUNTY_URL = (
+    f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_330_COMMIT}/"
+    "us-counties.csv"
 )
-county = pd.read_csv(nyt_county_url)
+county = pd.read_csv(NYT_COUNTY_URL)
 
 
 def clean_nyt_county(df):
     keep_cols = ["date", "county", "state", "fips", "cases", "deaths"]
-
     df = df[keep_cols]
-
-    # Coerce fips into integer, then convert to string
-    df = coerce_fips_integer(df)
-
-    df["fips"] = df.apply(correct_county_fips, axis=1)
-
     df["date"] = pd.to_datetime(df.date)
-
     return df
 
 
 county = clean_nyt_county(county)
 
-# Add JHU data that we were missing for 3/25 - 3/27
-jhu325 = gpd.read_file(
-    "s3://public-health-dashboard/jhu_covid19/jhu_feature_layer_3_25_2020.geojson"
-)
-jhu326 = gpd.read_file(
-    "s3://public-health-dashboard/jhu_covid19/jhu_feature_layer_3_26_2020.geojson"
-)
-jhu327 = gpd.read_file(
-    "s3://public-health-dashboard/jhu_covid19/jhu_feature_layer_3_27_2020.geojson"
-)
 
-jhu325["date"] = "3/25/2020"
-jhu326["date"] = "3/26/2020"
-jhu327["date"] = "3/27/2020"
+# Add JHU data for 3/30
+jhu_dfs = {}
+bucket_name = "public-health-dashboard"
 
-jhu1 = jhu325.append(jhu326).append(jhu327)
+for d in range(30, 31):
+    key_name = f"jhu3{d}"
+    fill_in_date = f"3/{d}/2020"
+    data = gpd.read_file(
+        f"s3://{bucket_name}/jhu_covid19/jhu_feature_layer_3_{d}_2020.geojson"
+    )
+    data["date"] = fill_in_date
+    jhu_dfs[key_name] = data
+
+
+jhu1 = jhu_dfs["jhu330"]
 jhu1["date"] = pd.to_datetime(jhu1.date)
 
 
@@ -110,9 +104,17 @@ def clean_jhu_county(df):
     )
 
     # Use FIPS to merge in NYT columns for county and state names
-    # There are some values with no FIPS, which were all state observations.
-    # Drop them, use an inner join for merge.
-    df = pd.merge(df, nyt_geog, on="fips", how="inner", validate="m:1")
+    # There are some values with no FIPS, NYT calls these county = "Unknown"
+    df = pd.merge(df, nyt_geog, on="fips", how="left", validate="m:1")
+
+    # Fix when FIPS is unknown, which wouldn't have merged in anything from nyt_geog
+    df["county"] = df.apply(
+        lambda row: "Unknown" if row.fips is None else row.county, axis=1
+    )
+    df["state"] = df.apply(
+        lambda row: row.Province_State if row.fips is None else row.state, axis=1
+    )
+    df["fips"] = df.fips.fillna("")
 
     # Only keep certain columns and rename them to match NYT schema
     drop_cols = ["Province_State", "Country_Region"]
@@ -126,18 +128,12 @@ jhu1 = clean_jhu_county(jhu1)
 
 
 # Append everything just once
-us_county_time_series = county.append(jhu1, sort=False)
+us_county = county.append(jhu1, sort=False)
 
 
 def fill_missing_stuff(df):
     for col in ["Lat", "Lon"]:
         df[col] = df.groupby(["fips", "county", "state"])[col].transform("max")
-
-    # There's a FIPS that isn't caught because of a tilde for Dona Ana, New Mexico.
-    df["fips"] = df.apply(
-        lambda row: "35013" if ("Ana" in row.county) & (row.fips == "") else row.fips,
-        axis=1,
-    )
 
     # Sort columns
     col_order = [
@@ -153,16 +149,49 @@ def fill_missing_stuff(df):
         "people_tested",
     ]
 
-    df = df.reindex(columns=col_order).sort_values(["fips", "date"])
+    df = df.reindex(columns=col_order).sort_values(
+        ["state", "county", "fips", "date", "cases"]
+    )
 
     # Set data types for cases and deaths? Seems ok for now....
     for col in ["incident_rate", "people_tested"]:
         df[col] = df[col].astype(float)
 
+    # Drop duplicates
+    # Either: (1) values are updated throughout the day, or
+    # (2) slight discrepancies between NYT and JHU.
+    # Regardless, take the max value for cases and deaths for each date.
+    group_cols = ["state", "county", "fips", "date"]
+    for col in ["cases", "deaths"]:
+        df[col] = df.groupby(group_cols).transform("max")
+
+    df = df.drop_duplicates(subset=group_cols)
+
     return df
 
 
-us_county_time_series = fill_missing_stuff(us_county_time_series)
+us_county = fill_missing_stuff(us_county)
 
-## NEED TO EXPORT THIS SOMEWHERE?
-us_county_time_series.to_csv()
+
+# Fix values with missing lat/lon (NYT breaks out Kansas City, MO and NYC, NY)
+fix_me = us_county.loc[us_county.Lat.isna()]
+rest_of_df = us_county.loc[us_county.Lat.notna()]
+
+fix_latitude = {
+    "Kansas City": 39.0997,
+    "New York    City": 40.7128,
+}
+
+fix_longitude = {
+    "Kansas City": -94.5786,
+    "New York City": -74.0060,
+}
+
+fix_me["Lat"] = fix_me.county.map(fix_latitude)
+fix_me["Lon"] = fix_me.county.map(fix_longitude)
+
+us_county = rest_of_df.append(fix_me, sort=False).reset_index(drop=True)
+
+
+# Export as csv
+us_county.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv")
