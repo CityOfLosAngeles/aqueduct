@@ -304,7 +304,6 @@ def fix_column_dtypes(df):
         .reindex(columns=col_order)
         .sort_values(["state", "county", "fips", "date", "cases"])
     )
-    df["date"] = pd.to_datetime(df.date)
 
     return df
 

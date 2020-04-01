@@ -2,9 +2,14 @@
 Grab the 'static' portion of time-series from NYT
 and add JHU DAG to this.
 """
+import arcgis
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from airflow import DAG
+from airflow.hooks.base_hook import BaseHook
+from airflow.operators.python_operator import PythonOperator
+from arcgis.gis import GIS
 
 
 # General function
@@ -15,7 +20,7 @@ Append, pass df into some functions to clean up, then spit out a cleaned df to e
 """
 
 
-def create_append_county_time_series(df):
+def create_append_county_time_series():
     # Import static time-series csv item
     # ITEM IS IN UTC...which displays the dates wrong...
     # should show 3/31 as last date, but shows 3/30 right now
@@ -39,7 +44,16 @@ def create_append_county_time_series(df):
     # (2) Add JHU data as scheduled and clean up geography
     # --> Replace with importing JHU data
     # JHU county data: https://www.arcgis.com/home/item.html?id=628578697fb24d8ea4c32fa0c5ae1843
-    # jhu =
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+    gis_item = gis.content.get("628578697fb24d8ea4c32fa0c5ae1843")
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    # Drop some ESRI faf
+    sdf = sdf.drop(columns=["ObjectId", "SHAPE"])
+    jhu = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
 
     # Create localized then normalized date column
     jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
@@ -274,6 +288,10 @@ def fix_column_dtypes(df):
         .reindex(columns=col_order)
         .sort_values(["state", "county", "fips", "date", "cases"])
     )
-    df["date"] = pd.to_datetime(df.date)
 
     return df
+
+
+if __name__ == "__main__":
+    df = create_append_county_time_series()
+    df.to_csv("updated.csv")
