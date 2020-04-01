@@ -18,25 +18,25 @@ Append, pass df into some functions to clean up, then spit out a cleaned df to e
 def create_append_county_time_series(df):
     # Import static time-series csv item
     # ITEM IS IN UTC...which displays the dates wrong...
-    # should show 3/30 as last date, but shows 3/29 right now
-    # http://lahub.maps.arcgis.com/home/item.html?id=705a232fae6f4777b8bce98741fe590e
+    # should show 3/31 as last date, but shows 3/30 right now
+    # http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2
     # --> Replace this with importing from item ID?
     old_ts = pd.read_csv(
-        "s3://public-health-dashboard/jhu_covid19/county_time_series_330.csv"
+        "s3://public-health-dashboard/jhu_covid19/county_time_series_331.csv"
     )
     # The dates in csv are correct, but not once csv read by ESRI
 
-    # Create crosswalk using NYT geography columns to clean up JHU schema
-    NYT_330_COMMIT = ""
+    # (1) Bring in NYT US county level data and clean
+    NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
     NYT_COUNTY_URL = (
-        f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_330_COMMIT}/"
+        f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
         "us-counties.csv"
     )
     county = pd.read_csv(NYT_COUNTY_URL)
     county = clean_nyt_county(county)
     nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
 
-    # Import JHU feature layer
+    # (2) Add JHU data as scheduled and clean up geography
     # --> Replace with importing JHU data
     # JHU county data: https://www.arcgis.com/home/item.html?id=628578697fb24d8ea4c32fa0c5ae1843
     # jhu =
@@ -46,20 +46,26 @@ def create_append_county_time_series(df):
 
     jhu = clean_jhu_county(jhu)
 
-    # Append everything
+    # (3) Append NYT and JHU and fill in missing county lat/lon
     us_county = old_ts.append(jhu, sort=False)
 
     # Clean up full dataset by filling in missing values and dropping duplicates
     us_county = fill_missing_stuff(us_county)
 
-    # Get state totals
+    # (4) Import crosswalk from JHU to fix missing state lat/lon -- Don't need
+
+    # (5) Calculate US State totals
     us_county = us_state_totals(us_county)
 
-    # Clean up column types again before exporting?
+    # (6) Calculate change in casesload from the prior day
+    us_county = calculate_change(us_county)
+
+    # (7) Fix column types before exporting
     final = fix_column_dtypes(us_county)
     print(final.dtypes)
 
-    # Export final df and overwrite this one (http://lahub.maps.arcgis.com/home/item.html?id=705a232fae6f4777b8bce98741fe590e)
+    # Export final df and overwrite the csv? or create new one?
+    # Original CSV turned feature layer: http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2
     return final
 
 
@@ -86,6 +92,7 @@ def correct_county_fips(row):
         return ""
 
 
+# (1) Bring in NYT US county level data and clean
 def clean_nyt_county(df):
     keep_cols = ["date", "county", "state", "fips", "cases", "deaths"]
     df = df[keep_cols]
@@ -100,7 +107,7 @@ def clean_nyt_county(df):
     return df
 
 
-# Clean JHU data to match NYT schema
+# (2) Add JHU data for 3/30 and clean up geography
 def clean_jhu_county(df):
     # Only keep certain columns and rename them to match NYT schema
     keep_cols = [
@@ -151,6 +158,7 @@ def clean_jhu_county(df):
     return df
 
 
+# (3) Append NYT and JHU and fill in missing county lat/lon
 def fill_missing_stuff(df):
     not_missing_coords = df[df.Lat.notna()][
         ["state", "county", "Lat", "Lon"]
@@ -173,16 +181,73 @@ def fill_missing_stuff(df):
     return df
 
 
-# Somehow, column types get all messed up after subsetting, do 1 final pass
+# (4) Import crosswalk from JHU to fix missing state lat/lon -- Don't need
+
+
+# (5) Calculate US State totals
+def us_state_totals(df):
+    state_grouping_cols = ["state", "date"]
+
+    state_totals = df.groupby(state_grouping_cols).agg(
+        {"cases": "sum", "deaths": "sum"}
+    )
+    state_totals.rename(
+        columns={"cases": "state_cases", "deaths": "state_deaths"}, inplace=True
+    )
+
+    df = pd.merge(df, state_totals, on=state_grouping_cols)
+
+    return df
+
+
+# (6) Calculate change in casesload from the prior day
+def calculate_change(df):
+    group_cols = ["state", "county", "fips", "date"]
+
+    for col in ["cases", "deaths"]:
+        new_col = f"new_{col}"
+        county_group_cols = ["state", "county"]
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(county_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
+        # First obs will be NaN, but the change in caseload is just the # of cases.
+        df[new_col] = df[new_col].fillna(df[col])
+
+    for col in ["state_cases", "state_deaths"]:
+        new_col = f"new_{col}"
+        state_group_cols = ["state"]
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(state_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
+        df[new_col] = df[new_col].fillna(df[col])
+
+    return df
+
+
+# (7) Fix column types before exporting
 def fix_column_dtypes(df):
-    df["date"] = pd.to_datetime(df.date)
+    def coerce_integer(df):
+        def integrify(x):
+            return int(float(x)) if not pd.isna(x) else None
 
-    # integrify wouldn't work?
-    for col in ["cases", "deaths", "state_cases", "state_deaths"]:
-        df[col] = df[col].astype(int)
+        cols = [
+            "cases",
+            "deaths",
+            "state_cases",
+            "state_deaths",
+            "new_cases",
+            "new_deaths",
+            "new_state_cases",
+            "new_state_deaths",
+        ]
 
-    for col in ["incident_rate", "people_tested"]:
-        df[col] = df[col].astype(float)
+        new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
+
+        return df.assign(**new_cols)
 
     # Sort columns
     col_order = [
@@ -198,10 +263,17 @@ def fix_column_dtypes(df):
         "people_tested",
         "state_cases",
         "state_deaths",
+        "new_cases",
+        "new_deaths",
+        "new_state_cases",
+        "new_state_deaths",
     ]
 
-    df = df.reindex(columns=col_order).sort_values(
-        ["state", "county", "fips", "date", "cases"]
+    df = (
+        df.pipe(coerce_integer)
+        .reindex(columns=col_order)
+        .sort_values(["state", "county", "fips", "date", "cases"])
     )
+    df["date"] = pd.to_datetime(df.date)
 
     return df

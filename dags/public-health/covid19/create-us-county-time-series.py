@@ -123,7 +123,7 @@ def clean_jhu_county(df):
 jhu = clean_jhu_county(jhu)
 
 
-# (3) Append NYT and JHU an dfill in missing county lat/lon
+# (3) Append NYT and JHU and fill in missing county lat/lon
 us_county = county.append(jhu, sort=False)
 
 
@@ -198,7 +198,7 @@ us_county = us_county.sort_values(
 ).drop_duplicates(subset=["fips", "state", "county", "date"], keep="first")
 
 
-# (5) Calculate US State totals and new cases added
+# (5) Calculate US State totals
 def us_state_totals(df):
 
     state_grouping_cols = ["state", "date"]
@@ -222,23 +222,28 @@ us_county = us_state_totals(us_county)
 # (6) Calculate change in casesload from the prior day
 def calculate_change(df):
     group_cols = ["state", "county", "fips", "date"]
-    
+
     for col in ["cases", "deaths"]:
-        new_col = f"new_{col}" 
+        new_col = f"new_{col}"
         county_group_cols = ["state", "county"]
-        df[new_col] = df.sort_values(group_cols).groupby(
-            county_group_cols)[col].apply(lambda row: row - row.shift(1))
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(county_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
         # First obs will be NaN, but the change in caseload is just the # of cases.
         df[new_col] = df[new_col].fillna(df[col])
 
-    
     for col in ["state_cases", "state_deaths"]:
-        new_col = f"new_{col}" 
+        new_col = f"new_{col}"
         state_group_cols = ["state"]
-        df[new_col] = df.sort_values(group_cols).groupby(
-            state_group_cols)[col].apply(lambda row: row - row.shift(1))
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(state_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
         df[new_col] = df[new_col].fillna(df[col])
-    
+
     return df
 
 
@@ -247,9 +252,6 @@ us_county = calculate_change(us_county)
 
 # (7) Fix column types before exporting
 def fix_column_dtypes(df):
-    df["date"] = pd.to_datetime(df.date)
-
-    # integrify wouldn't work? 
     def coerce_integer(df):
         def integrify(x):
             return int(float(x)) if not pd.isna(x) else None
@@ -262,13 +264,13 @@ def fix_column_dtypes(df):
             "new_cases",
             "new_deaths",
             "new_state_cases",
-            "new_state_deaths"
+            "new_state_deaths",
         ]
 
         new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
 
-        return df.assign(**new_cols)   
-    
+        return df.assign(**new_cols)
+
     # Sort columns
     col_order = [
         "county",
@@ -283,15 +285,18 @@ def fix_column_dtypes(df):
         "people_tested",
         "state_cases",
         "state_deaths",
-        "new_cases", 
+        "new_cases",
         "new_deaths",
-        "new_state_cases", 
-        "new_state_deaths"
+        "new_state_cases",
+        "new_state_deaths",
     ]
 
-    df = df.reindex(columns=col_order).sort_values(
-        ["state", "county", "fips", "date", "cases"]
+    df = (
+        df.pipe(coerce_integer)
+        .reindex(columns=col_order)
+        .sort_values(["state", "county", "fips", "date", "cases"])
     )
+    df["date"] = pd.to_datetime(df.date)
 
     return df
 
@@ -299,7 +304,6 @@ def fix_column_dtypes(df):
 us_county = fix_column_dtypes(us_county)
 
 print(us_county.dtypes)
-print(us_county.head(2))
 
 # Export as csv
 us_county.to_csv(
