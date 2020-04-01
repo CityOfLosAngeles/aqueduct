@@ -1,7 +1,9 @@
 # City of LA COVID-19 Dashboard README
+
+## Case Data
 The Johns Hopkins Center for Systems Science and Engineering has open sourced data culled from the US CDC, World Health Organization, DXY (China), China CDC (China), Hong Kong Department of Health, Macau Government, Taiwan CDC, European CDC, Government of Canada, Australia Government Department of Health, and other local, state, and regional health authorities. The team at JHU has [written a blog](https://systems.jhu.edu/research/public-health/ncov/) about their efforts in providing real-time information in the face of a global public health emergency.
 
-## Important JHU Source Materials
+### Important JHU Source Materials
 * [JHU Dashboard](https://www.arcgis.com/apps/opsdashboard/index.html#/bda7594740fd40299423467b48e9ecf6)
 * [JHU ESRI feature layer](https://www.arcgis.com/home/webmap/viewer.html?layers=c0b356e20b30490c8b8b4c7bb9554e7c)
 * [JHU ESRI feature service](https://www.arcgis.com/home/item.html?id=c0b356e20b30490c8b8b4c7bb9554e7c)
@@ -42,6 +44,9 @@ We are using the Johns Hopkins data for our ETL and ESRI feature services. Their
 
 This website and its contents herein, including all data, mapping, and analysis (“Website”), copyright 2020 Johns Hopkins University, all rights reserved, is provided to the public strictly for educational and academic research purposes. The Website relies upon publicly available data from multiple sources, that do not always agree. The names of locations correspond with the official designations used by the U.S. State Department, including for Taiwan. The Johns Hopkins University hereby disclaims any and all representations and warranties with respect to the Website, including accuracy, fitness for use, and merchantability. Reliance on the Website for medical guidance or use of the Website in commerce is strictly prohibited.
 
+## County Case Data
+For a while...
+
 ## Shelter Data
 
 The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 8 intervals a day) and pushes it into the City of LA geohub by merging it with the the official shelter data from LASAN / RAP GIS staff. We do some timezone data cleaning and publish.
@@ -49,6 +54,14 @@ The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 
 `Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for.
 
 Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
+
+There are 3 layers you can use to access shelter data.
+
+* [Shelter Timeseries](http://lahub.maps.arcgis.com/home/item.html?id=22b5b5f4852041f68796b7967d559e0f) - is a representation of the form data combined with known geospatial information, with minimal transformations.
+
+* [Shelter Current](http://lahub.maps.arcgis.com/home/item.html?id=dbf7e62b02244e1a855a1f4b2624de76) - is the most recent report for each shelter, along with computed occupancy numbers.
+
+* [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24Hs. Either of these can be used to produce open shelter numbers.
 
 ### Contributors
 * [Hunter Owens](https://github.com/hunterowens)
