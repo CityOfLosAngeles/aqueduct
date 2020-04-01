@@ -11,24 +11,29 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
-
 # General function
 """
 OOPS, is df the right thing to put as arg in create_append_county_time_series?
 I want to read in 2 different dataframes
 Append, pass df into some functions to clean up, then spit out a cleaned df to export
 """
+TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
+JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
 
 
 def create_append_county_time_series():
-    # Import static time-series csv item
-    # ITEM IS IN UTC...which displays the dates wrong...
-    # should show 3/31 as last date, but shows 3/30 right now
-    # http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2
-    # --> Replace this with importing from item ID?
-    old_ts = pd.read_csv(
-        "s3://public-health-dashboard/jhu_covid19/county_time_series_331.csv"
-    )
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    sdf = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    old_ts = sdf.drop(columns=["ObjectId", "SHAPE"])
+    print(old_ts.head())
+
     # The dates in csv are correct, but not once csv read by ESRI
 
     # (1) Bring in NYT US county level data and clean
@@ -40,25 +45,17 @@ def create_append_county_time_series():
     county = pd.read_csv(NYT_COUNTY_URL)
     county = clean_nyt_county(county)
     nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
-
-    # (2) Add JHU data as scheduled and clean up geography
-    # --> Replace with importing JHU data
-    # JHU county data: https://www.arcgis.com/home/item.html?id=628578697fb24d8ea4c32fa0c5ae1843
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
-    gis_item = gis.content.get("628578697fb24d8ea4c32fa0c5ae1843")
+    # (2) Load the data from the JHU feature layer.
+    gis_item = gis.content.get(JHU_FEATURE_ID)
     layer = gis_item.layers[0]
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
     # Drop some ESRI faf
-    sdf = sdf.drop(columns=["ObjectId", "SHAPE"])
-    jhu = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    jhu = sdf.drop(columns=["OBJECTID", "SHAPE"])
 
     # Create localized then normalized date column
     jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
 
-    jhu = clean_jhu_county(jhu)
+    jhu = clean_jhu_county(jhu, nyt_geog)
 
     # (3) Append NYT and JHU and fill in missing county lat/lon
     us_county = old_ts.append(jhu, sort=False)
@@ -66,17 +63,14 @@ def create_append_county_time_series():
     # Clean up full dataset by filling in missing values and dropping duplicates
     us_county = fill_missing_stuff(us_county)
 
-    # (4) Import crosswalk from JHU to fix missing state lat/lon -- Don't need
-
-    # (5) Calculate US State totals
+    # (4) Calculate US State totals
     us_county = us_state_totals(us_county)
 
-    # (6) Calculate change in casesload from the prior day
+    # (5) Calculate change in casesload from the prior day
     us_county = calculate_change(us_county)
 
-    # (7) Fix column types before exporting
+    # (6) Fix column types before exporting
     final = fix_column_dtypes(us_county)
-    print(final.dtypes)
 
     # Export final df and overwrite the csv? or create new one?
     # Original CSV turned feature layer: http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2
@@ -122,7 +116,7 @@ def clean_nyt_county(df):
 
 
 # (2) Add JHU data for 3/30 and clean up geography
-def clean_jhu_county(df):
+def clean_jhu_county(df, nyt_geog):
     # Only keep certain columns and rename them to match NYT schema
     keep_cols = [
         "Province_State",
@@ -205,11 +199,15 @@ def us_state_totals(df):
     state_totals = df.groupby(state_grouping_cols).agg(
         {"cases": "sum", "deaths": "sum"}
     )
-    state_totals.rename(
-        columns={"cases": "state_cases", "deaths": "state_deaths"}, inplace=True
+    state_totals = state_totals.rename(
+        columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
 
-    df = pd.merge(df, state_totals, on=state_grouping_cols)
+    df = pd.merge(
+        df.drop(columns=["state_cases", "state_deaths"]),
+        state_totals,
+        on=state_grouping_cols,
+    )
 
     return df
 
