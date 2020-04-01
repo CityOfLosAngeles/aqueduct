@@ -1,7 +1,9 @@
 # City of LA COVID-19 Dashboard README
+
+## Case Data
 The Johns Hopkins Center for Systems Science and Engineering has open sourced data culled from the US CDC, World Health Organization, DXY (China), China CDC (China), Hong Kong Department of Health, Macau Government, Taiwan CDC, European CDC, Government of Canada, Australia Government Department of Health, and other local, state, and regional health authorities. The team at JHU has [written a blog](https://systems.jhu.edu/research/public-health/ncov/) about their efforts in providing real-time information in the face of a global public health emergency.
 
-## Important JHU Source Materials
+### Important JHU Source Materials
 * [JHU Dashboard](https://www.arcgis.com/apps/opsdashboard/index.html#/bda7594740fd40299423467b48e9ecf6)
 * [JHU ESRI feature layer](https://www.arcgis.com/home/webmap/viewer.html?layers=c0b356e20b30490c8b8b4c7bb9554e7c)
 * [JHU ESRI feature service](https://www.arcgis.com/home/item.html?id=c0b356e20b30490c8b8b4c7bb9554e7c)
@@ -41,6 +43,9 @@ We believe that open source data will allow policymakers and local authorities t
 We are using the Johns Hopkins data for our ETL and ESRI feature services. Their disclaimer is below:
 
 This website and its contents herein, including all data, mapping, and analysis (“Website”), copyright 2020 Johns Hopkins University, all rights reserved, is provided to the public strictly for educational and academic research purposes. The Website relies upon publicly available data from multiple sources, that do not always agree. The names of locations correspond with the official designations used by the U.S. State Department, including for Taiwan. The Johns Hopkins University hereby disclaims any and all representations and warranties with respect to the Website, including accuracy, fitness for use, and merchantability. Reliance on the Website for medical guidance or use of the Website in commerce is strictly prohibited.
+
+## County Case Data
+For a while...
 
 ## Shelter Data
 
