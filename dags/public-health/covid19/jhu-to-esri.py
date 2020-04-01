@@ -8,11 +8,10 @@ import os
 import re
 from datetime import datetime, timedelta
 
+import arcgis
 import bs4
 import pandas as pd
 import requests
-
-import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -59,16 +58,18 @@ date = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
 
 # Columns expected for our county level timeseries.
 columns = [
-    "county",
     "state",
-    "fips",
+    "county",
     "date",
-    "Lat",
-    "Lon",
+    "latitude",
+    "longitude",
     "cases",
     "deaths",
-    "incident_rate",
-    "people_tested",
+    "recovered",
+    "travel_based",
+    "locally_acquired",
+    "ca_total",
+    "non_scag_total",
 ]
 
 
