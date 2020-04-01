@@ -10,9 +10,9 @@ The Johns Hopkins Center for Systems Science and Engineering has open sourced da
 
 JHU initially published US county-level data until 3/10/2020. Since 3/10, JHU started publishing only US state level data ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382)). JHU's county time-series data has a major between 3/10-3/23, until they started publishing county-level data again starting 3/24 ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/1250)). Recently, the New York Times made their [county time-series data available on GitHub](https://github.com/nytimes/covid-19-data), where the geography names are much cleaner than JHU's naming convention, but lacks latitude/longitude information, and is always a day behind. Through all of JHU's schema changes, the US observations were most affected, while the rest of the world had a fairly consistent schema.
 
-![JHU Data](./jhu_data_availability.JPG)
+![JHU Data](./jhu_data_availability.JPG | width=350)
 
-![US Data](./us_data_availability.JPG)
+![US Data](./us_data_availability.JPG | width=350)
 
 
 ### Important JHU and NYT Source Materials
