@@ -2,11 +2,11 @@
 Grab the 'static' portion of time-series from NYT
 and add JHU DAG to this.
 """
+from datetime import datetime, timedelta
+
 import arcgis
-import geopandas as gpd
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -28,16 +28,16 @@ def append_county_time_series(**kwargs):
     arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
+    # (1) Load time series data from ESRI
     gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
     layer = gis_item.layers[0]
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    # ESRI dataframes seem to lose their localization.
     sdf = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    # Drop some ESRI faf
     old_ts = sdf.drop(columns=["ObjectId", "SHAPE"])
-    print(old_ts.head())
 
-    # The dates in csv are correct, but not once csv read by ESRI
-
-    # (1) Bring in NYT US county level data and clean
+    # (2) Bring in NYT US county level data and clean
     NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
     NYT_COUNTY_URL = (
         f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
@@ -46,7 +46,8 @@ def append_county_time_series(**kwargs):
     county = pd.read_csv(NYT_COUNTY_URL)
     county = clean_nyt_county(county)
     nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
-    # (2) Load the data from the JHU feature layer.
+
+    # (3) Load the most recent data from the JHU feature layer.
     gis_item = gis.content.get(JHU_FEATURE_ID)
     layer = gis_item.layers[0]
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
@@ -55,25 +56,24 @@ def append_county_time_series(**kwargs):
 
     # Create localized then normalized date column
     jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
-
     jhu = clean_jhu_county(jhu, nyt_geog)
 
-    # (3) Append NYT and JHU and fill in missing county lat/lon
+    # (4) Append NYT and JHU and fill in missing county lat/lon
     us_county = old_ts.append(jhu, sort=False)
 
     # Clean up full dataset by filling in missing values and dropping duplicates
     us_county = fill_missing_stuff(us_county)
 
-    # (4) Calculate US State totals
+    # (5) Calculate US State totals
     us_county = us_state_totals(us_county)
 
-    # (5) Calculate change in casesload from the prior day
+    # (6) Calculate change in casesload from the prior day
     us_county = calculate_change(us_county)
 
-    # (6) Fix column types before exporting
+    # (7) Fix column types before exporting
     final = fix_column_dtypes(us_county)
 
-    # Write to CSV and overwrite the old feature layer.
+    # (8) Write to CSV and overwrite the old feature layer.
     time_series_filename = "/tmp/jhu-county-time-series.csv"
     final.to_csv(time_series_filename)
     gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
@@ -88,9 +88,7 @@ def coerce_fips_integer(df):
     def integrify(x):
         return int(float(x)) if not pd.isna(x) else None
 
-    cols = [
-        "fips",
-    ]
+    cols = ["fips"]
 
     new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
 
