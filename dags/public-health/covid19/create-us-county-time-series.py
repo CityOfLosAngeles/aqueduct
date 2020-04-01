@@ -222,23 +222,28 @@ us_county = us_state_totals(us_county)
 # (6) Calculate change in casesload from the prior day
 def calculate_change(df):
     group_cols = ["state", "county", "fips", "date"]
-    
+
     for col in ["cases", "deaths"]:
-        new_col = f"new_{col}" 
+        new_col = f"new_{col}"
         county_group_cols = ["state", "county"]
-        df[new_col] = df.sort_values(group_cols).groupby(
-            county_group_cols)[col].apply(lambda row: row - row.shift(1))
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(county_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
         # First obs will be NaN, but the change in caseload is just the # of cases.
         df[new_col] = df[new_col].fillna(df[col])
 
-    
     for col in ["state_cases", "state_deaths"]:
-        new_col = f"new_{col}" 
+        new_col = f"new_{col}"
         state_group_cols = ["state"]
-        df[new_col] = df.sort_values(group_cols).groupby(
-            state_group_cols)[col].apply(lambda row: row - row.shift(1))
+        df[new_col] = (
+            df.sort_values(group_cols)
+            .groupby(state_group_cols)[col]
+            .apply(lambda row: row - row.shift(1))
+        )
         df[new_col] = df[new_col].fillna(df[col])
-    
+
     return df
 
 
@@ -249,7 +254,7 @@ us_county = calculate_change(us_county)
 def fix_column_dtypes(df):
     df["date"] = pd.to_datetime(df.date)
 
-    # integrify wouldn't work? 
+    # integrify wouldn't work?
     def coerce_integer(df):
         def integrify(x):
             return int(float(x)) if not pd.isna(x) else None
@@ -262,13 +267,13 @@ def fix_column_dtypes(df):
             "new_cases",
             "new_deaths",
             "new_state_cases",
-            "new_state_deaths"
+            "new_state_deaths",
         ]
 
         new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
 
-        return df.assign(**new_cols)   
-    
+        return df.assign(**new_cols)
+
     # Sort columns
     col_order = [
         "county",
@@ -283,14 +288,16 @@ def fix_column_dtypes(df):
         "people_tested",
         "state_cases",
         "state_deaths",
-        "new_cases", 
+        "new_cases",
         "new_deaths",
-        "new_state_cases", 
-        "new_state_deaths"
+        "new_state_cases",
+        "new_state_deaths",
     ]
 
-    df = df.reindex(columns=col_order).sort_values(
-        ["state", "county", "fips", "date", "cases"]
+    df = (
+        df.pipe(coerce_integer)
+        .reindex(columns=col_order)
+        .sort_values(["state", "county", "fips", "date", "cases"])
     )
 
     return df
