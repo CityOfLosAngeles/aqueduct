@@ -6,6 +6,7 @@ import arcgis
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -21,7 +22,7 @@ TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
 JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
 
 
-def create_append_county_time_series():
+def append_county_time_series(**kwargs):
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
@@ -292,5 +293,24 @@ def fix_column_dtypes(df):
     return df
 
 
-if __name__ == "__main__":
-    create_append_county_time_series()
+default_args = {
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2020, 4, 1),
+    "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
+    "email_on_failure": True,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=30),
+}
+
+dag = DAG("jhu-county-to-esri", default_args=default_args, schedule_interval="@hourly")
+
+
+t1 = PythonOperator(
+    task_id="append_county_time_series",
+    provide_context=True,
+    python_callable=append_county_time_series,
+    op_kwargs={},
+    dag=dag,
+)
