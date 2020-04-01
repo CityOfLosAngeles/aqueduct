@@ -30,7 +30,7 @@ def correct_county_fips(row):
         return ""
 
 
-# Bring in NYT US county level data
+# (1) Bring in NYT US county level data and clean
 NYT_330_COMMIT = "99b30cbf4181e35bdcc814e2b29671f38d7860a7"
 NYT_COUNTY_URL = (
     f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_330_COMMIT}/"
@@ -56,7 +56,7 @@ def clean_nyt_county(df):
 county = clean_nyt_county(county)
 
 
-# Add JHU data for 3/30
+# (2) Add JHU data for 3/30 and clean up geography
 bucket_name = "public-health-dashboard"
 jhu = gpd.read_file(
     f"s3://{bucket_name}/jhu_covid19/jhu_feature_layer_3_30_2020.geojson"
@@ -123,7 +123,7 @@ def clean_jhu_county(df):
 jhu = clean_jhu_county(jhu)
 
 
-# Append once
+# (3) Append NYT and JHU an dfill in missing county lat/lon
 us_county = county.append(jhu, sort=False)
 
 
@@ -152,7 +152,7 @@ def fill_missing_stuff(df):
 us_county = fill_missing_stuff(us_county)
 
 
-# Import crosswalk from JHU
+# (4) Import crosswalk from JHU to fix missing state lat/lon
 JHU_COMMIT = "376119aa4b3dbc37b863ac11d4984e480e81227b"
 JHU_LOOKUP_URL = (
     f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
@@ -188,7 +188,7 @@ fix_state = pd.merge(
 )
 
 
-# Append
+# Append the fixes together
 us_county = (
     rest_of_df.append(fix_county, sort=False).append(fix_state).reset_index(drop=True)
 )
@@ -198,7 +198,7 @@ us_county = us_county.sort_values(
 ).drop_duplicates(subset=["fips", "state", "county", "date"], keep="first")
 
 
-# Calculate US State totals
+# (5) Calculate US State totals and new cases added
 def us_state_totals(df):
 
     state_grouping_cols = ["state", "date"]
@@ -219,16 +219,52 @@ def us_state_totals(df):
 us_county = us_state_totals(us_county)
 
 
+# (6) Calculate change in casesload from the prior day
+def calculate_change(df):
+    group_cols = ["state", "county", "fips", "date"]
+    
+    for col in ["cases", "deaths"]:
+        new_col = f"new_{col}" 
+        county_group_cols = ["state", "county"]
+        df[new_col] = df.sort_values(group_cols).groupby(
+            county_group_cols)[col].apply(lambda row: row - row.shift(1))
+    
+    for col in ["state_cases", "state_deaths"]:
+        new_col = f"new_{col}" 
+        state_group_cols = ["state"]
+        df[new_col] = df.sort_values(group_cols).groupby(
+            state_group_cols)[col].apply(lambda row: row - row.shift(1))
+    
+    return df
+
+
+us_county = calculate_change(us_county)
+
+
+# (7) Fix column types before exporting
 def fix_column_dtypes(df):
     df["date"] = pd.to_datetime(df.date)
 
-    # integrify wouldn't work?
-    for col in ["cases", "deaths", "state_cases", "state_deaths"]:
-        df[col] = df[col].astype(int)
+    # integrify wouldn't work? 
+    def coerce_integer(df):
+        def integrify(x):
+            return int(float(x)) if not pd.isna(x) else None
 
-    for col in ["incident_rate", "people_tested"]:
-        df[col] = df[col].astype(float)
+        cols = [
+            "cases",
+            "deaths",
+            "state_cases",
+            "state_deaths",
+            "new_cases",
+            "new_deaths",
+            "new_state_cases",
+            "new_state_deaths"
+        ]
 
+        new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
+        
+        return df.assign(**new_cols)   
+    
     # Sort columns
     col_order = [
         "county",
@@ -243,6 +279,10 @@ def fix_column_dtypes(df):
         "people_tested",
         "state_cases",
         "state_deaths",
+        "new_cases", 
+        "new_deaths",
+        "new_state_cases", 
+        "new_state_deaths"
     ]
 
     df = df.reindex(columns=col_order).sort_values(
@@ -255,6 +295,7 @@ def fix_column_dtypes(df):
 us_county = fix_column_dtypes(us_county)
 
 print(us_county.dtypes)
+print(us_county.head(2))
 
 # Export as csv
 us_county.to_csv(
