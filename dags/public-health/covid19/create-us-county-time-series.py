@@ -252,7 +252,12 @@ us_county = calculate_change(us_county)
 
 # (7) Fix column types before exporting
 def fix_column_dtypes(df):
-    df["date"] = pd.to_datetime(df.date)
+    df["date"] = (
+        pd.to_datetime(df.date)
+        .dt.tz_localize("US/Pacific")
+        .dt.normalize()
+        .dt.tz_convert("UTC")
+    )
 
     # integrify wouldn't work?
     def coerce_integer(df):
