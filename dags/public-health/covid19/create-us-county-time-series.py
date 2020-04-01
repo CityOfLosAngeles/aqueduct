@@ -252,6 +252,9 @@ us_county = calculate_change(us_county)
 
 # (7) Fix column types before exporting
 def fix_column_dtypes(df):
+    df["date"] = pd.to_datetime(df.date)
+
+    # integrify wouldn't work?
     def coerce_integer(df):
         def integrify(x):
             return int(float(x)) if not pd.isna(x) else None
