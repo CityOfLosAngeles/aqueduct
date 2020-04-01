@@ -50,6 +50,14 @@ The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 
 
 Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
 
+There are 3 layers you can use to access shelter data.
+
+* [Shelter Timeseries](http://lahub.maps.arcgis.com/home/item.html?id=22b5b5f4852041f68796b7967d559e0f) - is a representation of the form data combined with known geospatial information, with minimal transformations.
+
+* [Shelter Current](http://lahub.maps.arcgis.com/home/item.html?id=dbf7e62b02244e1a855a1f4b2624de76) - is the most recent report for each shelter, along with computed occupancy numbers.
+
+* [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24Hs. Either of these can be used to produce open shelter numbers.
+
 ### Contributors
 * [Hunter Owens](https://github.com/hunterowens)
 * [Ian Rose](https://github.com/ian-r-rose)
