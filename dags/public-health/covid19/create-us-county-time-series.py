@@ -1,6 +1,6 @@
 """
 Run this once to set the schema for US county-level data
-This grabs NYT data up to 3/30 and sample JHU data for 3/30 to append
+This grabs NYT data up to 3/31 and sample JHU data for 3/30 to append
 """
 import geopandas as gpd
 import numpy as np
@@ -31,9 +31,9 @@ def correct_county_fips(row):
 
 
 # (1) Bring in NYT US county level data and clean
-NYT_330_COMMIT = "99b30cbf4181e35bdcc814e2b29671f38d7860a7"
+NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
 NYT_COUNTY_URL = (
-    f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_330_COMMIT}/"
+    f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
     "us-counties.csv"
 )
 county = pd.read_csv(NYT_COUNTY_URL)
@@ -228,12 +228,16 @@ def calculate_change(df):
         county_group_cols = ["state", "county"]
         df[new_col] = df.sort_values(group_cols).groupby(
             county_group_cols)[col].apply(lambda row: row - row.shift(1))
+        # First obs will be NaN, but the change in caseload is just the # of cases.
+        df[new_col] = df[new_col].fillna(df[col])
+
     
     for col in ["state_cases", "state_deaths"]:
         new_col = f"new_{col}" 
         state_group_cols = ["state"]
         df[new_col] = df.sort_values(group_cols).groupby(
             state_group_cols)[col].apply(lambda row: row - row.shift(1))
+        df[new_col] = df[new_col].fillna(df[col])
     
     return df
 
@@ -262,7 +266,7 @@ def fix_column_dtypes(df):
         ]
 
         new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
-        
+
         return df.assign(**new_cols)   
     
     # Sort columns
@@ -299,5 +303,5 @@ print(us_county.head(2))
 
 # Export as csv
 us_county.to_csv(
-    f"s3://{bucket_name}/jhu_covid19/county_time_series_330.csv", index=False
+    f"s3://{bucket_name}/jhu_covid19/county_time_series_331.csv", index=False
 )
