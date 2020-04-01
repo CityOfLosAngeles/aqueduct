@@ -1,20 +1,89 @@
 """
-Run this once to set the schema for US county-level data
-This grabs NYT data up to 3/31 and sample JHU data for 3/30 to append
+Grab the 'static' portion of time-series from NYT
+and add JHU DAG to this.
 """
-import geopandas as gpd
+from datetime import datetime, timedelta
+
+import arcgis
 import numpy as np
 import pandas as pd
+from airflow import DAG
+from airflow.hooks.base_hook import BaseHook
+from airflow.operators.python_operator import PythonOperator
+from arcgis.gis import GIS
+
+# General function
+TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
+JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
 
 
-# Functions to be used
+def append_county_time_series(**kwargs):
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    # (1) Load time series data from ESRI
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    # ESRI dataframes seem to lose their localization.
+    sdf = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    # Drop some ESRI faf
+    old_ts = sdf.drop(columns=["ObjectId", "SHAPE"])
+
+    # (2) Bring in NYT US county level data and clean
+    NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
+    NYT_COUNTY_URL = (
+        f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
+        "us-counties.csv"
+    )
+    county = pd.read_csv(NYT_COUNTY_URL)
+    county = clean_nyt_county(county)
+    nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
+
+    # (3) Load the most recent data from the JHU feature layer.
+    gis_item = gis.content.get(JHU_FEATURE_ID)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    # Drop some ESRI faf
+    jhu = sdf.drop(columns=["OBJECTID", "SHAPE"])
+
+    # Create localized then normalized date column
+    jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
+    jhu = clean_jhu_county(jhu, nyt_geog)
+
+    # (4) Append NYT and JHU and fill in missing county lat/lon
+    us_county = old_ts.append(jhu, sort=False)
+
+    # Clean up full dataset by filling in missing values and dropping duplicates
+    us_county = fill_missing_stuff(us_county)
+
+    # (5) Calculate US State totals
+    us_county = us_state_totals(us_county)
+
+    # (6) Calculate change in casesload from the prior day
+    us_county = calculate_change(us_county)
+
+    # (7) Fix column types before exporting
+    final = fix_column_dtypes(us_county)
+
+    # (8) Write to CSV and overwrite the old feature layer.
+    time_series_filename = "/tmp/jhu-county-time-series.csv"
+    final.to_csv(time_series_filename)
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(time_series_filename)
+
+    return True
+
+
+# Sub-functions to be used
 def coerce_fips_integer(df):
     def integrify(x):
         return int(float(x)) if not pd.isna(x) else None
 
-    cols = [
-        "fips",
-    ]
+    cols = ["fips"]
 
     new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
 
@@ -31,14 +100,6 @@ def correct_county_fips(row):
 
 
 # (1) Bring in NYT US county level data and clean
-NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
-NYT_COUNTY_URL = (
-    f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
-    "us-counties.csv"
-)
-county = pd.read_csv(NYT_COUNTY_URL)
-
-
 def clean_nyt_county(df):
     keep_cols = ["date", "county", "state", "fips", "cases", "deaths"]
     df = df[keep_cols]
@@ -53,24 +114,8 @@ def clean_nyt_county(df):
     return df
 
 
-county = clean_nyt_county(county)
-
-
 # (2) Add JHU data for 3/30 and clean up geography
-bucket_name = "public-health-dashboard"
-jhu = gpd.read_file(
-    f"s3://{bucket_name}/jhu_covid19/jhu_feature_layer_3_30_2020.geojson"
-)
-jhu["date"] = "3/30/2020"
-jhu["date"] = pd.to_datetime(jhu.date)
-
-
-# Bring in the NYT's way of naming geographies, use FIPS to merge
-nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
-
-
-# Clean JHU data to match NYT schema
-def clean_jhu_county(df):
+def clean_jhu_county(df, nyt_geog):
     # Only keep certain columns and rename them to match NYT schema
     keep_cols = [
         "Province_State",
@@ -120,13 +165,7 @@ def clean_jhu_county(df):
     return df
 
 
-jhu = clean_jhu_county(jhu)
-
-
 # (3) Append NYT and JHU and fill in missing county lat/lon
-us_county = county.append(jhu, sort=False)
-
-
 def fill_missing_stuff(df):
     not_missing_coords = df[df.Lat.notna()][
         ["state", "county", "Lat", "Lon"]
@@ -149,74 +188,24 @@ def fill_missing_stuff(df):
     return df
 
 
-us_county = fill_missing_stuff(us_county)
-
-
-# (4) Import crosswalk from JHU to fix missing state lat/lon
-JHU_COMMIT = "376119aa4b3dbc37b863ac11d4984e480e81227b"
-JHU_LOOKUP_URL = (
-    f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
-    "csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
-)
-
-# Fix values with missing lat/lon (NYT breaks out Kansas City, MO and NYC, NY)
-jhu_lookup = pd.read_csv(JHU_LOOKUP_URL)
-cols_to_keep = ["Province_State", "Lat", "Long_"]
-jhu_lookup = jhu_lookup[jhu_lookup.Country_Region == "US"][cols_to_keep]
-jhu_lookup.rename(columns={"Province_State": "state", "Long_": "Lon"}, inplace=True)
-
-# Fix the different types of missing lat/lon
-cond1 = "us_county.Lat.isna()"
-cond2 = "us_county.county.notna()"
-fix_county = us_county[(cond1) and (cond2) and (us_county.county != "Unknown")]
-fix_state = us_county[(cond1) and (cond2) and (us_county.county == "Unknown")]
-rest_of_df = us_county[us_county.Lat.notna()]
-
-fix_county_lat = {
-    "Kansas City": 39.0997,
-    "New York City": 40.7128,
-}
-fix_county_lon = {
-    "Kansas City": -94.5786,
-    "New York City": -74.0060,
-}
-fix_county["Lat"] = fix_county.county.map(fix_county_lat)
-fix_county["Lon"] = fix_county.county.map(fix_county_lon)
-
-fix_state = pd.merge(
-    fix_state.drop(columns=["Lat", "Lon"]), jhu_lookup, on="state", how="left"
-)
-
-
-# Append the fixes together
-us_county = (
-    rest_of_df.append(fix_county, sort=False).append(fix_state).reset_index(drop=True)
-)
-us_county = us_county.sort_values(
-    ["fips", "state", "county", "date", "cases", "Lat", "Lon"],
-    ascending=[True, True, True, True, True, True, True],
-).drop_duplicates(subset=["fips", "state", "county", "date"], keep="first")
-
-
 # (5) Calculate US State totals
 def us_state_totals(df):
-
     state_grouping_cols = ["state", "date"]
 
     state_totals = df.groupby(state_grouping_cols).agg(
         {"cases": "sum", "deaths": "sum"}
     )
-
-    state_totals.rename(
-        columns={"cases": "state_cases", "deaths": "state_deaths"}, inplace=True
+    state_totals = state_totals.rename(
+        columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
 
-    df = pd.merge(df, state_totals, on=state_grouping_cols)
+    df = pd.merge(
+        df.drop(columns=["state_cases", "state_deaths"]),
+        state_totals,
+        on=state_grouping_cols,
+    )
 
     return df
-
-
-us_county = us_state_totals(us_county)
 
 
 # (6) Calculate change in casesload from the prior day
@@ -247,19 +236,8 @@ def calculate_change(df):
     return df
 
 
-us_county = calculate_change(us_county)
-
-
 # (7) Fix column types before exporting
 def fix_column_dtypes(df):
-    df["date"] = (
-        pd.to_datetime(df.date)
-        .dt.tz_localize("US/Pacific")
-        .dt.normalize()
-        .dt.tz_convert("UTC")
-    )
-
-    # integrify wouldn't work?
     def coerce_integer(df):
         def integrify(x):
             return int(float(x)) if not pd.isna(x) else None
@@ -308,11 +286,24 @@ def fix_column_dtypes(df):
     return df
 
 
-us_county = fix_column_dtypes(us_county)
+default_args = {
+    "owner": "airflow",
+    "depends_on_past": False,
+    "start_date": datetime(2020, 4, 1),
+    "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
+    "email_on_failure": True,
+    "email_on_retry": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=30),
+}
 
-print(us_county.dtypes)
+dag = DAG("jhu-county-to-esri", default_args=default_args, schedule_interval="@hourly")
 
-# Export as csv
-us_county.to_csv(
-    f"s3://{bucket_name}/jhu_covid19/county_time_series_331.csv", index=False
+
+t1 = PythonOperator(
+    task_id="append_county_time_series",
+    provide_context=True,
+    python_callable=append_county_time_series,
+    op_kwargs={},
+    dag=dag,
 )
