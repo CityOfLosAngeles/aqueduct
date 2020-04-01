@@ -72,9 +72,14 @@ def create_append_county_time_series():
     # (6) Fix column types before exporting
     final = fix_column_dtypes(us_county)
 
-    # Export final df and overwrite the csv? or create new one?
-    # Original CSV turned feature layer: http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2
-    return final
+    # Write to CSV and overwrite the old feature layer.
+    time_series_filename = "/tmp/jhu-county-time-series.csv"
+    final.to_csv(time_series_filename)
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(time_series_filename)
+
+    return True
 
 
 # Sub-functions to be used
@@ -189,9 +194,6 @@ def fill_missing_stuff(df):
     return df
 
 
-# (4) Import crosswalk from JHU to fix missing state lat/lon -- Don't need
-
-
 # (5) Calculate US State totals
 def us_state_totals(df):
     state_grouping_cols = ["state", "date"]
@@ -291,5 +293,4 @@ def fix_column_dtypes(df):
 
 
 if __name__ == "__main__":
-    df = create_append_county_time_series()
-    df.to_csv("updated.csv")
+    create_append_county_time_series()
