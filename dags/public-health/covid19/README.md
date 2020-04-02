@@ -8,7 +8,7 @@ Contents
 
 The Johns Hopkins Center for Systems Science and Engineering has open sourced data culled from the US CDC, World Health Organization, DXY (China), China CDC (China), Hong Kong Department of Health, Macau Government, Taiwan CDC, European CDC, Government of Canada, Australia Government Department of Health, and other local, state, and regional health authorities. The team at JHU has [written a blog](https://systems.jhu.edu/research/public-health/ncov/) about their efforts in providing real-time information in the face of a global public health emergency.
 
-JHU initially published US county-level data until 3/10/2020. Since 3/10, JHU started publishing only US state level data ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382)). JHU's county time-series data has a major between 3/10-3/23, until they started publishing county-level data again starting 3/24 ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/1250)). Recently, the New York Times made their [county time-series data available on GitHub](https://github.com/nytimes/covid-19-data), where the geography names are much cleaner than JHU's naming convention, but lacks latitude/longitude information, and is always a day behind. Through all of JHU's schema changes, the US observations were most affected, while the rest of the world had a fairly consistent schema.
+JHU initially published US county-level data until 3/10/2020. On 3/10, JHU started publishing only US state level data ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/382)). As a result, there is a major gap in JHU's county time-series data between 3/10-3/23, until they started publishing county-level data again on 3/24 ([GitHub issue](https://github.com/CSSEGISandData/COVID-19/issues/1250)). Recently, the New York Times made their [county time-series data available on GitHub](https://github.com/nytimes/covid-19-data). The NYT schema used cleaner and simpler geography naming conventions than JHU, but lacked latitude/longitude information. JHU provided hourly updates, while the NYT data was always a day behind. Through all of JHU's schema changes, the US observations were most affected, while the global observations maintained a fairly consistent schema (illustrated below).
 
 ![](./data_availability.JPG)
 
@@ -29,10 +29,12 @@ JHU initially published US county-level data until 3/10/2020. Since 3/10, JHU st
 
 ### City of LA Workflow
 
-**4/1/2020 update:** To reconcile the mutiple schemas from JHU and NYT, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We create one table for the US and one for the rest of the world, or *global*:
+**4/1/2020 update:** To reconcile the mutiple schemas from JHU and NYT, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We create one table for the US and one for the rest of the world, called *global*:
 
 * **Global:** Use JHU province-level time-series data. The US is a singular observation as a country. Smaller countries report only country-level data, while larger countries like China, Australia, and Canada include province-level data.
 * **US:** Use NYT county-level time-series data up through 3/31. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals.
+
+Our ETLs check JHU data ***every hour***.
 
 ### Important City of LA Source Materials
 
@@ -81,7 +83,7 @@ This website and its contents herein, including all data, mapping, and analysis 
 
 ## Shelter Data
 
-The DAG `shelter-to-esri.py` takes the Rec + Parks shelter census (collected at 8 intervals a day) and pushes it into the City of LA geohub by merging it with the the official shelter data from LASAN / RAP GIS staff. We do some timezone data cleaning and publish.
+The DAG `shelter-to-esri.py` takes the Rec & Parks (RAP) shelter census (collected at 8 intervals a day) and pushes it into the City of LA GeoHub by merging it with the the official shelter data from LA Sanitation (LASAN) and RAP GIS staff. The report intervals are: 6:30am, 10:30am, 11:30am, 12:30pm, 1:30pm, 2:30pm, 3:30pm, 4:30pm, and 8:30pm. We do some timezone data cleaning and publish.
 
 `Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for.
 
@@ -93,7 +95,7 @@ There are 3 layers you can use to access shelter data.
 
 * [Shelter Current](http://lahub.maps.arcgis.com/home/item.html?id=dbf7e62b02244e1a855a1f4b2624de76) - is the most recent report for each shelter, along with computed occupancy numbers.
 
-* [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24Hs. Either of these can be used to produce open shelter numbers.
+* [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
 
 ## Contributors
 * [Hunter Owens](https://github.com/hunterowens)
