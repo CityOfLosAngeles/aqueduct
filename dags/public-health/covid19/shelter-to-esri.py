@@ -18,9 +18,9 @@ RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f"
+SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
 
-LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
+LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
 
 STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
