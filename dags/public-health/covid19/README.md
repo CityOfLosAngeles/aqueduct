@@ -48,7 +48,7 @@ Our ETLs check JHU data ***every hour***.
 
 * [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/), specifically the `jhu-to-esri.py` and `jhu-county-to-esri.py` scripts.
 
-* [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=6239644fdec54f70b7fed044916c3d83)
+* [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=999b5d0dbe2742bc92cfb126a33ff057)
 
 Soon-to-be-deprecated (created because of our 3/13 update below) -
 
