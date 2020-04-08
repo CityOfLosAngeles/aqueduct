@@ -2,16 +2,12 @@
 ETL for COVID-19 Data.
 Pulls from Johns-Hopkins CSSE data as well as local government agencies.
 """
-import locale
 import logging
 import os
-import re
 from datetime import datetime, timedelta
 
 import arcgis
-import bs4
 import pandas as pd
-import requests
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -71,15 +67,6 @@ columns = [
     "ca_total",
     "non_scag_total",
 ]
-
-
-def atoi(string):
-    """
-    Sometimes there are asterixes in scraped values.
-    This is a thin wrapper around locale.atoi() which also
-    removes those.
-    """
-    return locale.atoi(string.strip("*"))
 
 
 def parse_columns(df):
@@ -189,231 +176,6 @@ def load_esri_time_series(gis):
     return sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
 
 
-def scrape_la_county_public_health_data():
-    """
-    Scrape data from the Los Angeles County Department of Public Health.
-    """
-    text = requests.get("http://publichealth.lacounty.gov/media/Coronavirus/").text
-    soup = bs4.BeautifulSoup(text, "lxml")
-    counter_data = soup.find_all("div", class_="counter-block counter-text")
-    counts = [atoi(c.contents[0]) for c in counter_data]
-    cases, deaths = counts
-    return {
-        "state": "CA",
-        "county": "Los Angeles",
-        "latitude": 34.05,
-        "longitude": -118.25,
-        "date": date,
-        "cases": cases,
-        "deaths": deaths,
-        "recovered": None,
-        "travel_based": None,
-        "locally_acquired": None,
-    }
-
-
-def scrape_imperial_county_public_health_data():
-    """
-    Scrape data from the Imperial County Department of Public Health.
-    """
-    df = pd.read_html(
-        "http://www.icphd.org/health-information-and-resources/healthy-facts/covid-19/"
-    )[0].dropna()
-    cases = atoi(
-        df[df.iloc[:, 0].str.lower().str.contains("confirmed")].iloc[:, 1].iloc[0]
-    )
-    return {
-        "state": "CA",
-        "county": "Imperial",
-        "latitude": 32.8,
-        "longitude": -115.57,
-        "date": date,
-        "cases": cases,
-        "deaths": None,
-        "recovered": None,
-        "travel_based": None,
-        "locally_acquired": None,
-    }
-
-
-def scrape_orange_county_public_health_data():
-    """
-    Scrape data from the Orange County Department of Public Health.
-    """
-    df = pd.read_html(
-        "https://occovid19.ochealthinfo.com/coronavirus-in-oc",
-        match="COVID-19 Case Counts",
-    )[0].dropna()
-    assert "cases" in df[0][3].lower()
-    cases = atoi(df[1][3])
-    assert "death" in df[0][4].lower()
-    deaths = atoi(df[1][4])
-    assert "travel" in df[0][5].lower()
-    travel_based = atoi(df[1][5])
-    assert "person to person" in df[0][6].lower()
-    assert "community" in df[0][7].lower()
-    locally_acquired = atoi(df[1][6]) + atoi(df[1][7])
-    return {
-        "state": "CA",
-        "county": "Orange",
-        "latitude": 33.74,
-        "longitude": -117.88,
-        "date": date,
-        "cases": cases,
-        "deaths": deaths,
-        "recovered": None,
-        "travel_based": travel_based,
-        "locally_acquired": locally_acquired,
-    }
-
-
-def scrape_san_bernardino_county_public_health_data():
-    """
-    Scrape data from the San Bernardino County Department of Public Health.
-    """
-    text = requests.get("http://wp.sbcounty.gov/dph/coronavirus/").text
-    soup = bs4.BeautifulSoup(text, "lxml")
-
-    strong = soup.find_all("strong")
-    cases_label = next(s for s in strong if s.contents[0].startswith("COVID-19 CASES"))
-    cases = atoi(cases_label.parent.parent.contents[1].contents[0].contents[0])
-    deaths_label = next(
-        s for s in strong if s.contents[0].startswith("COVID-19 ASSOCIATED DEATH")
-    )
-    deaths = atoi(deaths_label.parent.parent.contents[1].contents[0].contents[0])
-
-    return {
-        "state": "CA",
-        "county": "San Bernardino",
-        "latitude": 34.1,
-        "longitude": -117.3,
-        "date": date,
-        "cases": cases,
-        "deaths": deaths,
-        "recovered": None,
-        "travel_based": None,
-        "locally_acquired": None,
-    }
-
-
-def scrape_riverside_county_public_health_data():
-    """
-    Scrape data from the Riverside County Department of Public Health.
-    """
-    text = requests.get("https://www.rivcoph.org/coronavirus").text
-    soup = bs4.BeautifulSoup(text, "lxml")
-    regex = re.compile(r"^:?\s*([0-9,]+)")
-    strong = soup.find_all("strong")
-
-    cases_content = next(
-        s for s in strong if "confirmed cases" in s.contents[0].lower()
-    )
-    match = regex.match(cases_content.next_sibling.replace("\xa0", ""))
-    cases = atoi(match.groups()[0]) if match else None
-
-    travel_based_content = next(
-        s for s in strong if "travel associated" in s.contents[0].lower()
-    )
-    match = regex.match(travel_based_content.next_sibling.replace("\xa0", ""))
-    travel_based = atoi(match.groups()[0]) if match else None
-
-    locally_acquired_content = next(
-        s for s in strong if "locally acquired" in s.contents[0].lower()
-    )
-    match = regex.match(locally_acquired_content.next_sibling.replace("\xa0", ""))
-    locally_acquired = atoi(match.groups()[0]) if match else None
-
-    return {
-        "state": "CA",
-        "county": "Riverside",
-        "latitude": 33.948,
-        "longitude": -117.396,
-        "date": date,
-        "cases": cases,
-        "deaths": None,
-        "recovered": None,
-        "travel_based": travel_based,
-        "locally_acquired": locally_acquired,
-    }
-
-
-def scrape_ventura_county_public_health_data():
-    """
-    Scrape data from the Ventura County Department of Public Health.
-    """
-    text = requests.get("https://www.vcemergency.com/").text
-    soup = bs4.BeautifulSoup(text, "lxml")
-
-    tbl = soup.find_all("table", id="tblStats1")[0]
-    tr = tbl.find_all("tr")
-
-    assert "positive cases" in tr[1].contents[0].contents[0].contents[0].lower()
-    cases = atoi(tr[0].contents[0].contents[0].contents[0])
-
-    assert "death" in tr[3].contents[0].contents[0].contents[0].lower()
-    deaths = atoi(tr[2].contents[0].contents[0].contents[0])
-
-    return {
-        "state": "CA",
-        "county": "Ventura",
-        "latitude": 34.275,
-        "longitude": -119.228,
-        "date": date,
-        "cases": cases,
-        "deaths": deaths,
-        "recovered": None,
-        "travel_based": None,
-        "locally_acquired": None,
-    }
-
-
-def scrape_county_public_health_data():
-    """
-    Scrape data from many public health departments.
-    """
-    df = pd.DataFrame(columns=columns)
-    # make robust
-    county_dfs = []
-    try:
-        logging.info("Loading data from LA County")
-        county_dfs.append(scrape_la_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from LA County")
-
-    try:
-        logging.info("Loading data from Imperial County")
-        county_dfs.append(scrape_imperial_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from LA County")
-
-    try:
-        logging.info("Loading data from Orange County")
-        county_dfs.append(scrape_orange_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from Orange County")
-
-    try:
-        logging.info("Loading data from San Bernardino County")
-        county_dfs.append(scrape_san_bernardino_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from San Bernardino County")
-
-    try:
-        logging.info("Loading data from Riverside County")
-        county_dfs.append(scrape_riverside_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from Riverside County")
-
-    try:
-        logging.info("Loading data from Ventura County")
-        county_dfs.append(scrape_ventura_county_public_health_data())
-    except (Exception, ArithmeticError):
-        logging.warning("Failed to load data from Ventura County")
-
-    df = df.append(county_dfs, ignore_index=True,)
-    return df
-
-
 def load_global_covid_data():
     """
     Load global COVID-19 data from JHU.
@@ -456,61 +218,10 @@ def load_global_covid_data():
     os.remove(most_recent_date_filename)
 
 
-def load_county_covid_data():
-    """
-    Load County level COVID-19 data from JHU/ESRI/Public Health departments.
-    """
-    # Login to ArcGIS
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
-
-    # Loaded JHU once, from then on we append to the ESRI layer.
-    # prev_data = load_jhu_county_time_series()
-    prev_data = load_esri_time_series(gis)
-
-    county_data = scrape_county_public_health_data()
-    df = (
-        prev_data.append(county_data, sort=False)
-        .drop_duplicates(subset=["date", "county"], keep="last")
-        .reset_index(drop=True)
-        .pipe(coerce_integer)
-    )
-
-    # Add placeholder data for California and non-SCAG totals.
-    df = df.assign(ca_total=0, non_scag_total=0)
-
-    # Output to CSV
-    time_series_filename = "/tmp/covid19_time_series.csv"
-    df.to_csv(time_series_filename, index=False)
-
-    # Also output the most current date as a separate CSV for convenience
-    most_recent_date_filename = "/tmp/covid19_current.csv"
-    df[df.date == df.date.max()].to_csv(most_recent_date_filename, index=False)
-
-    # Overwrite the existing layers
-    gis_item = gis.content.get(time_series_featureid)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(time_series_filename)
-
-    gis_item = gis.content.get(current_featureid)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(most_recent_date_filename)
-
-    # Clean up
-    os.remove(time_series_filename)
-    os.remove(most_recent_date_filename)
-
-
 def load_data(**kwargs):
     """
     Entry point for the DAG, loading state and county data to ESRI.
     """
-    try:
-        load_county_covid_data()
-    except Exception as e:
-        logging.warning("Failed to load county-level data with error: " + str(e))
     try:
         load_global_covid_data()
     except Exception as e:
