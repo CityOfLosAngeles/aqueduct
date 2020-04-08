@@ -14,17 +14,13 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
-# Shelter locations from Oscar
-# on LASAN site
-TIER_1_META_URL = "https://services1.arcgis.com/X1hcdGx5Fxqn4d0j/ArcGIS/rest/services/COVID_19_Shelters_Tier1/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
-
-TIER_2_META_URL = "https://services1.arcgis.com/X1hcdGx5Fxqn4d0j/ArcGIS/rest/services/COVID_19_Shelters_Tier2/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
+RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/services/LARAP%20COVID19%20MPOD%20Public/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-SHELTER_ID = "22b5b5f4852041f68796b7967d559e0f"
+SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
 
-LATEST_ID = "dbf7e62b02244e1a855a1f4b2624de76"
+LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
 
 STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
@@ -56,11 +52,11 @@ def load_data(**kwargs):
     """
     Entry point for the DAG, loading shelter to ESRI.
     """
-    tier_1 = gpd.read_file(TIER_1_META_URL, driver="GeoJSON")
-    tier_2 = gpd.read_file(TIER_2_META_URL, driver="GeoJSON")
-    gdf = pd.concat([tier_1, tier_2])
+    gdf = gpd.read_file(RAP_SHELTER_URL, driver="GeoJSON")
+    gdf = gdf.assign(FacilityName=gdf.FacilityName.str.strip())
     df = pd.read_csv(SHELTER_CSV_URL)
-    df = df.rename({"Shelter Site? ": "ParksName"}, axis=1)
+    df = df.rename({"Shelter Site? ": "FacilityName"}, axis=1)
+    df = df.assign(FacilityName=df.FacilityName.str.strip())
 
     # need to string match join here, which is a pain.
     # this is only a tier 1 pass for now.
@@ -68,25 +64,13 @@ def load_data(**kwargs):
         to_replace="109th Recreation Center", value="109th Street Recreation Center"
     )
     df = df.replace(
-        to_replace="Granada Hills Recreation Center",
-        value="Granada Hills Youth Recreation Center",
-    )
-    df = df.replace(
-        to_replace="Central Recreation Center", value="Central Park Recreation Center"
-    )
-    df = df.replace(
-        to_replace="Cheviot Hills Recreation Center",
-        value="Cheviot Hills Park and Recreation Center",
-    )
-    df = df.replace(
-        to_replace="Granada Hills Recreation Center",
-        value="Granada Hills Youth Recreation Center",
-    )
-    df = df.replace(
         to_replace=["Echo Park Community Center", "Echo Park Community Ctr"],
-        value="Echo Park Boys & Girls Club",
+        value="Echo Park Community Center - Gym",
     )
-    gdf = gdf.assign(ParksName=gdf.apply(lambda x: x.ParksName or x.Location, axis=1))
+    df = df.replace(
+        to_replace="Westchester Recreation Center",
+        value="Westchester Recreation Center - Gym",
+    )
 
     # change reported time to pacific time
     df["date"] = (
@@ -117,12 +101,12 @@ def load_data(**kwargs):
 
     # merge on parksname
     # this preserves the number of entries (tested.)
-    gdf = gdf.merge(df, on="ParksName")
+    gdf = gdf.merge(df, on="FacilityName")
 
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/shelter_timeseries_current_v2.csv"
+    time_series_filename = "/tmp/shelter-timeseries-v3.csv"
 
     df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
@@ -130,7 +114,7 @@ def load_data(**kwargs):
 
     # make latest layer
     latest_df = df[
-        df.groupby("ParksName")["Timestamp"].transform(max) == df["Timestamp"]
+        df.groupby("FacilityName")["Timestamp"].transform(max) == df["Timestamp"]
     ]
 
     latest_df["open_beds_computed"] = (
@@ -142,10 +126,7 @@ def load_data(**kwargs):
         + latest_df["Total Men Currently at Site"]
     )
 
-    latest_df["total_capacity"] = (
-        latest_df.open_beds_computed + latest_df.occupied_beds_computed
-    )
-    latest_filename = "/tmp/latest-shelters-v2.csv"
+    latest_filename = "/tmp/latest-shelters-v3.csv"
     latest_df.to_csv(latest_filename, index=False)
 
     # Compute a number of open and reporting shelter beds
@@ -153,10 +134,10 @@ def load_data(**kwargs):
     report_interval = utc_now - pd.Timedelta("24H")
 
     stats = {
-        "Number_of_Reporting_Shelters": df.ParksName.nunique(),
+        "Number_of_Reporting_Shelters": df.FacilityName.nunique(),
         "Number_of_Reporting_Shelters_last_24H": df[
             df.Timestamp >= report_interval
-        ].ParksName.nunique(),
+        ].FacilityName.nunique(),
     }
     stats_df = pd.DataFrame.from_dict(
         stats, orient="index", columns=["Count"]
