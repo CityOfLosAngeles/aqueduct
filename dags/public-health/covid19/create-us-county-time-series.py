@@ -5,22 +5,8 @@ Grab historical time-series data from JHU GitHub
 and append 4/8 JHU feature layer.
 """
 import geopandas as gpd
-import numpy as np
 import pandas as pd
 
-bucket_name = "public-health-dashboard"
-
-JHU_HISTORICAL_COMMIT = "1a68338bddea934490f772051121adad47bf543e"
-
-CASES_URL = (
-    f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_HISTORICAL_COMMIT}/"
-    "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
-)
-
-DEATHS_URL = (
-    f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_HISTORICAL_COMMIT}/"
-    "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
-)
 
 # General functions to be used
 def parse_columns(df):
@@ -64,16 +50,31 @@ def coerce_fips_integer(df):
 
 
 def correct_county_fips(row):
-    if len(row.fips) == 5:
-        return row.fips
-    elif (len(row.fips) == 4) and (row.fips != "None"):
+    if (len(row.fips) == 4) and (row.fips != "None"):
         return "0" + row.fips
     elif row.fips == "None":
         return ""
+    else:
+        return row.fips
 
 
 # (1) Bring in JHU historical county time-series data and clean
-def load_jhu_us_time_series():
+bucket_name = "public-health-dashboard"
+
+JHU_COMMIT = "1a68338bddea934490f772051121adad47bf543e"
+
+CASES_URL = (
+    f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
+    "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
+)
+
+DEATHS_URL = (
+    f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
+    "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"
+)
+
+
+def import_historical():
 
     cases = pd.read_csv(CASES_URL)
     deaths = pd.read_csv(DEATHS_URL)
@@ -153,8 +154,10 @@ def clean_jhu_county(df):
         inplace=True,
     )
 
+    # Fix fips
     df = df.pipe(coerce_fips_integer)
-
+    df["fips"] = df.fips.astype(str)
+    df["fips"] = df.apply(correct_county_fips, axis=1)
     for col in ["state", "county", "fips"]:
         df[col] = df[col].fillna("")
 
@@ -295,7 +298,7 @@ cases = pd.read_csv(CASES_URL)
 deaths = pd.read_csv(DEATHS_URL)
 
 # (1) Bring in JHU historical county time-series data and clean
-df = load_jhu_us_time_series()
+df = import_historical()
 
 # (2) Bring in current JHU feature layer and clean
 jhu = gpd.read_file(
@@ -322,4 +325,6 @@ us_county = calculate_change(us_county)
 final = fix_column_dtypes(us_county)
 
 # Export as csv
-final.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_331.csv", index=False)
+final.to_csv(
+    f"s3://{bucket_name}/jhu_covid19/county_time_series_331_TEST.csv", index=False
+)

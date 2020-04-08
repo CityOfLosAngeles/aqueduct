@@ -4,9 +4,9 @@ and add JHU DAG to this.
 """
 from datetime import datetime, timedelta
 
-import arcgis
-import numpy as np
 import pandas as pd
+
+import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -32,17 +32,7 @@ def append_county_time_series(**kwargs):
     # Drop some ESRI faf
     old_ts = sdf.drop(columns=["ObjectId", "SHAPE"])
 
-    # (2) Bring in NYT US county level data and clean
-    NYT_COMMIT = "baeca648aefa9694a3fc8f2b3bd3f797937aa1c5"
-    NYT_COUNTY_URL = (
-        f"https://raw.githubusercontent.com/nytimes/covid-19-data/{NYT_COMMIT}/"
-        "us-counties.csv"
-    )
-    county = pd.read_csv(NYT_COUNTY_URL)
-    county = clean_nyt_county(county)
-    nyt_geog = county[county.fips != ""][["fips", "county", "state"]].drop_duplicates()
-
-    # (3) Load the most recent data from the JHU feature layer.
+    # (2) Bring in current JHU feature layer and clean
     gis_item = gis.content.get(JHU_FEATURE_ID)
     layer = gis_item.layers[0]
     sdf = arcgis.features.GeoAccessor.from_layer(layer)
@@ -51,24 +41,22 @@ def append_county_time_series(**kwargs):
 
     # Create localized then normalized date column
     jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
-    jhu = clean_jhu_county(jhu, nyt_geog)
+    jhu = clean_jhu_county(jhu)
 
-    # (4) Append NYT and JHU and fill in missing county lat/lon
+    # (3) Fill in missing stuff after appending
     us_county = old_ts.append(jhu, sort=False)
-
-    # Clean up full dataset by filling in missing values and dropping duplicates
     us_county = fill_missing_stuff(us_county)
 
-    # (5) Calculate US State totals
+    # (4) Calculate US state totals
     us_county = us_state_totals(us_county)
 
-    # (6) Calculate change in casesload from the prior day
+    # (5) Calculate change in caseloads from prior day
     us_county = calculate_change(us_county)
 
-    # (7) Fix column types before exporting
+    # (6) Fix column types before exporting
     final = fix_column_dtypes(us_county)
 
-    # (8) Write to CSV and overwrite the old feature layer.
+    # (7) Write to CSV and overwrite the old feature layer.
     time_series_filename = "/tmp/jhu-county-time-series.csv"
     final.to_csv(time_series_filename)
     gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
@@ -91,35 +79,20 @@ def coerce_fips_integer(df):
 
 
 def correct_county_fips(row):
-    if len(row.fips) == 5:
-        return row.fips
-    elif (len(row.fips) == 4) and (row.fips != "None"):
+    if (len(row.fips) == 4) and (row.fips != "None"):
         return "0" + row.fips
     elif row.fips == "None":
         return ""
+    else:
+        return row.fips
 
 
-# (1) Bring in NYT US county level data and clean
-def clean_nyt_county(df):
-    keep_cols = ["date", "county", "state", "fips", "cases", "deaths"]
-    df = df[keep_cols]
-    df["date"] = pd.to_datetime(df.date)
-    # Create new columns to store what JHU reports
-    df["incident_rate"] = np.nan
-    df["people_tested"] = np.nan
-    # Fix column type
-    df = coerce_fips_integer(df)
-    df["fips"] = df.fips.astype(str)
-    df["fips"] = df.apply(correct_county_fips, axis=1)
-    return df
-
-
-# (2) Add JHU data for 3/30 and clean up geography
-def clean_jhu_county(df, nyt_geog):
+# (2) Bring in current JHU feature layer and clean
+def clean_jhu_county(df):
     # Only keep certain columns and rename them to match NYT schema
     keep_cols = [
         "Province_State",
-        "Country_Region",
+        "Admin2",
         "Lat",
         "Long_",
         "Confirmed",
@@ -128,45 +101,42 @@ def clean_jhu_county(df, nyt_geog):
         "Incident_Rate",
         "People_Tested",
         "date",
+        "Combined_Key",
     ]
 
     df = df[keep_cols]
 
     df.rename(
         columns={
-            "Confirmed": "cases",
             "Deaths": "deaths",
             "FIPS": "fips",
             "Long_": "Lon",
+            "Province_State": "state",
+            "Admin2": "county",
             "People_Tested": "people_tested",
             "Incident_Rate": "incident_rate",
         },
         inplace=True,
     )
 
-    # Use FIPS to merge in NYT columns for county and state names
-    # There are some values with no FIPS, NYT calls these county = "Unknown"
-    df = pd.merge(df, nyt_geog, on="fips", how="left", validate="m:1")
+    # Fix fips
+    df = df.pipe(coerce_fips_integer)
+    df["fips"] = df.fips.astype(str)
+    df["fips"] = df.apply(correct_county_fips, axis=1)
 
-    # Fix when FIPS is unknown, which wouldn't have merged in anything from nyt_geog
-    df["county"] = df.apply(
-        lambda row: "Unknown" if row.fips is None else row.county, axis=1
-    )
-    df["state"] = df.apply(
-        lambda row: row.Province_State if row.fips is None else row.state, axis=1
-    )
-    df["fips"] = df.fips.fillna("")
-
-    # Only keep certain columns and rename them to match NYT schema
-    drop_cols = ["Province_State", "Country_Region"]
-
-    df = df.drop(columns=drop_cols)
+    for col in ["state", "county", "fips"]:
+        df[col] = df[col].fillna("")
 
     return df
 
 
-# (3) Append NYT and JHU and fill in missing county lat/lon
+# (3) Fill in missing stuff after appending
 def fill_missing_stuff(df):
+    # Standardize how New York City shows up
+    df["county"] = df.apply(
+        lambda row: "New York City" if row.fips == "36061" else row.county, axis=1
+    )
+
     not_missing_coords = df[df.Lat.notna()][
         ["state", "county", "Lat", "Lon"]
     ].drop_duplicates()
@@ -188,7 +158,7 @@ def fill_missing_stuff(df):
     return df
 
 
-# (5) Calculate US State totals
+# (4) Calculate US state totals
 def us_state_totals(df):
     state_grouping_cols = ["state", "date"]
 
@@ -208,7 +178,7 @@ def us_state_totals(df):
     return df
 
 
-# (6) Calculate change in casesload from the prior day
+# (5) Calculate change in caseloads from prior day
 def calculate_change(df):
     group_cols = ["state", "county", "fips", "date"]
 
@@ -236,7 +206,7 @@ def calculate_change(df):
     return df
 
 
-# (7) Fix column types before exporting
+# (6) Fix column types before exporting
 def fix_column_dtypes(df):
     def coerce_integer(df):
         def integrify(x):
@@ -282,6 +252,8 @@ def fix_column_dtypes(df):
         .reindex(columns=col_order)
         .sort_values(["state", "county", "fips", "date", "cases"])
     )
+
+    print(df.dtypes)
 
     return df
 
