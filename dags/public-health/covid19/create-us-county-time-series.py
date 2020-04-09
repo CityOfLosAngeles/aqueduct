@@ -8,6 +8,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+
 # General functions to be used
 def parse_columns(df):
     """
@@ -56,6 +57,7 @@ def correct_county_fips(row):
         return ""
     else:
         return row.fips
+
 
 sort_cols = ["state", "county", "fips", "date"]
 
@@ -192,10 +194,10 @@ def fill_missing_stuff(df):
 
     df = (
         df.drop_duplicates(subset=sort_cols, keep="last")
-            .sort_values(sort_cols)
-            .reset_index(drop=True)
+        .sort_values(sort_cols)
+        .reset_index(drop=True)
     )
-    
+
     return df
 
 
@@ -209,15 +211,11 @@ def us_state_totals(df):
     state_totals = state_totals.rename(
         columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
-        
-    df = pd.merge(
-        df,
-        state_totals,
-        on=state_grouping_cols,
-    )
+
+    df = pd.merge(df, state_totals, on=state_grouping_cols,)
 
     return df.sort_values(sort_cols).reset_index(drop=True)
-    
+
 
 # (5) Calculate change in caseloads from prior day
 def calculate_change(df):
@@ -241,7 +239,7 @@ def calculate_change(df):
             .apply(lambda row: row - row.shift(1))
         )
         df[new_col] = df[new_col].fillna(df[col])
-   
+
     return df
 
 
@@ -285,15 +283,18 @@ def fix_column_dtypes(df):
         "new_state_cases",
         "new_state_deaths",
     ]
-    
+
     # Counties with zero cases are included in Jan/Feb/Mar.
     # Makes CSV huge. Drop these.
-    df['obs'] = df.groupby(["state", "county", "fips"]).cumcount() + 1
-    df['nonzero_case'] = df.apply(lambda row: row.obs if row.cases > 0 
-                                else np.nan, axis=1)
-    df['first_case'] = df.groupby(["state", "county", "fips"])['nonzero_case'].transform('min')
+    df["obs"] = df.groupby(["state", "county", "fips"]).cumcount() + 1
+    df["nonzero_case"] = df.apply(
+        lambda row: row.obs if row.cases > 0 else np.nan, axis=1
+    )
+    df["first_case"] = df.groupby(["state", "county", "fips"])[
+        "nonzero_case"
+    ].transform("min")
     df = df[df.obs >= df.first_case]
-    df = df.drop(columns = ["obs", "nonzero_case", "first_case"])
+    df = df.drop(columns=["obs", "nonzero_case", "first_case"])
 
     df = (
         df.pipe(coerce_integer)

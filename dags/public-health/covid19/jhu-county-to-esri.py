@@ -4,9 +4,8 @@ and add JHU DAG to this.
 """
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 import arcgis
+import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -86,7 +85,9 @@ def correct_county_fips(row):
     else:
         return row.fips
 
+
 sort_cols = ["state", "county", "fips", "date"]
+
 
 # (2) Bring in current JHU feature layer and clean
 def clean_jhu_county(df):
@@ -158,10 +159,10 @@ def fill_missing_stuff(df):
 
     df = (
         df.drop_duplicates(subset=sort_cols, keep="last")
-            .sort_values(sort_cols)
-            .reset_index(drop=True)
+        .sort_values(sort_cols)
+        .reset_index(drop=True)
     )
-    
+
     return df
 
 
@@ -175,9 +176,9 @@ def us_state_totals(df):
     state_totals = state_totals.rename(
         columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
-        
+
     df = pd.merge(
-        df,
+        df.drop(columns=["state_cases", "state_deaths"]),
         state_totals,
         on=state_grouping_cols,
     )
@@ -207,7 +208,7 @@ def calculate_change(df):
             .apply(lambda row: row - row.shift(1))
         )
         df[new_col] = df[new_col].fillna(df[col])
-   
+
     return df
 
 
