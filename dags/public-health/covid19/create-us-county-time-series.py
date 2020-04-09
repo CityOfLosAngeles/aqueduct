@@ -230,7 +230,7 @@ def calculate_change(df):
 
     for col in ["cases", "deaths"]:
         new_col = f"new_{col}"
-        county_group_cols = ["state", "county"]
+        county_group_cols = ["state", "county", "fips"]
         df[new_col] = (
             df.sort_values(group_cols)
             .groupby(county_group_cols)[col]
