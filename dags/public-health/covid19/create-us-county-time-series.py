@@ -61,7 +61,7 @@ def correct_county_fips(row):
 # (1) Bring in JHU historical county time-series data and clean
 bucket_name = "public-health-dashboard"
 
-JHU_COMMIT = "1a68338bddea934490f772051121adad47bf543e"
+JHU_COMMIT = "5acaa8f852178af7f0c9eebfd0d5db746bbb2305"
 
 CASES_URL = (
     f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
@@ -153,6 +153,10 @@ def clean_jhu_county(df):
         },
         inplace=True,
     )
+
+    # Use floats
+    for col in ["people_tested", "incident_rate"]:
+        df[col] = df[col].astype(float)
 
     # Fix fips
     df = df.pipe(coerce_fips_integer)
@@ -325,6 +329,4 @@ us_county = calculate_change(us_county)
 final = fix_column_dtypes(us_county)
 
 # Export as csv
-final.to_csv(
-    f"s3://{bucket_name}/jhu_covid19/county_time_series_331_TEST.csv", index=False
-)
+final.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_408.csv", index=False)

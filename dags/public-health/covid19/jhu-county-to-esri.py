@@ -119,6 +119,10 @@ def clean_jhu_county(df):
         inplace=True,
     )
 
+    # Use floats
+    for col in ["people_tested", "incident_rate"]:
+        df[col] = df[col].astype(float)
+
     # Fix fips
     df = df.pipe(coerce_fips_integer)
     df["fips"] = df.fips.astype(str)
