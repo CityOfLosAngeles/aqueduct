@@ -100,6 +100,21 @@ def import_historical():
     df["fips"] = df.fips.astype(str)
     df["fips"] = df.apply(correct_county_fips, axis=1)
 
+    for col in ["state", "county", "fips"]:
+        df[col] = df[col].fillna("")
+
+    # Make sure date is UTC
+    df["date"] = pd.to_datetime(df.date)
+    df = df.assign(date=df.date.dt.tz_localize("UTC"))
+
+    # Counties with zero cases are included in Jan/Feb/Mar.
+    # Makes CSV huge. Drop these.
+    df = df[
+        (df.cases != 0)
+        | (df.county == "Unassigned")
+        | (df.county.str.contains("Out of"))
+    ]
+
     drop_col = [
         "UID",
         "iso2",
@@ -111,14 +126,6 @@ def import_historical():
     ]
 
     df = df.drop(columns=drop_col)
-
-    for col in ["state", "county", "fips"]:
-        df[col] = df[col].fillna("")
-
-    # Make sure date is UTC
-    df["date"] = pd.to_datetime(df.date)
-    df = df.assign(date=df.date.dt.tz_localize("UTC"))
-
     return df.sort_values(["state", "county", "date"]).reset_index(drop=True)
 
 
