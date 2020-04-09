@@ -5,8 +5,8 @@ Grab historical time-series data from JHU GitHub
 and append 4/8 JHU feature layer.
 """
 import geopandas as gpd
+import numpy as np
 import pandas as pd
-
 
 # General functions to be used
 def parse_columns(df):
@@ -57,6 +57,7 @@ def correct_county_fips(row):
     else:
         return row.fips
 
+sort_cols = ["state", "county", "fips", "date"]
 
 # (1) Bring in JHU historical county time-series data and clean
 bucket_name = "public-health-dashboard"
@@ -107,14 +108,6 @@ def import_historical():
     df["date"] = pd.to_datetime(df.date)
     df = df.assign(date=df.date.dt.tz_localize("UTC"))
 
-    # Counties with zero cases are included in Jan/Feb/Mar.
-    # Makes CSV huge. Drop these.
-    df = df[
-        (df.cases != 0)
-        | (df.county == "Unassigned")
-        | (df.county.str.contains("Out of"))
-    ]
-
     drop_col = [
         "UID",
         "iso2",
@@ -126,7 +119,7 @@ def import_historical():
     ]
 
     df = df.drop(columns=drop_col)
-    return df.sort_values(["state", "county", "date"]).reset_index(drop=True)
+    return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 # (2) Bring in current JHU feature layer and clean
@@ -194,12 +187,15 @@ def fill_missing_stuff(df):
     )
 
     # Drop duplicates and keep last observation
-    group_cols = ["state", "county", "fips", "date"]
     for col in ["cases", "deaths"]:
-        df[col] = df.groupby(group_cols)[col].transform("max")
+        df[col] = df.groupby(sort_cols)[col].transform("max")
 
-    df = df.drop_duplicates(subset=group_cols, keep="last")
-
+    df = (
+        df.drop_duplicates(subset=sort_cols, keep="last")
+            .sort_values(sort_cols)
+            .reset_index(drop=True)
+    )
+    
     return df
 
 
@@ -213,26 +209,23 @@ def us_state_totals(df):
     state_totals = state_totals.rename(
         columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
-
+        
     df = pd.merge(
-        # df.drop(columns=["state_cases", "state_deaths"]),
         df,
         state_totals,
         on=state_grouping_cols,
     )
 
-    return df
-
+    return df.sort_values(sort_cols).reset_index(drop=True)
+    
 
 # (5) Calculate change in caseloads from prior day
 def calculate_change(df):
-    group_cols = ["state", "county", "fips", "date"]
-
     for col in ["cases", "deaths"]:
         new_col = f"new_{col}"
         county_group_cols = ["state", "county", "fips"]
         df[new_col] = (
-            df.sort_values(group_cols)
+            df.sort_values(sort_cols)
             .groupby(county_group_cols)[col]
             .apply(lambda row: row - row.shift(1))
         )
@@ -243,12 +236,12 @@ def calculate_change(df):
         new_col = f"new_{col}"
         state_group_cols = ["state"]
         df[new_col] = (
-            df.sort_values(group_cols)
+            df.sort_values(sort_cols)
             .groupby(state_group_cols)[col]
             .apply(lambda row: row - row.shift(1))
         )
         df[new_col] = df[new_col].fillna(df[col])
-
+   
     return df
 
 
@@ -292,6 +285,15 @@ def fix_column_dtypes(df):
         "new_state_cases",
         "new_state_deaths",
     ]
+    
+    # Counties with zero cases are included in Jan/Feb/Mar.
+    # Makes CSV huge. Drop these.
+    df['obs'] = df.groupby(["state", "county", "fips"]).cumcount() + 1
+    df['nonzero_case'] = df.apply(lambda row: row.obs if row.cases > 0 
+                                else np.nan, axis=1)
+    df['first_case'] = df.groupby(["state", "county", "fips"])['nonzero_case'].transform('min')
+    df = df[df.obs >= df.first_case]
+    df = df.drop(columns = ["obs", "nonzero_case", "first_case"])
 
     df = (
         df.pipe(coerce_integer)
@@ -300,8 +302,7 @@ def fix_column_dtypes(df):
     )
 
     print(df.dtypes)
-
-    return df
+    return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 # Create our time-series file

@@ -86,6 +86,7 @@ def correct_county_fips(row):
     else:
         return row.fips
 
+sort_cols = ["state", "county", "fips", "date"]
 
 # (2) Bring in current JHU feature layer and clean
 def clean_jhu_county(df):
@@ -127,7 +128,6 @@ def clean_jhu_county(df):
     df = df.pipe(coerce_fips_integer)
     df["fips"] = df.fips.astype(str)
     df["fips"] = df.apply(correct_county_fips, axis=1)
-
     for col in ["state", "county", "fips"]:
         df[col] = df[col].fillna("")
 
@@ -153,12 +153,15 @@ def fill_missing_stuff(df):
     )
 
     # Drop duplicates and keep last observation
-    group_cols = ["state", "county", "fips", "date"]
     for col in ["cases", "deaths"]:
-        df[col] = df.groupby(group_cols)[col].transform("max")
+        df[col] = df.groupby(sort_cols)[col].transform("max")
 
-    df = df.drop_duplicates(subset=group_cols, keep="last")
-
+    df = (
+        df.drop_duplicates(subset=sort_cols, keep="last")
+            .sort_values(sort_cols)
+            .reset_index(drop=True)
+    )
+    
     return df
 
 
@@ -172,25 +175,23 @@ def us_state_totals(df):
     state_totals = state_totals.rename(
         columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
-
+        
     df = pd.merge(
-        df.drop(columns=["state_cases", "state_deaths"]),
+        df,
         state_totals,
         on=state_grouping_cols,
     )
 
-    return df
+    return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 # (5) Calculate change in caseloads from prior day
 def calculate_change(df):
-    group_cols = ["state", "county", "fips", "date"]
-
     for col in ["cases", "deaths"]:
         new_col = f"new_{col}"
         county_group_cols = ["state", "county", "fips"]
         df[new_col] = (
-            df.sort_values(group_cols)
+            df.sort_values(sort_cols)
             .groupby(county_group_cols)[col]
             .apply(lambda row: row - row.shift(1))
         )
@@ -201,12 +202,12 @@ def calculate_change(df):
         new_col = f"new_{col}"
         state_group_cols = ["state"]
         df[new_col] = (
-            df.sort_values(group_cols)
+            df.sort_values(sort_cols)
             .groupby(state_group_cols)[col]
             .apply(lambda row: row - row.shift(1))
         )
         df[new_col] = df[new_col].fillna(df[col])
-
+   
     return df
 
 
