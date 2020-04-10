@@ -200,7 +200,9 @@ default_args = {
     "retries": 0,
 }
 
-dag = DAG("get-help-to-esri", default_args=default_args, schedule_interval="@hourly")
+dag = DAG(
+    "get-help-to-esri", default_args=default_args, schedule_interval="*/15 * * * *"
+)
 
 
 t1 = PythonOperator(
