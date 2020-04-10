@@ -4,16 +4,18 @@ and add JHU DAG to this.
 """
 from datetime import datetime, timedelta
 
-import arcgis
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
+
+import arcgis
 from arcgis.gis import GIS
 
 # General function
 TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
 JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
+MSA_FEATURE_ID = "b37e229b71dc4c65a479e4b5912ded66"
 
 
 def append_county_time_series(**kwargs):
@@ -264,6 +266,100 @@ def fix_column_dtypes(df):
     return df
 
 
+########### T2 and Helper Functions ###################################
+def subset_msa(df):
+    # 5 MSAs to plot: NYC, SF_SJ, SEA, DET, LA
+    df = df[
+        df.cbsatitle.str.contains("Los Angeles")
+        | df.cbsatitle.str.contains("New York")
+        | df.cbsatitle.str.contains("San Francisco")
+        | df.cbsatitle.str.contains("San Jose")
+        | df.cbsatitle.str.contains("Seattle")
+        | df.cbsatitle.str.contains("Detroit")
+    ]
+
+    def new_categories(row):
+        if ("San Francisco" in row.cbsatitle) or ("San Jose" in row.cbsatitle):
+            return "SF/SJ"
+        elif "Los Angeles" in row.cbsatitle:
+            return "LA/OC"
+        elif "New York City" in row.cbsatitle:
+            return "NYC"
+        elif "Seattle" in row.cbsatitle:
+            return "SEA"
+        elif "Detroit" in row.cbsatitle:
+            return "DET"
+
+    df = df.assign(msa=df.apply(new_categories, axis=1))
+
+    return df
+
+
+def update_msa_dataset(**kwargs):
+    """
+    Update MSA dataset
+    ref gh/aqueduct#199
+    takes the previous step data, aggegrates by MSA
+    replaces featurelayer.
+    """
+    # arcconnection = BaseHook.get_connection("arcgis")
+    # arcuser = arcconnection.login
+    # arcpassword = arcconnection.password
+    arcuser = "hunterowens"
+    arcpassword = "EDBQuESzo9j9"
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    # (1) Load time series data from ESRI
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+
+    county_df = sdf.drop("SHAPE", axis=1)
+
+    # Switch pop crosswalk with GitHub URL, once we upload it there
+    pop = pd.read_csv(
+        "./msa_county_pop_crosswalk.csv",
+        dtype={"county_fips": "str", "cbsacode": "str"},
+    )
+
+    pop = pop[["cbsacode", "cbsatitle", "population", "county_fips"]]
+    pop = subset_msa(pop)
+
+    # merge
+    final_df = pd.merge(
+        county_df,
+        pop,
+        left_on="fips",
+        right_on="county_fips",
+        how="inner",
+        validate="m:1",
+    )
+
+    # Aggregate by MSA
+    group_cols = ["cbsacode", "msa", "population", "date"]
+    msa = (
+        final_df.groupby(group_cols)
+        .agg({"cases": "sum", "deaths": "sum"})
+        .reset_index()
+    )
+
+    # Calculate rate per 1M
+    rate = 1_000_000
+    msa = msa.assign(
+        cases_per_1M=msa.cases / msa.population * rate,
+        deaths_per_1M=msa.deaths / msa.population * rate,
+    )
+
+    MSA_FILENAME = "/tmp/msa_v1.csv"
+    msa.to_csv(MSA_FILENAME, index=False)
+    gis_item = gis.content.get(MSA_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(MSA_FILENAME)
+
+    os.remove(MSA_FILENAME)
+    return
+
+
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -285,3 +381,13 @@ t1 = PythonOperator(
     op_kwargs={},
     dag=dag,
 )
+
+t2 = PythonOperator(
+    task_id="update-msa-data",
+    provide_context=True,
+    python_callable=update_msa_dataset,
+    op_kwargs={},
+    dag=dag,
+)
+
+t1 > t2
