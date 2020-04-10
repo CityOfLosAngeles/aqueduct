@@ -6,12 +6,11 @@ import logging
 import os
 from datetime import datetime, timedelta
 
+import arcgis
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
-
-import arcgis
 from arcgis.gis import GIS
 
 # This ref is to the last commit that JHU had before they
