@@ -99,6 +99,22 @@ There are 3 layers you can use to access shelter data.
 
 * [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
 
+## Get Help shelter data
+
+The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com).
+This includes bed counts, shelter service information, and historical data.
+The DAG `get_help_to_esri.py` loads shelter data from the GetHelp shelter management platform
+and uploads it to Esri for GIS analysis and dashboarding.
+API documentation for the GetHelp system can be found in
+[this](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0)
+Google Spreadsheet.
+
+This DAG deliberately outputs similar Esri feature layers to the above approach using the Google Form.
+Specifically, it produces:
+* [Shelter timeseries](http://lahub.maps.arcgis.com/home/item.html?id=0235713060e74aca95f34ae2b861285f) - A timeseries of historical bed count data for all of the active shelters.
+* [Current shelters](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - A snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
+* [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - Some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
+
 ## Contributors
 * [Hunter Owens](https://github.com/hunterowens)
 * [Ian Rose](https://github.com/ian-r-rose)
