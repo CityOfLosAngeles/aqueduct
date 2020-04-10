@@ -33,6 +33,8 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 
 * **Global:** Use JHU province-level time-series data. The US is a singular observation as a country. Smaller countries report only country-level data, while larger countries like China, Australia, and Canada include province-level data.
 * **US:** Use JHU's historical county-level time-series data up through 4/8. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals and change in cases from prior day.
+* **MSA Comparison:** An automatic comparison of number of cases per million for key metropolitan statistical areas (MSAs) to power our chart in the dashboard. These key MSAs (and CBSA FIPS codes) are: Los Angeles/Orange County (31080), San Francisco/San Jose (41860, 41940), New York City (35620), Seattle (42660), and Detroit (19820).
+
 
 Our ETLs check JHU data ***every hour***.
 
@@ -46,19 +48,17 @@ Our ETLs check JHU data ***every hour***.
 
 * [US county-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2)
 
+* [Comparison of metropolitan infection rates table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66)
+
 * [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/), specifically the `jhu-to-esri.py` and `jhu-county-to-esri.py` scripts.
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=999b5d0dbe2742bc92cfb126a33ff057)
-
-* [Comparision of County MSA infection rates](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66)
 
 
 We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel"; we welcome collaboration and pull requests on our work!
 
 
 ### Prior Updates to Workflow
-**4/7/2020**: Added an automatic comparision of number of covid cases per million for key MSAs to power chart in the dashboard
-
 **4/1/2020 update:** To reconcile the mutiple schemas from JHU and NYT for our US table, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs.
 
 * **US:** Use NYT county-level time-series data up through 3/31. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals.
