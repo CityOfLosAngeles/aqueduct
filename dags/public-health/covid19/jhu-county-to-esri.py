@@ -2,6 +2,7 @@
 Grab the 'static' portion of time-series from NYT
 and add JHU DAG to this.
 """
+import os
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -266,7 +267,6 @@ def fix_column_dtypes(df):
     return df
 
 
-########### T2 and Helper Functions ###################################
 def subset_msa(df):
     # 5 MSAs to plot: NYC, SF_SJ, SEA, DET, LA
     df = df[
@@ -302,11 +302,9 @@ def update_msa_dataset(**kwargs):
     takes the previous step data, aggegrates by MSA
     replaces featurelayer.
     """
-    # arcconnection = BaseHook.get_connection("arcgis")
-    # arcuser = arcconnection.login
-    # arcpassword = arcconnection.password
-    arcuser = "hunterowens"
-    arcpassword = "EDBQuESzo9j9"
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
     # (1) Load time series data from ESRI

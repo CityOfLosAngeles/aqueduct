@@ -6,14 +6,12 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import numpy as np
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 
 import arcgis
-import geopandas as gpd
 from arcgis.gis import GIS
 
 # This ref is to the last commit that JHU had before they
@@ -231,72 +229,6 @@ def load_data(**kwargs):
         logging.warning("Failed to load global data with error: " + str(e))
 
 
-########### T2 and Helper Functions ###################################
-def subset_msa(df):
-    # 5 MSAs to plot: NYC, SF_SJ, SEA, DET, LA
-    df = df[
-        df.cbsatitle.str.contains("Los Angeles")
-        | df.cbsatitle.str.contains("New York")
-        | df.cbsatitle.str.contains("San Francisco")
-        | df.cbsatitle.str.contains("San Jose")
-        | df.cbsatitle.str.contains("Seattle")
-        | df.cbsatitle.str.contains("Detroit")
-    ]
-
-    def new_categories(row):
-        if ("San Francisco" in row.cbsatitle) or ("San Jose" in row.cbsatitle):
-            return "SF/SJ"
-        elif "Los Angeles" in row.cbsatitle:
-            return "LA/OC"
-        elif "New York City" in row.cbsatitle:
-            return "NYC"
-        elif "Seattle" in row.cbsatitle:
-            return "SEA"
-        elif "Detroit" in row.cbsatitle:
-            return "DET"
-
-    df = df.assign(msa=df.apply(new_categories, axis=1))
-
-    return df
-
-
-def update_msa_dataset(**kwargs):
-    """
-    Update MSA dataset
-    ref gh/aqueduct#199
-    takes the previous step data, aggegrates by MSA
-    replaces featurelayer.
-    """
-    # load and subset data
-    url = "https://services5.arcgis.com/7nsPwEMP38bSkCjy/arcgis/rest/services/county_time_series_331/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=county%2C+state%2C+fips%2C+date%2C+Lat%2C+Lon%2C+cases%2C+deaths%2C+incident_rate%2C+people_tested%2C+state_cases%2C+state_deaths%2C+new_cases%2C+new_deaths%2C+new_state_cases%2C+new_state_deaths&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
-    gdf = gpd.read_file(url)
-    # Switch pop crosswalk with GitHub URL, once we upload it there
-    pop = pd.read_csv(
-        "./msa_county_pop_crosswalk.csv",
-        dtype={"county_fips": "str", "cbsacode": "str"},
-    )
-
-    pop = pop[["cbsacode", "cbsatitle", "population", "county_fips"]]
-    pop = subset_msa(pop)
-
-    # merge
-    gdf = pd.merge(
-        gdf, pop, left_on="fips", right_on="county_fips", how="inner", validate="m:1"
-    )
-
-    # Aggregate by MSA
-    group_cols = ["cbsacode", "msa", "population", "date"]
-    msa = gdf.groupby(group_cols).agg({"cases": "sum", "deaths": "sum"}).reset_index()
-
-    # Calculate rate per 1M
-    rate = 1_000_000
-    msa = msa.assign(
-        cases_per_1M=msa.cases / msa.population * rate,
-        deaths_per_1M=msa.deaths / msa.population * rate,
-    )
-    msa = merge_jhu_with_msa_crosswalk(gdf, pop)
-
-
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -318,13 +250,3 @@ t1 = PythonOperator(
     op_kwargs={},
     dag=dag,
 )
-
-t2 = PythonOperator(
-    task_id="update-msa-data",
-    provide_context=True,
-    python_callable=update_msa_dataset,
-    op_kwargs={},
-    dag=dag,
-)
-
-t1 > t2
