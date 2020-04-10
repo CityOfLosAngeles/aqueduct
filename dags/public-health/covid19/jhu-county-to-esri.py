@@ -6,11 +6,11 @@ import os
 from datetime import datetime, timedelta
 
 import pandas as pd
+
+import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
-
-import arcgis
 from arcgis.gis import GIS
 
 # General function
@@ -267,6 +267,7 @@ def fix_column_dtypes(df):
     return df
 
 
+# T2 Sub-functions
 def subset_msa(df):
     # 5 MSAs to plot: NYC, SF_SJ, SEA, DET, LA
     df = df[
@@ -283,7 +284,7 @@ def subset_msa(df):
             return "SF/SJ"
         elif "Los Angeles" in row.cbsatitle:
             return "LA/OC"
-        elif "New York City" in row.cbsatitle:
+        elif "New York" in row.cbsatitle:
             return "NYC"
         elif "Seattle" in row.cbsatitle:
             return "SEA"
@@ -300,7 +301,7 @@ def update_msa_dataset(**kwargs):
     Update MSA dataset
     ref gh/aqueduct#199
     takes the previous step data, aggegrates by MSA
-    replaces featurelayer.
+    replaces feature layer.
     """
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
@@ -314,11 +315,13 @@ def update_msa_dataset(**kwargs):
 
     county_df = sdf.drop("SHAPE", axis=1)
 
-    # Switch pop crosswalk with GitHub URL, once we upload it there
-    pop = pd.read_csv(
-        "./msa_county_pop_crosswalk.csv",
-        dtype={"county_fips": "str", "cbsacode": "str"},
+    # MSA county - CBSA crosswalk with population crosswalk
+    CROSSWALK_URL = (
+        f"https://raw.githubusercontent.com/CityOfLosAngeles/aqueduct/master/dags/"
+        "public-health/covid19/msa_county_pop_crosswalk.csv"
     )
+
+    pop = pd.read_csv(CROSSWALK_URL, dtype={"county_fips": "str", "cbsacode": "str"},)
 
     pop = pop[["cbsacode", "cbsatitle", "population", "county_fips"]]
     pop = subset_msa(pop)
