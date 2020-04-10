@@ -50,11 +50,15 @@ Our ETLs check JHU data ***every hour***.
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=999b5d0dbe2742bc92cfb126a33ff057)
 
+* [Comparision of County MSA infection rates](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66)
+
 
 We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel"; we welcome collaboration and pull requests on our work!
 
 
 ### Prior Updates to Workflow
+**4/7/2020**: Added an automatic comparision of number of covid cases per million for key MSAs to power chart in the dashboard
+
 **4/1/2020 update:** To reconcile the mutiple schemas from JHU and NYT for our US table, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs.
 
 * **US:** Use NYT county-level time-series data up through 3/31. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals.
