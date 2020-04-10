@@ -15,6 +15,8 @@ API_BASE_URL = "https://api2.gethelp.com/v1/"
 
 FACILITIES_ID = "51a351e257374ed3a7776612c7eb0c6a"
 
+STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
+
 TIMESERIES_ID = "0235713060e74aca95f34ae2b861285f"
 
 
@@ -191,11 +193,29 @@ def load_get_help_data(**kwargs):
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/timeseries.csv")
 
+    # Compute a number of open and reporting shelter beds
+    active_facilities = facilities[facilities.status != 0]
+    stats = {
+        "n_shelters": len(facilities),
+        "n_shelters_status_known": len(active_facilities),
+        "n_shelters_with_available_beds": len(
+            active_facilities[active_facilities.status == 1]
+        ),
+        "n_available_beds": active_facilities.availableBeds.sum(),
+        "n_occupied_beds": active_facilities.totalBeds.sum()
+        - active_facilities.availableBeds.sum(),
+    }
+    stats_df = pandas.DataFrame.from_dict(
+        stats, orient="index", columns=["Count"]
+    ).transpose()
+    # TODO: Write an assert to make sure all rows are in resultant GDF
+    upload_to_esri(stats_df, STATS_ID, "/tmp/stats.csv")
+
 
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 10),
+    "start_date": datetime.datetime(2020, 4, 11),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
