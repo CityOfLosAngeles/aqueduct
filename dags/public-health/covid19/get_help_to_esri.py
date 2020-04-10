@@ -1,6 +1,8 @@
 import datetime
+import os
 from urllib.parse import urljoin
 
+import arcgis
 import pandas
 import requests
 from airflow import DAG
@@ -11,9 +13,9 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "abc123"
+FACILITIES_ID = "51a351e257374ed3a7776612c7eb0c6a"
 
-TIMESERIES_ID = "abc123"
+TIMESERIES_ID = "0235713060e74aca95f34ae2b861285f"
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -31,11 +33,11 @@ def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
     arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
-    # gis_item = gis.content.get(layer_id)
-    # gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    # gis_layer_collection.manager.overwrite(filename)
+    gis_item = gis.content.get(layer_id)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(filename)
 
-    # os.remove(filename)
+    os.remove(filename)
     return True
 
 
