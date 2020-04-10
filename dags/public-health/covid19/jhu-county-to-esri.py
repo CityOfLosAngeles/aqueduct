@@ -337,7 +337,7 @@ def update_msa_dataset(**kwargs):
     )
 
     # Aggregate by MSA
-    group_cols = ["cbsacode", "msa", "population", "date"]
+    group_cols = ["msa", "population", "date"]
     msa = (
         final_df.groupby(group_cols)
         .agg({"cases": "sum", "deaths": "sum"})
@@ -349,6 +349,9 @@ def update_msa_dataset(**kwargs):
     msa = msa.assign(
         cases_per_1M=msa.cases / msa.population * rate,
         deaths_per_1M=msa.deaths / msa.population * rate,
+        # Can't keep CBSA code, since SF/SJ are technically 2 CBSAs.
+        # Keep column because feature layer already has it, set it to ""
+        cbsacode="",
     )
 
     MSA_FILENAME = "/tmp/msa_v1.csv"
