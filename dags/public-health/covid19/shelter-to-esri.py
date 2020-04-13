@@ -5,6 +5,7 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
+import numpy as np
 import pandas as pd
 import pytz
 from airflow import DAG
@@ -169,8 +170,7 @@ def format_table(row):
     male_tot = row["Total Men Currently at Site"]
     female_total = row["Total Women Currently at Site"]
     pets = row["Number of Pets Currently at Site"]
-    shelter = f"""
-    <b>{shelter_name}</b><br>
+    shelter = f"""<b>{shelter_name}</b><br>
     <i>Report Time: {last_report}</i><br>
     <p>Capacity: {capacity}</p><br>
     <p>Occupied Beds: {occupied_beds}</p><br>
@@ -179,7 +179,7 @@ def format_table(row):
     <p>Female: {female_total}</p><br>
     <p>Pets: {pets}</p><br>
     """
-    return shelter
+    return shelter.strip()
 
 
 def email_function(**kwargs):
@@ -190,18 +190,27 @@ def email_function(**kwargs):
     latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
 
+    tbl = np.array2string(
+        latest_df.apply(format_table, axis=1).str.replace("\n", "").values
+    )
+    tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_template = f"""
-    Shelter Report for {kwargs['execution_date']}.
+    Shelter Report for {kwargs['execution_date'].strftime("%d-%m-%Y %I:%M%p")}.
 
     The Current Number of Reporting Shelters is
     {stats_df['Number_of_Reporting_Shelters'][0]}.
 
-    {str(latest_df.apply(format_table, axis=1).values)}
+    <br>
+
+    {tbl}
+
+    For issue with this report, please contact itadata@lacity.org
     """
 
     send_email(
         to=["hunter.owens@lacity.org", "itadata@lacity.org"],
-        subject=f"Shelter Stats for {kwargs['execution_date']}",
+        subject=f"""Shelter Stats for
+                {kwargs['execution_date'].strftime("%d-%m-%Y %I:%M%p")}""",
         html_content=email_template,
     )
     return True
