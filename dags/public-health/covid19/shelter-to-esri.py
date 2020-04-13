@@ -169,7 +169,7 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["FacilityName"]
-    last_report = row["Timestamp"]
+    last_report = row["Timestamp"].dt.tz_convert(local_tz)
     capacity = integrify(row["ShelterCapacity"])
     occupied_beds = integrify(row["occupied_beds_computed"])
     aval_beds = integrify(row["open_beds_computed"])
@@ -178,12 +178,12 @@ def format_table(row):
     pets = integrify(row["Number of Pets Currently at Site"])
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Report Time: {last_report}</i><br>
-    <p>Capacity: {capacity}</p>
-    <p>Occupied Beds: {occupied_beds}</p>
-    <p>Avaliable Beds: {aval_beds}</p>
-    <p>Male: {male_tot}</p>
-    <p>Female: {female_total}</p>
-    <p>Pets: {pets}</p><br>
+    <p style="margin-top:2px; margin-bottom: 2px">Capacity: {capacity}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Avaliable Beds: {aval_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Male: {male_tot}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Female: {female_total}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
     """
     return shelter.strip()
 
