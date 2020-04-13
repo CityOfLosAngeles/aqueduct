@@ -27,6 +27,8 @@ LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
 
 STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
+local_tz = "America/Los_Angeles"
+
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
     """
@@ -189,13 +191,17 @@ def email_function(**kwargs):
     """
     latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
-
+    exec_time = (
+        kwargs["execution_date"]
+        .astimezone(pytz.timezone(local_tz))
+        .strftime("%m-%d-%Y %I:%M%p")
+    )
     tbl = np.array2string(
         latest_df.apply(format_table, axis=1).str.replace("\n", "").values
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_template = f"""
-    Shelter Report for {kwargs['execution_date'].strftime("%m-%d-%Y %I:%M%p")}.
+    Shelter Report for {exec_time}.
 
     The Current Number of Reporting Shelters is
     {stats_df['Number_of_Reporting_Shelters'][0]}.
@@ -209,8 +215,7 @@ def email_function(**kwargs):
 
     send_email(
         to=["hunter.owens@lacity.org", "itadata@lacity.org"],
-        subject=f"""Shelter Stats for
-                {kwargs['execution_date'].strftime("%m-%d-%Y %I:%M%p")}""",
+        subject=f"""Shelter Stats for {exec_time}""",
         html_content=email_template,
     )
     return True
