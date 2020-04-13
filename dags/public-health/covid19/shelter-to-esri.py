@@ -195,7 +195,7 @@ def email_function(**kwargs):
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_template = f"""
-    Shelter Report for {kwargs['execution_date'].strftime("%d-%m-%Y %I:%M%p")}.
+    Shelter Report for {kwargs['execution_date'].strftime("%m-%d-%Y %I:%M%p")}.
 
     The Current Number of Reporting Shelters is
     {stats_df['Number_of_Reporting_Shelters'][0]}.
@@ -210,7 +210,7 @@ def email_function(**kwargs):
     send_email(
         to=["hunter.owens@lacity.org", "itadata@lacity.org"],
         subject=f"""Shelter Stats for
-                {kwargs['execution_date'].strftime("%d-%m-%Y %I:%M%p")}""",
+                {kwargs['execution_date'].strftime("%m-%d-%Y %I:%M%p")}""",
         html_content=email_template,
     )
     return True
