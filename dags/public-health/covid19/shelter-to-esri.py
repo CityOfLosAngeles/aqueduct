@@ -5,13 +5,15 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
-import arcgis
-import geopandas as gpd
 import pandas as pd
 import pytz
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils.email import send_email
+
+import arcgis
+import geopandas as gpd
 from arcgis.gis import GIS
 
 RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/services/LARAP%20COVID19%20MPOD%20Public/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
@@ -144,9 +146,64 @@ def load_data(**kwargs):
     ).transpose()
     # TODO: Write an assert to make sure all rows are in resultant GDF
 
+    # push the tables into kwargs for email
+    kwargs["ti"].xcom_push(key="latest_df", value=latest_df)
+    kwargs["ti"].xcom_push(key="stats_df", value=stats_df)
+    # upload to ESRI
     upload_to_esri(latest_df, LATEST_ID, filename=latest_filename)
     upload_to_esri(df, SHELTER_ID, filename=time_series_filename)
     upload_to_esri(stats_df, STATS_ID, filename="/tmp/stats.csv")
+    return True
+
+
+def format_table(row):
+    """
+    returns a nicely formatted HTML
+    for each Shelter row
+    """
+    shelter_name = row["FacilityName"]
+    last_report = row["Timestamp"]
+    capacity = row["ShelterCapacity"]
+    occupied_beds = row["occupied_beds_computed"]
+    aval_beds = row["open_beds_computed"]
+    male_tot = row["Total Men Currently at Site"]
+    female_total = row["Total Women Currently at Site"]
+    pets = row["Number of Pets Currently at Site"]
+    shelter = f"""
+    <b>{shelter_name}</b><br>
+    <i>Report Time: {last_report}</i><br>
+    <p>Capacity: {capacity}</p><br>
+    <p>Occupied Beds: {occupied_beds}</p><br>
+    <p>Avaliable Beds: {aval_beds}</p><br>
+    <p>Male: {male_tot}</p><br>
+    <p>Female: {female_total}</p><br>
+    <p>Pets: {pets}</p><br>
+    """
+    return shelter
+
+
+def email_function(**kwargs):
+    """
+    Sends a hourly email with the latest updates from each shelter
+    Formatted for use
+    """
+    latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
+    stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
+
+    email_template = f"""
+    Shelter Report for {kwargs['execution_date']}.
+
+    The Current Number of Reporting Shelters is
+    {stats_df['Number_of_Reporting_Shelters'][0]}.
+
+    {str(latest_df.apply(format_table, axis=1).values)}
+    """
+
+    send_email(
+        to=["hunter.owens@lacity.org", "itadata@lacity.org"],
+        subject=f"Shelter Stats for {kwargs['execution_date']}",
+        html_content=email_template,
+    )
     return True
 
 
@@ -171,3 +228,12 @@ t1 = PythonOperator(
     op_kwargs={},
     dag=dag,
 )
+
+t2 = PythonOperator(
+    task_id="send_shelter_email",
+    provide_context=True,
+    python_callable=email_function,
+    dag=dag,
+)
+
+t1 >> t2
