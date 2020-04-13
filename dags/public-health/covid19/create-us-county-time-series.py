@@ -2,7 +2,7 @@
 Set the schema for US county-level data
 using only JHU data.
 Grab historical time-series data from JHU GitHub
-and append 4/8 JHU feature layer.
+and append JHU feature layer.
 """
 import geopandas as gpd
 import numpy as np
@@ -64,7 +64,7 @@ sort_cols = ["state", "county", "fips", "date"]
 # (1) Bring in JHU historical county time-series data and clean
 bucket_name = "public-health-dashboard"
 
-JHU_COMMIT = "5acaa8f852178af7f0c9eebfd0d5db746bbb2305"
+JHU_COMMIT = "b8eb4f7f54cfa29f0ab10843deab5f39d7c5db17"
 
 CASES_URL = (
     f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/{JHU_COMMIT}/"
@@ -145,6 +145,7 @@ def clean_jhu_county(df):
 
     df.rename(
         columns={
+            "Confirmed": "cases",
             "Deaths": "deaths",
             "FIPS": "fips",
             "Long_": "Lon",
@@ -315,9 +316,9 @@ df = import_historical()
 
 # (2) Bring in current JHU feature layer and clean
 jhu = gpd.read_file(
-    f"s3://{bucket_name}/jhu_covid19/jhu_feature_layer_4_8_2020.geojson"
+    f"s3://{bucket_name}/jhu_covid19/jhu_feature_layer_4_13_2020.geojson"
 )
-jhu["date"] = "4/8/2020"
+jhu["date"] = "4/13/2020"
 jhu["date"] = pd.to_datetime(jhu.date).dt.tz_localize("UTC")
 
 jhu = clean_jhu_county(jhu)
@@ -338,4 +339,4 @@ us_county = calculate_change(us_county)
 final = fix_column_dtypes(us_county)
 
 # Export as csv
-final.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_408.csv", index=False)
+final.to_csv(f"s3://{bucket_name}/jhu_covid19/county_time_series_413.csv", index=False)

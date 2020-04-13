@@ -52,7 +52,7 @@ Our ETLs check JHU data ***every hour***.
 
 * [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/), specifically the `jhu-to-esri.py` and `jhu-county-to-esri.py` scripts.
 
-* [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=999b5d0dbe2742bc92cfb126a33ff057)
+* [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=80627302612e49ef8145eac24c61e196)
 
 
 We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel"; we welcome collaboration and pull requests on our work!
