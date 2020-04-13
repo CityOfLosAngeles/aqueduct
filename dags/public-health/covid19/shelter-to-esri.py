@@ -106,7 +106,7 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/shelter-timeseries-v3.csv"
+    time_series_filename = "/tmp/rap-shelter-timeseries-v3.csv"
 
     df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
@@ -126,7 +126,7 @@ def load_data(**kwargs):
         + latest_df["Total Men Currently at Site"]
     )
 
-    latest_filename = "/tmp/latest-shelters-v3.csv"
+    latest_filename = "/tmp/rap-latest-shelters-v3.csv"
     latest_df.to_csv(latest_filename, index=False)
 
     # Compute a number of open and reporting shelter beds
@@ -146,7 +146,7 @@ def load_data(**kwargs):
 
     upload_to_esri(latest_df, LATEST_ID, filename=latest_filename)
     upload_to_esri(df, SHELTER_ID, filename=time_series_filename)
-    upload_to_esri(stats_df, STATS_ID, filename="/tmp/stats.csv")
+    upload_to_esri(stats_df, STATS_ID, filename="/tmp/rap-shelter-stats.csv")
     return True
 
 

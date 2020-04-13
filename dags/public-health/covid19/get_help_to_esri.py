@@ -189,9 +189,9 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/facilities.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities.csv")
     timeseries = assemble_get_help_timeseries()
-    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/timeseries.csv")
+    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries.csv")
 
     # Compute a number of open and reporting shelter beds
     active_facilities = facilities[facilities.status != 0]
@@ -209,7 +209,7 @@ def load_get_help_data(**kwargs):
         stats, orient="index", columns=["Count"]
     ).transpose()
     # TODO: Write an assert to make sure all rows are in resultant GDF
-    upload_to_esri(stats_df, STATS_ID, "/tmp/stats.csv")
+    upload_to_esri(stats_df, STATS_ID, "/tmp/gethelp-stats.csv")
 
 
 default_args = {
