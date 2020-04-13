@@ -172,11 +172,11 @@ def format_table(row):
     pets = row["Number of Pets Currently at Site"]
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Report Time: {last_report}</i><br>
-    <p>Capacity: {capacity}</p><br>
-    <p>Occupied Beds: {occupied_beds}</p><br>
-    <p>Avaliable Beds: {aval_beds}</p><br>
-    <p>Male: {male_tot}</p><br>
-    <p>Female: {female_total}</p><br>
+    <p>Capacity: {capacity}</p>
+    <p>Occupied Beds: {occupied_beds}</p>
+    <p>Avaliable Beds: {aval_beds}</p>
+    <p>Male: {male_tot}</p>
+    <p>Female: {female_total}</p>
     <p>Pets: {pets}</p><br>
     """
     return shelter.strip()
