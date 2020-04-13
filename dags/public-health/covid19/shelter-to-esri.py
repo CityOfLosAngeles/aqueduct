@@ -169,7 +169,7 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["FacilityName"]
-    last_report = row["Timestamp"].dt.tz_convert(local_tz)
+    last_report = row["timestamp_local"]
     capacity = integrify(row["ShelterCapacity"])
     occupied_beds = integrify(row["occupied_beds_computed"])
     aval_beds = integrify(row["open_beds_computed"])
@@ -200,6 +200,7 @@ def email_function(**kwargs):
         .astimezone(pytz.timezone(local_tz))
         .strftime("%m-%d-%Y %I:%M%p")
     )
+    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz)
     tbl = np.array2string(
         latest_df.apply(format_table, axis=1).str.replace("\n", "").values
     )
