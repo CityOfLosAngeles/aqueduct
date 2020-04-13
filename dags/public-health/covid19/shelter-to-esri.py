@@ -166,12 +166,12 @@ def format_table(row):
     """
     shelter_name = row["FacilityName"]
     last_report = row["Timestamp"]
-    capacity = row["ShelterCapacity"]
-    occupied_beds = row["occupied_beds_computed"]
-    aval_beds = row["open_beds_computed"]
-    male_tot = row["Total Men Currently at Site"]
-    female_total = row["Total Women Currently at Site"]
-    pets = row["Number of Pets Currently at Site"]
+    capacity = int(row["ShelterCapacity"])
+    occupied_beds = int(row["occupied_beds_computed"])
+    aval_beds = int(row["open_beds_computed"])
+    male_tot = int(row["Total Men Currently at Site"])
+    female_total = int(row["Total Women Currently at Site"])
+    pets = int(row["Number of Pets Currently at Site"])
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Report Time: {last_report}</i><br>
     <p>Capacity: {capacity}</p>
