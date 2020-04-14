@@ -230,12 +230,12 @@ def email_function(**kwargs):
             html_content=email_template,
         )
         send_email(
-            to=email_list[41:80],
+            to=email_list[40:80],
             subject=f"""Shelter Stats for {exec_time}""",
             html_content=email_template,
         )
         send_email(
-            to=email_list[81:],
+            to=email_list[80:],
             subject=f"""Shelter Stats for {exec_time}""",
             html_content=email_template,
         )
