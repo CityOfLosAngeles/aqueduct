@@ -223,11 +223,29 @@ def email_function(**kwargs):
     else:
         email_list = ["itadata@lacity.org"]
 
-    send_email(
-        to=email_list,
-        subject=f"""Shelter Stats for {exec_time}""",
-        html_content=email_template,
-    )
+    if len(email_list) > 50:
+        send_email(
+            to=email_list[0:40],
+            subject=f"""Shelter Stats for {exec_time}""",
+            html_content=email_template,
+        )
+        send_email(
+            to=email_list[41:80],
+            subject=f"""Shelter Stats for {exec_time}""",
+            html_content=email_template,
+        )
+        send_email(
+            to=email_list[81:],
+            subject=f"""Shelter Stats for {exec_time}""",
+            html_content=email_template,
+        )
+
+    else:
+        send_email(
+            to=email_list,
+            subject=f"""Shelter Stats for {exec_time}""",
+            html_content=email_template,
+        )
     return True
 
 
