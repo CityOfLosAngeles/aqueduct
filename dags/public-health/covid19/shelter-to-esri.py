@@ -171,7 +171,6 @@ def format_table(row):
     """
     shelter_name = row["FacilityName"]
     last_report = row["timestamp_local"]
-    capacity = integrify(row["ShelterCapacity"])
     occupied_beds = integrify(row["occupied_beds_computed"])
     aval_beds = integrify(row["open_beds_computed"])
     male_tot = integrify(row["Total Men Currently at Site"])
@@ -179,9 +178,8 @@ def format_table(row):
     pets = integrify(row["Number of Pets Currently at Site"])
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Report Time: {last_report}</i><br>
-    <p style="margin-top:2px; margin-bottom: 2px">Capacity: {capacity}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Avaliable Beds: {aval_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {aval_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Male: {male_tot}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Female: {female_total}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
@@ -223,9 +221,9 @@ def email_function(**kwargs):
         email_list = ["itadata@lacity.org"]
 
     if len(email_list) > 50:
-        for sub_list in np.array_split(email_list, np.ceil(len(email_list)/50)):
+        for sub_list in np.array_split(email_list, np.ceil(len(email_list) / 50)):
             send_email(
-                to = ['itadata@lacity.org'],
+                to=["itadata@lacity.org"],
                 bcc=list(sub_list),
                 subject=f"""Shelter Stats for {exec_time}""",
                 html_content=email_template,
