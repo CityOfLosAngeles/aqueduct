@@ -21,6 +21,8 @@ RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
+EMAIL_LIST_URL = "https://docs.google.com/spreadsheets/u/1/d/1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8/export?format=csv&id=1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8&gid=0"
+
 SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
 
 LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
@@ -195,12 +197,10 @@ def email_function(**kwargs):
     """
     latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
-    exec_time = (
-        kwargs["execution_date"]
-        .astimezone(pytz.timezone(local_tz))
-        .strftime("%m-%d-%Y %I:%M%p")
+    exec_time = pd.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz).strftime(
+        "%m-%d-%Y %I:%M%p"
     )
-    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz)
     tbl = np.array2string(
         latest_df.apply(format_table, axis=1).str.replace("\n", "").values
     )
@@ -218,8 +218,13 @@ def email_function(**kwargs):
     For issue with this report, please contact itadata@lacity.org
     """
 
+    if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
+        email_list = list(pd.read_csv(EMAIL_LIST_URL).email_addr.values)
+    else:
+        email_list = ["itadata@lacity.org"]
+
     send_email(
-        to=["hunter.owens@lacity.org", "itadata@lacity.org"],
+        to=email_list,
         subject=f"""Shelter Stats for {exec_time}""",
         html_content=email_template,
     )
