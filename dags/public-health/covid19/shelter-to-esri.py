@@ -5,6 +5,8 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
+import arcgis
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytz
@@ -12,16 +14,13 @@ from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
-
-import arcgis
-import geopandas as gpd
 from arcgis.gis import GIS
 
 RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/services/LARAP%20COVID19%20MPOD%20Public/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-EMAIL_LIST_URL = "https://docs.google.com/spreadsheets/u/1/d/1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8/export?format=csv&id=1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8&gid=0"
+EMAIL_LIST_URL = "https://docs.google.com/spreadsheets/u/1/d/1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8/export?format=csv&id=1q6u3nqBnyckVOIg-nCzPZuRXRs0b6YDgRHWGg5OAp-8&gid=0"  # noqa: E501
 
 SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
 
@@ -129,7 +128,7 @@ def load_data(**kwargs):
         + latest_df["Number of Open Beds - WOMEN"]
     )
     latest_df["occupied_beds_computed"] = (
-        latest_df["Total Men Currently at Site"]
+        latest_df["Total Women Currently at Site"]
         + latest_df["Total Men Currently at Site"]
     )
 
@@ -198,9 +197,9 @@ def email_function(**kwargs):
     latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
     exec_time = pd.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
-    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz).dt.strftime(
-        "%m-%d-%Y %I:%M%p"
-    )
+    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(
+        local_tz
+    ).dt.strftime("%m-%d-%Y %I:%M%p")
     tbl = np.array2string(
         latest_df.apply(format_table, axis=1).str.replace("\n", "").values
     )
