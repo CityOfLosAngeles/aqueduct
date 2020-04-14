@@ -198,7 +198,7 @@ def email_function(**kwargs):
     latest_df = kwargs["ti"].xcom_pull(key="latest_df", task_ids="sync-shelter-to-esri")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="sync-shelter-to-esri")
     exec_time = pd.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
-    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz).strftime(
+    latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(local_tz).dt.strftime(
         "%m-%d-%Y %I:%M%p"
     )
     tbl = np.array2string(
