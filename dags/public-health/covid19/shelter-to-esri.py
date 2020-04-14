@@ -226,7 +226,8 @@ def email_function(**kwargs):
     if len(email_list) > 50:
         for sub_list in np.array_split(email_list, np.ceil(len(email_list)/50)):
             send_email(
-                to=list(sub_list),
+                to = ['itadata@lacity.org'],
+                bcc=list(sub_list),
                 subject=f"""Shelter Stats for {exec_time}""",
                 html_content=email_template,
             )
