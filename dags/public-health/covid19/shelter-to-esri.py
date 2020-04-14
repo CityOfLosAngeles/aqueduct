@@ -224,22 +224,12 @@ def email_function(**kwargs):
         email_list = ["itadata@lacity.org"]
 
     if len(email_list) > 50:
-        send_email(
-            to=email_list[0:40],
-            subject=f"""Shelter Stats for {exec_time}""",
-            html_content=email_template,
-        )
-        send_email(
-            to=email_list[40:80],
-            subject=f"""Shelter Stats for {exec_time}""",
-            html_content=email_template,
-        )
-        send_email(
-            to=email_list[80:],
-            subject=f"""Shelter Stats for {exec_time}""",
-            html_content=email_template,
-        )
-
+        for sub_list in np.array_split(email_list, np.ceil(len(email_list)/50)):
+            send_email(
+                to=list(sub_list),
+                subject=f"""Shelter Stats for {exec_time}""",
+                html_content=email_template,
+            )
     else:
         send_email(
             to=email_list,
