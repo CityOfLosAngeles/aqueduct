@@ -119,19 +119,21 @@ def get_facility_history(facility_id, start_date=None, end_date=None):
     programs = pandas.io.json.json_normalize(res)
     assert len(programs)
     shelter_programs = programs[programs.name.str.lower().str.contains("shelter bed")]
-    assert len(shelter_programs) == 1
-    program_id = shelter_programs.iloc[0]["id"]
 
-    # Get the history stats for the shelter bed program
-    res = make_get_help_request(
-        f"facilities/{facility_id}/facility-programs/{program_id}/statistics",
-        TOKEN,
-        params={"startDate": str(start_date), "endDate": str(end_date)},
-    )
-    history = pandas.io.json.json_normalize(res)
+    # Get the history stats for the shelter bed programs
+    history = pandas.DataFrame()
+    for _, program in shelter_programs.iterrows():
+        program_id = program["id"]
+        res = make_get_help_request(
+            f"facilities/{facility_id}/facility-programs/{program_id}/statistics",
+            TOKEN,
+            params={"startDate": str(start_date), "endDate": str(end_date)},
+        )
+        program_history = pandas.io.json.json_normalize(res)
+        # Add ID column so we can filter by them later
+        program_history = program_history.assign(program_id=program_id)
+        history = history.append(program_history)
 
-    # Add ID column so we can filter by them later
-    history = history.assign(program_id=program_id,)
     return history
 
 
