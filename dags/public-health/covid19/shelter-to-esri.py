@@ -213,7 +213,8 @@ def email_function(**kwargs):
 
     {tbl}
 
-    For issue with this report, please contact itadata@lacity.org
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL <b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     """
 
     if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
