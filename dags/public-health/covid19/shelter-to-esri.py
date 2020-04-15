@@ -220,8 +220,9 @@ def email_function(**kwargs):
     else:
         email_list = ["itadata@lacity.org"]
 
-    if len(email_list) > 50:
-        for sub_list in np.array_split(email_list, np.ceil(len(email_list) / 50)):
+    CHUNK = 40  # SMTP only allows us lists less than 50 long, so chunk it up
+    if len(email_list) > CHUNK:
+        for sub_list in np.array_split(email_list, np.ceil(len(email_list) / CHUNK)):
             send_email(
                 to=["itadata@lacity.org"],
                 bcc=list(sub_list),
