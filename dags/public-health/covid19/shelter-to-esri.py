@@ -213,7 +213,7 @@ def email_function(**kwargs):
 
     {tbl}
 
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL <b>
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     """
 
