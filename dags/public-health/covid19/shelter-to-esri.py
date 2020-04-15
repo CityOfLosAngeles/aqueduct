@@ -5,6 +5,8 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
+import arcgis
+import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytz
@@ -12,9 +14,6 @@ from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
-
-import arcgis
-import geopandas as gpd
 from arcgis.gis import GIS
 
 RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/services/LARAP%20COVID19%20MPOD%20Public/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
@@ -170,12 +169,14 @@ def format_table(row):
     """
     shelter_name = row["FacilityName"]
     last_report = row["timestamp_local"]
+    district = integrify(row["CouncilDistrict"])
     occupied_beds = integrify(row["occupied_beds_computed"])
     aval_beds = integrify(row["open_beds_computed"])
     male_tot = integrify(row["Total Men Currently at Site"])
     female_total = integrify(row["Total Women Currently at Site"])
     pets = integrify(row["Number of Pets Currently at Site"])
     shelter = f"""<b>{shelter_name}</b><br>
+    <i>Council District {district}</i><br>
     <i>Report Time: {last_report}</i><br>
     <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {aval_beds}</p>
@@ -197,6 +198,10 @@ def email_function(**kwargs):
     latest_df["timestamp_local"] = latest_df.Timestamp.dt.tz_convert(
         local_tz
     ).dt.strftime("%m-%d-%Y %I:%M%p")
+    # Sort by council district and facility name.
+    latest_df = latest_df.assign(
+        CouncilDistrict=latest_df.CouncilDistrict.astype(int)
+    ).sort_values(["CouncilDistrict", "FacilityName"])
     tbl = np.array2string(
         latest_df.apply(format_table, axis=1).str.replace("\n", "").values
     )
