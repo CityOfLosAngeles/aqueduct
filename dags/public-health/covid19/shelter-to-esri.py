@@ -5,8 +5,6 @@ From Google Forms to ArcGIS Online.
 import os
 from datetime import datetime, timedelta
 
-import arcgis
-import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pytz
@@ -14,6 +12,9 @@ from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
+
+import arcgis
+import geopandas as gpd
 from arcgis.gis import GIS
 
 RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/services/LARAP%20COVID19%20MPOD%20Public/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="  # noqa: E501
@@ -216,25 +217,15 @@ def email_function(**kwargs):
     """
 
     if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
-        email_list = list(pd.read_csv(EMAIL_LIST_URL).email_addr.values)
+        email_list = ["rap-shelter-updates@lacity.org"]
     else:
         email_list = ["itadata@lacity.org"]
 
-    CHUNK = 40  # SMTP only allows us lists less than 50 long, so chunk it up
-    if len(email_list) > CHUNK:
-        for sub_list in np.array_split(email_list, np.ceil(len(email_list) / CHUNK)):
-            send_email(
-                to=["itadata@lacity.org"],
-                bcc=list(sub_list),
-                subject=f"""Shelter Stats for {exec_time}""",
-                html_content=email_template,
-            )
-    else:
-        send_email(
-            to=email_list,
-            subject=f"""Shelter Stats for {exec_time}""",
-            html_content=email_template,
-        )
+    send_email(
+        to=email_list,
+        subject=f"""Shelter Stats for {exec_time}""",
+        html_content=email_template,
+    )
     return True
 
 
