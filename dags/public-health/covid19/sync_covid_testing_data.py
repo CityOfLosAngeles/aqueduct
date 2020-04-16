@@ -53,7 +53,7 @@ default_args = {
     "retry_delay": datetime.timedelta(days=1),
 }
 
-dag = DAG("covid-testing-data", default_args=default_args, schedule_interval="@daily")
+dag = DAG("covid-testing-data", default_args=default_args, schedule_interval="@hourly")
 
 
 def update_covid_testing_data(**kwargs):
