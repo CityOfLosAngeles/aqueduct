@@ -5,9 +5,8 @@ and add JHU DAG to this.
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd
-
 import arcgis
+import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
