@@ -117,11 +117,14 @@ def get_facility_history(facility_id, start_date=None, end_date=None):
     # Get the shelter bed program ID
     res = make_get_help_request(f"facilities/{facility_id}/facility-programs", TOKEN)
     programs = pandas.io.json.json_normalize(res)
-    assert len(programs)
+
+    history = pandas.DataFrame()
+    if not len(programs):
+        return history
+
     shelter_programs = programs[programs.name.str.lower().str.contains("shelter bed")]
 
     # Get the history stats for the shelter bed programs
-    history = pandas.DataFrame()
     for _, program in shelter_programs.iterrows():
         program_id = program["id"]
         res = make_get_help_request(
@@ -152,6 +155,7 @@ def assemble_facility_history(facility):
     =======
     A dataframe with facility history.
     """
+    print(f"Loading timeseries for {facility['name']}")
     history = get_facility_history(facility["id"])
     if not len(history):
         return None
