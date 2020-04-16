@@ -2,9 +2,10 @@ import datetime
 import os
 from urllib.parse import urljoin
 
-import arcgis
 import pandas
 import requests
+
+import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
