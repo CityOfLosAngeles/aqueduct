@@ -6,8 +6,9 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import arcgis
 import pandas as pd
+
+import arcgis
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -46,6 +47,8 @@ current_featureid = "523a372d71014bd491064d74e3eba2c7"
 # Feature IDs for state/province level time series and current status
 jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
 jhu_current_featureid = "191df200230642099002039816dc8c59"
+
+max_record_count = 6_000_000
 
 # The date at the time of execution. We choose midnight in the US/Pacific timezone,
 # but then convert to UTC since that is what AGOL expects. When the feature layer
@@ -208,10 +211,12 @@ def load_global_covid_data():
     gis_item = gis.content.get(jhu_time_series_featureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(time_series_filename)
+    gis_layer_collection.manager.update_definition({"maxRecordCount": max_record_count})
 
     gis_item = gis.content.get(jhu_current_featureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(most_recent_date_filename)
+    gis_layer_collection.manager.update_definition({"maxRecordCount": max_record_count})
 
     # Clean up
     os.remove(time_series_filename)

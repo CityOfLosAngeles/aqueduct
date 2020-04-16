@@ -17,7 +17,7 @@ from arcgis.gis import GIS
 TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
 JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
 MSA_FEATURE_ID = "b37e229b71dc4c65a479e4b5912ded66"
-max_record_count = 2_000_000
+max_record_count = 6_000_000
 
 
 def append_county_time_series(**kwargs):
