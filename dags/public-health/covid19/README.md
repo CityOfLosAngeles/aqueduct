@@ -3,6 +3,7 @@
 Contents
 * [COVID-19 Case Data](#covid-19-case-data)
 * [Homeless Shelter Data](#shelter-data)
+* [GetHelp Shelter Data](#gethelp-shelter-data)
 
 ## COVID-19 Case Data
 
@@ -40,7 +41,7 @@ Our ETLs check JHU data ***every hour***.
 
 ### Important City of LA Source Materials
 
-* [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62)
+* [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62) and [Mobile Version](http://lahub.maps.arcgis.com/home/item.html?id=e5b46ffbbf8b4f77ae2761b18abbd22c) and FAQs
 
 * [Global province-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580)
 
@@ -93,27 +94,23 @@ Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupi
 
 There are 3 layers you can use to access shelter data.
 
-* [Shelter Timeseries](http://lahub.maps.arcgis.com/home/item.html?id=2085cb061b834faf9fa5244b033b41ec) - is a representation of the form data combined with known geospatial information, with minimal transformations.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=2085cb061b834faf9fa5244b033b41ec) - a representation of the form data combined with known geospatial information, with minimal transformations.
 
-* [Shelter Current](http://lahub.maps.arcgis.com/home/item.html?id=1b73a44e811549ec8952a1ff24e51cd0) - is the most recent report for each shelter, along with computed occupancy numbers.
+* [Shelter current feature layer](http://lahub.maps.arcgis.com/home/item.html?id=1b73a44e811549ec8952a1ff24e51cd0) - the most recent report for each shelter, along with computed occupancy numbers.
 
-* [Shelter Stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - is a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
+* [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
 
-## Get Help shelter data
+## GetHelp Shelter Data
 
-The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com).
-This includes bed counts, shelter service information, and historical data.
-The DAG `get_help_to_esri.py` loads shelter data from the GetHelp shelter management platform
-and uploads it to Esri for GIS analysis and dashboarding.
-API documentation for the GetHelp system can be found in
-[this](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0)
-Google Spreadsheet.
+The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to Esri for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
+[this Google spreadsheet](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0). This DAG deliberately outputs similar ESRI feature layers to the above approach using the Google Form. Specifically, it produces:
 
-This DAG deliberately outputs similar Esri feature layers to the above approach using the Google Form.
-Specifically, it produces:
-* [Shelter timeseries](http://lahub.maps.arcgis.com/home/item.html?id=0235713060e74aca95f34ae2b861285f) - A timeseries of historical bed count data for all of the active shelters.
-* [Current shelters](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - A snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
-* [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - Some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=0235713060e74aca95f34ae2b861285f) - a time-series of historical bed count data for all of the active shelters.
+
+* [Current shelter feature layer](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
+
+* [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
+
 
 ## Contributors
 * [Hunter Owens](https://github.com/hunterowens)
