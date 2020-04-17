@@ -272,6 +272,10 @@ def email_function(**kwargs):
     <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     """
+    # TODO: this feels like a brittle way to only email at the top of the hour.
+    # Figure out something better.
+    if pandas.Timestamp.now(tz="US/Pacific").minute > 15:
+        return True
 
     if pandas.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
@@ -289,7 +293,7 @@ def email_function(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 11),
+    "start_date": datetime.datetime(2020, 4, 17, 20),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
