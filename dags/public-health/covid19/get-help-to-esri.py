@@ -3,12 +3,14 @@ import os
 from urllib.parse import urljoin
 
 import arcgis
+import numpy
 import pandas
 import requests
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
+from airflow.utils.email import send_email
 from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
@@ -217,6 +219,72 @@ def load_get_help_data(**kwargs):
     # TODO: Write an assert to make sure all rows are in resultant GDF
     upload_to_esri(stats_df, STATS_ID, "/tmp/gethelp-stats.csv")
 
+    # push the tables into kwargs for email
+    kwargs["ti"].xcom_push(key="facilities", value=active_facilities)
+    kwargs["ti"].xcom_push(key="stats_df", value=stats_df)
+
+
+def integrify(x):
+    return str(int(x)) if not pandas.isna(x) else "Error"
+
+
+def format_table(row):
+    """
+    returns a nicely formatted HTML
+    for each Shelter row
+    """
+    shelter_name = row["name"]
+    occupied_beds = integrify(row["totalBeds"] - row["availableBeds"])
+    avail_beds = integrify(row["availableBeds"])
+    shelter = f"""<b>{shelter_name}</b><br>
+    <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
+    """
+    return shelter.strip()
+
+
+def email_function(**kwargs):
+    """
+    Sends a hourly email with the latest updates from each shelter
+    Formatted for use
+    """
+    facilities = kwargs["ti"].xcom_pull(key="facilities", task_ids="load_get_help_data")
+    stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
+    exec_time = pandas.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+    # Sort by council district and facility name.
+    facilities = facilities.sort_values("name")
+    tbl = numpy.array2string(
+        facilities.apply(format_table, axis=1).str.replace("\n", "").values
+    )
+    tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
+    email_body = f"""
+    Shelter Report for {exec_time}.
+    <br>
+
+    The Current Number of Reporting Shelters is
+    {integrify(stats_df['n_shelters_status_known'][0])}.
+
+    <br>
+
+    {tbl}
+
+    <br>
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+    """
+
+    if pandas.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20] and False:
+        email_list = ["rap-shelter-updates@lacity.org"]
+    else:
+        email_list = ["itadata@lacity.org"]
+
+    send_email(
+        to=email_list,
+        subject=f"""GETHELPTEST: Shelter Stats for {exec_time}""",
+        html_content=email_body,
+    )
+    return True
+
 
 default_args = {
     "owner": "airflow",
@@ -235,8 +303,17 @@ dag = DAG(
 
 t1 = PythonOperator(
     task_id="load_get_help_data",
-    provide_context=False,
+    provide_context=True,
     python_callable=load_get_help_data,
     op_kwargs={},
     dag=dag,
 )
+
+t2 = PythonOperator(
+    task_id="send_shelter_email",
+    provide_context=True,
+    python_callable=email_function,
+    dag=dag,
+)
+
+t1 >> t2
