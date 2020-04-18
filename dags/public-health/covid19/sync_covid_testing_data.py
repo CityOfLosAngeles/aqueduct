@@ -2,14 +2,12 @@
 Pull data from MOPS COVID Dashboard and upload to ESRI
 """
 import datetime
-import os
 
 import arcgis
 import pandas as pd
 
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
-from airflow.hooks.S3_hook import S3Hook
 from airflow.operators.python_operator import PythonOperator
 
 
@@ -21,6 +19,13 @@ def get_data(filename, workbook, sheet_name):
     df.columns = ["Date", "Performed", "Test Kit Inventory"]
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df = df.loc[df["Date"].dt.date < datetime.datetime.now().date()]
+    df.sort_values("Date", inplace=True)
+    cumulative = []
+    temp_value = 0
+    for i in df["Performed"]:
+        temp_value += i
+        cumulative.append(temp_value)
+    df["cumulative"] = cumulative
     df.to_csv(filename, index=False)
 
 
@@ -30,12 +35,6 @@ def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(filename)
-
-
-def upload_to_s3(filename, bucket):
-    path = "/tmp/%s" % filename
-    s3 = S3Hook("s3_conn")
-    s3.load_file(path, filename, bucket, replace=True)
 
 
 default_args = {
@@ -76,10 +75,6 @@ def update_covid_testing_data(**kwargs):
     arcpassword = arcconnection.password
     arcfeatureid = kwargs.get("arcfeatureid")
     update_arcgis(arcuser, arcpassword, arcfeatureid, filename)
-
-    # Upload to s3
-    upload_to_s3(filename, "jhu_covid19")
-    os.remove("/tmp/%s" % filename)
 
 
 # Sync ServiceRequestData.csv
