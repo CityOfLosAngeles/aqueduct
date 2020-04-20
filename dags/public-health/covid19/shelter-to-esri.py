@@ -192,13 +192,23 @@ def format_table(row):
     <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
     <i>Trailer Details: </i>
     <p style="margin-top:2px; margin-bottom: 2px">Trailer Open Beds: {trail_open}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Men: {trail_occupied_men}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Women: {trail_occupied_women}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Pets: {trail_occupied_pets}</p><br>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Men: {trail_occupied_men}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Women: {trail_occupied_women}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Pets: {trail_occupied_pets}
+    </p><br>
     <i>Health Details: </i>
     <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Calls: {ems_calls}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Transports: {ems_transport}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Number of currently quarantined clients: {num_quar}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Number of EMS Transports: {ems_transport}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Number of currently quarantined clients: {num_quar}
+    </p>
 
 
     """
