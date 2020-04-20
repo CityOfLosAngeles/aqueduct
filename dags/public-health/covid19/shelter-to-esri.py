@@ -158,7 +158,7 @@ def load_data(**kwargs):
 
 
 def integrify(x):
-    return str(int(x)) if not pd.isna(x) else "Error"
+    return str(int(x)) if not pd.isna(x) else "Error or N/A"
 
 
 def format_table(row):
@@ -174,6 +174,14 @@ def format_table(row):
     male_tot = integrify(row["Total Men Currently at Site"])
     female_total = integrify(row["Total Women Currently at Site"])
     pets = integrify(row["Number of Pets Currently at Site"])
+    ems_calls = integrify(row["Number of EMS Calls"])
+    ems_transport = integrify(row["Number of EMS Transports"])
+    num_quar = integrify(row["Clients currently quarantined"])
+    trail_open = integrify(row["Number of Open Trailers"])
+    trail_occupied_women = integrify(row["Total Women Currently in Trailer"])
+    trail_occupied_men = integrify(row["Total Men Currently in Trailer"])
+    trail_occupied_pets = integrify(row["Total Pets Currently in Trailer"])
+
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
     <i>Report Time: {last_report}</i><br>
@@ -182,6 +190,17 @@ def format_table(row):
     <p style="margin-top:2px; margin-bottom: 2px">Male: {male_tot}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Female: {female_total}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
+    <i>Trailer Details: </i>
+    <p style="margin-top:2px; margin-bottom: 2px">Trailer Open Beds: {trail_open}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Men: {trail_occupied_men}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Women: {trail_occupied_women}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Trailer Occupied - Pets: {trail_occupied_pets}</p><br>
+    <i>Health Details: </i>
+    <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Calls: {ems_calls}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Transports: {ems_transport}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Number of currently quarantined clients: {num_quar}</p>
+
+
     """
     return shelter.strip()
 
