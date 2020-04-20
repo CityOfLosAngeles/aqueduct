@@ -20,9 +20,9 @@ RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
+SHELTER_ID = "427065531b3c40de9747d67011f6a5b2"
 
-LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
+LATEST_ID = "312f7b5d49d04a9b9c384ab89de4a5a7"
 
 STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
@@ -110,12 +110,11 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/rap-shelter-timeseries-v3.csv"
+    time_series_filename = "/tmp/rap-shelter-timeseries-v4.csv"
 
     df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
     )
-
     # make latest layer
     latest_df = df[
         df.groupby("FacilityName")["Timestamp"].transform(max) == df["Timestamp"]
@@ -130,7 +129,7 @@ def load_data(**kwargs):
         + latest_df["Total Men Currently at Site"]
     )
 
-    latest_filename = "/tmp/rap-latest-shelters-v3.csv"
+    latest_filename = "/tmp/rap-latest-shelters-v4.csv"
     latest_df.to_csv(latest_filename, index=False)
 
     # Compute a number of open and reporting shelter beds
@@ -159,7 +158,7 @@ def load_data(**kwargs):
 
 
 def integrify(x):
-    return str(int(x)) if not pd.isna(x) else "Error"
+    return str(int(x)) if not pd.isna(x) else "Error or N/A"
 
 
 def format_table(row):
@@ -175,6 +174,14 @@ def format_table(row):
     male_tot = integrify(row["Total Men Currently at Site"])
     female_total = integrify(row["Total Women Currently at Site"])
     pets = integrify(row["Number of Pets Currently at Site"])
+    ems_calls = integrify(row["Number of EMS Calls"])
+    ems_transport = integrify(row["Number of EMS Transports"])
+    num_quar = integrify(row["Clients currently quarantined"])
+    trail_open = integrify(row["Number of Open Trailers"])
+    trail_occupied_women = integrify(row["Total Women Currently in Trailer"])
+    trail_occupied_men = integrify(row["Total Men Currently in Trailer"])
+    trail_occupied_pets = integrify(row["Total Pets Currently in Trailer"])
+
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
     <i>Report Time: {last_report}</i><br>
@@ -183,6 +190,27 @@ def format_table(row):
     <p style="margin-top:2px; margin-bottom: 2px">Male: {male_tot}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Female: {female_total}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
+    <i>Trailer Details: </i>
+    <p style="margin-top:2px; margin-bottom: 2px">Trailer Open Beds: {trail_open}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Men: {trail_occupied_men}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Women: {trail_occupied_women}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Trailer Occupied - Pets: {trail_occupied_pets}
+    </p><br>
+    <i>Health Details: </i>
+    <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Calls: {ems_calls}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Number of EMS Transports: {ems_transport}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+      Number of currently quarantined clients: {num_quar}
+    </p>
+
+
     """
     return shelter.strip()
 
@@ -207,6 +235,10 @@ def email_function(**kwargs):
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_template = f"""
+
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+
     Shelter Report for {exec_time}.
 
     The Current Number of Reporting Shelters is
@@ -216,8 +248,6 @@ def email_function(**kwargs):
 
     {tbl}
 
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
-    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     """
 
     if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
