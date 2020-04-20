@@ -301,7 +301,11 @@ def email_function(**kwargs):
     """
     facilities = kwargs["ti"].xcom_pull(key="facilities", task_ids="load_get_help_data")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
-    exec_time = pandas.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+    exec_time = (
+        pandas.Timestamp.now(tz="US/Pacific")
+        .replace(minute=0)
+        .strftime("%m-%d-%Y %I:%M%p")
+    )
     # Sort by council district and facility name.
     facilities = facilities.sort_values(["district", "name"])
     tbl = numpy.array2string(
@@ -323,15 +327,15 @@ def email_function(**kwargs):
     {tbl}
 
     <br>
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
-    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+
     """
-    # TODO: this feels like a brittle way to only email at the top of the hour.
-    # Figure out something better.
-    if pandas.Timestamp.now(tz="US/Pacific").minute > 15:
+    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
+    # The end of the 45 minute schedule interval corresponds to the top
+    # of the hour, so only email during that run.
+    if airflow_timestamp.minute != 45:
         return True
 
-    if pandas.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20] and False:
+    if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
         email_list = ["itadata@lacity.org"]
