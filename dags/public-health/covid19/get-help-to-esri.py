@@ -3,6 +3,7 @@ import os
 from urllib.parse import urljoin
 
 import arcgis
+import geopandas
 import numpy
 import pandas
 import requests
@@ -15,11 +16,13 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "51a351e257374ed3a7776612c7eb0c6a"
+FACILITIES_ID = "2d003cf3761d4e04b6c65e35702ac72a"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
-TIMESERIES_ID = "0235713060e74aca95f34ae2b861285f"
+TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
+
+COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -45,7 +48,7 @@ def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
     return True
 
 
-def make_get_help_request(api_path, token, params={}):
+def make_get_help_request(api_path, token, params={}, paginated=True):
     """
     Makes an API request to the GetHelp platform.
     Also handles depagination of long responses.
@@ -58,28 +61,38 @@ def make_get_help_request(api_path, token, params={}):
         The OAuth bearer token
     params: dict
         Any additional query parameters to pass
+    paginated: boolean
+        Whether the response is expected to be a list of paginated results
+        with a "content" field. In this case, the function will depaginate
+        the results. If false, it will return the raw JSON.
 
     Returns
     =======
-    The depaginated JSON response in the "content" field.
+    The depaginated JSON response in the "content" field, or the raw JSON response.
     """
     endpoint = urljoin(API_BASE_URL, api_path)
-    content = []
-    page = 0
-    while True:
-        r = requests.get(
-            endpoint,
-            headers={"Authorization": f"Bearer {token}"},
-            params=dict(page=page, **params),
-        )
-        res = r.json()
-        content = content + res["content"]
-        if res["last"] is True:
-            break
-        else:
-            page = page + 1
+    if paginated:
+        content = []
+        page = 0
+        while True:
+            r = requests.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {token}"},
+                params=dict(page=page, **params),
+            )
+            res = r.json()
+            content = content + res["content"]
+            if res["last"] is True:
+                break
+            else:
+                page = page + 1
 
-    return content
+        return content
+    else:
+        r = requests.get(
+            endpoint, headers={"Authorization": f"Bearer {token}"}, params=params,
+        )
+        return r.json()
 
 
 def get_facilities():
@@ -92,7 +105,33 @@ def get_facilities():
     """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request("facility-groups/1/facilities", TOKEN)
-    return pandas.io.json.json_normalize(res)
+    df = pandas.io.json.json_normalize(res)
+    df = pandas.concat(
+        [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
+    )
+    council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
+    df = geopandas.GeoDataFrame(
+        df,
+        geometry=geopandas.points_from_xy(df.longitude, df.latitude),
+        crs={"init": "epsg:4326"},
+    )
+    df = df.assign(
+        district=df.apply(
+            lambda x: council_districts[council_districts.contains(x.geometry)]
+            .iloc[0]
+            .District,
+            axis=1,
+        )
+    ).drop(columns=["geometry"])
+    return df
+
+
+def get_client_stats(facility_id):
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(
+        f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
+    )
+    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
@@ -173,6 +212,7 @@ def assemble_facility_history(facility):
         zipCode=facility["zipCode"],
         latitude=facility["latitude"],
         longitude=facility["longitude"],
+        district=facility["district"],
     ).drop(columns=["id"])
     return history
 
@@ -197,9 +237,9 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v2.csv")
     timeseries = assemble_get_help_timeseries()
-    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries.csv")
+    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
     # Compute a number of open and reporting shelter beds
     active_facilities = facilities[facilities.status != 0]
@@ -234,11 +274,24 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["name"]
-    occupied_beds = integrify(row["totalBeds"] - row["availableBeds"])
+    occupied_beds = integrify(row["totalClients"])
+    occupied_beds_m = integrify(row["MALE"] + row["TRANSGENDER_F_TO_M"])
+    occupied_beds_f = integrify(row["FEMALE"] + row["TRANSGENDER_M_TO_F"])
+    occupied_beds_o = integrify(row["DECLINED"] + row["OTHER"] + row["UNDEFINED"])
+    pets = integrify(row["totalPets"])
+    ada = integrify(row["totalAda"])
     avail_beds = integrify(row["availableBeds"])
+    district = row["district"]
     shelter = f"""<b>{shelter_name}</b><br>
+    <i>Council District {district}</i><br>
     <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Women: {occupied_beds_f}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Men: {occupied_beds_m}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+    Nonbinary/Other/Declined: {occupied_beds_o}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Clients with ADA Needs: {ada}</p>
     """
     return shelter.strip()
 
@@ -250,15 +303,22 @@ def email_function(**kwargs):
     """
     facilities = kwargs["ti"].xcom_pull(key="facilities", task_ids="load_get_help_data")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
-    exec_time = pandas.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+    exec_time = (
+        pandas.Timestamp.now(tz="US/Pacific")
+        .replace(minute=0)
+        .strftime("%m-%d-%Y %I:%M%p")
+    )
     # Sort by council district and facility name.
-    facilities = facilities.sort_values("name")
+    facilities = facilities.sort_values(["district", "name"])
     tbl = numpy.array2string(
         facilities.apply(format_table, axis=1).str.replace("\n", "").values
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_body = f"""
     Shelter Report for {exec_time}.
+    <br>
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     <br>
 
     The Current Number of Reporting Shelters is
@@ -269,15 +329,15 @@ def email_function(**kwargs):
     {tbl}
 
     <br>
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
-    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+
     """
-    # TODO: this feels like a brittle way to only email at the top of the hour.
-    # Figure out something better.
-    if pandas.Timestamp.now(tz="US/Pacific").minute > 15:
+    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
+    # The end of the 45 minute schedule interval corresponds to the top
+    # of the hour, so only email during that run.
+    if airflow_timestamp.minute != 45:
         return True
 
-    if pandas.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20] and False:
+    if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
         email_list = ["itadata@lacity.org"]
@@ -293,7 +353,7 @@ def email_function(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 17, 20),
+    "start_date": datetime.datetime(2020, 4, 11),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
