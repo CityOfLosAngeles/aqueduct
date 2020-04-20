@@ -281,7 +281,9 @@ def format_table(row):
     pets = integrify(row["totalPets"])
     ada = integrify(row["totalAda"])
     avail_beds = integrify(row["availableBeds"])
+    district = row["district"]
     shelter = f"""<b>{shelter_name}</b><br>
+    <i>Council District {district}</i><br>
     <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Women: {occupied_beds_f}</p>
