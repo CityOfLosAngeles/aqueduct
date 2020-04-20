@@ -94,9 +94,9 @@ Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupi
 
 There are 3 layers you can use to access shelter data.
 
-* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=2085cb061b834faf9fa5244b033b41ec) - a representation of the form data combined with known geospatial information, with minimal transformations.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=427065531b3c40de9747d67011f6a5b2) - a representation of the form data combined with known geospatial information, with minimal transformations.
 
-* [Shelter current feature layer](http://lahub.maps.arcgis.com/home/item.html?id=1b73a44e811549ec8952a1ff24e51cd0) - the most recent report for each shelter, along with computed occupancy numbers.
+* [Shelter current feature layer](http://lahub.maps.arcgis.com/home/item.html?id=312f7b5d49d04a9b9c384ab89de4a5a7) - the most recent report for each shelter, along with computed occupancy numbers.
 
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
 
