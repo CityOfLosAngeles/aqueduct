@@ -16,11 +16,11 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "51a351e257374ed3a7776612c7eb0c6a"
+FACILITIES_ID = "2d003cf3761d4e04b6c65e35702ac72a"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
-TIMESERIES_ID = "0235713060e74aca95f34ae2b861285f"
+TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
 
 COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
 
@@ -237,9 +237,9 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v2.csv")
     timeseries = assemble_get_help_timeseries()
-    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries.csv")
+    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
     # Compute a number of open and reporting shelter beds
     active_facilities = facilities[facilities.status != 0]
@@ -303,13 +303,16 @@ def email_function(**kwargs):
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
     exec_time = pandas.Timestamp.now(tz="US/Pacific").strftime("%m-%d-%Y %I:%M%p")
     # Sort by council district and facility name.
-    facilities = facilities.sort_values("name")
+    facilities = facilities.sort_values(["district", "name"])
     tbl = numpy.array2string(
         facilities.apply(format_table, axis=1).str.replace("\n", "").values
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_body = f"""
     Shelter Report for {exec_time}.
+    <br>
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     <br>
 
     The Current Number of Reporting Shelters is

@@ -105,9 +105,10 @@ There are 3 layers you can use to access shelter data.
 The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to Esri for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
 [this Google spreadsheet](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0). This DAG deliberately outputs similar ESRI feature layers to the above approach using the Google Form. Specifically, it produces:
 
-* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=0235713060e74aca95f34ae2b861285f) - a time-series of historical bed count data for all of the active shelters.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=bd17014f8a954681be8c383acdb6c8008) - a time-series of historical bed count data for all of the active shelters.
+bd17014f8a954681be8c383acdb6c8008
 
-* [Current shelter feature layer](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
+* [Current shelter feature layer](http://lahub.maps.arcgis.com/home/item.html?id=52d003cf3761d4e04b6c65e35702ac72a) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
 
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
