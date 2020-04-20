@@ -45,7 +45,7 @@ def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
     return True
 
 
-def make_get_help_request(api_path, token, params={}):
+def make_get_help_request(api_path, token, params={}, paginated=True):
     """
     Makes an API request to the GetHelp platform.
     Also handles depagination of long responses.
@@ -58,28 +58,38 @@ def make_get_help_request(api_path, token, params={}):
         The OAuth bearer token
     params: dict
         Any additional query parameters to pass
+    paginated: boolean
+        Whether the response is expected to be a list of paginated results
+        with a "content" field. In this case, the function will depaginate
+        the results. If false, it will return the raw JSON.
 
     Returns
     =======
-    The depaginated JSON response in the "content" field.
+    The depaginated JSON response in the "content" field, or the raw JSON response.
     """
     endpoint = urljoin(API_BASE_URL, api_path)
-    content = []
-    page = 0
-    while True:
-        r = requests.get(
-            endpoint,
-            headers={"Authorization": f"Bearer {token}"},
-            params=dict(page=page, **params),
-        )
-        res = r.json()
-        content = content + res["content"]
-        if res["last"] is True:
-            break
-        else:
-            page = page + 1
+    if paginated:
+        content = []
+        page = 0
+        while True:
+            r = requests.get(
+                endpoint,
+                headers={"Authorization": f"Bearer {token}"},
+                params=dict(page=page, **params),
+            )
+            res = r.json()
+            content = content + res["content"]
+            if res["last"] is True:
+                break
+            else:
+                page = page + 1
 
-    return content
+        return content
+    else:
+        r = requests.get(
+            endpoint, headers={"Authorization": f"Bearer {token}"}, params=params,
+        )
+        return r.json()
 
 
 def get_facilities():
@@ -92,7 +102,19 @@ def get_facilities():
     """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request("facility-groups/1/facilities", TOKEN)
-    return pandas.io.json.json_normalize(res)
+    df = pandas.io.json.json_normalize(res)
+    df = pandas.concat(
+        [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
+    )
+    return df
+
+
+def get_client_stats(facility_id):
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(
+        f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
+    )
+    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
@@ -293,7 +315,7 @@ def email_function(**kwargs):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 17, 20),
+    "start_date": datetime.datetime(2020, 4, 11),
     "email": ["ian.rose@lacity.org", "hunter.owens@lacity.org", "itadata@lacity.org"],
     "email_on_failure": True,
     "email_on_retry": False,
