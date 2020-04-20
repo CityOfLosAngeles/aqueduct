@@ -110,17 +110,19 @@ def get_facilities():
         [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
     )
     council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
-    print(council_districts)
-    df = geopandas.sjoin(
-        geopandas.GeoDataFrame(
-            df,
-            geometry=geopandas.points_from_xy(df.longitude, df.latitude),
-            crs={"init": "epsg:4326"},
-        ),
-        council_districts,
-        op="within",
-        how="left",
-    ).drop(columns=["geometry", "index_right"])
+    df = geopandas.GeoDataFrame(
+        df,
+        geometry=geopandas.points_from_xy(df.longitude, df.latitude),
+        crs={"init": "epsg:4326"},
+    )
+    df = df.assign(
+        district=df.apply(
+            lambda x: council_districts[council_districts.contains(x.geometry)]
+            .iloc[0]
+            .District,
+            axis=1,
+        )
+    ).drop(columns=["geometry"])
     return df
 
 
@@ -210,6 +212,7 @@ def assemble_facility_history(facility):
         zipCode=facility["zipCode"],
         latitude=facility["latitude"],
         longitude=facility["longitude"],
+        district=facility["district"],
     ).drop(columns=["id"])
     return history
 
