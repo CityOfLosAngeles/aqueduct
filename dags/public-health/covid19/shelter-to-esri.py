@@ -20,9 +20,9 @@ RAP_SHELTER_URL = "https://services7.arcgis.com/aFfS9FqkIRSo0Ceu/ArcGIS/rest/ser
 
 SHELTER_CSV_URL = "https://docs.google.com/spreadsheets/d/1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw/export?format=csv&id=1pkg7PVCS4lwVhNA3TkMSWKmzw4vsd4W53_Q_Ou2mXqw&gid=73455498"  # noqa: E501
 
-SHELTER_ID = "2085cb061b834faf9fa5244b033b41ec"
+SHELTER_ID = "427065531b3c40de9747d67011f6a5b2"
 
-LATEST_ID = "1b73a44e811549ec8952a1ff24e51cd0"
+LATEST_ID = "312f7b5d49d04a9b9c384ab89de4a5a7"
 
 STATS_ID = "8679b3973d254aca9e247ffa85b012dd"
 
@@ -110,12 +110,11 @@ def load_data(**kwargs):
     # export to CSV
     gdf["Latitude"] = gdf.geometry.y
     gdf["Longitude"] = gdf.geometry.x
-    time_series_filename = "/tmp/rap-shelter-timeseries-v3.csv"
+    time_series_filename = "/tmp/rap-shelter-timeseries-v4.csv"
 
     df = pd.DataFrame(gdf).drop(
         ["geometry", "date", "time", "reported_datetime"], axis=1
     )
-
     # make latest layer
     latest_df = df[
         df.groupby("FacilityName")["Timestamp"].transform(max) == df["Timestamp"]
@@ -130,7 +129,7 @@ def load_data(**kwargs):
         + latest_df["Total Men Currently at Site"]
     )
 
-    latest_filename = "/tmp/rap-latest-shelters-v3.csv"
+    latest_filename = "/tmp/rap-latest-shelters-v4.csv"
     latest_df.to_csv(latest_filename, index=False)
 
     # Compute a number of open and reporting shelter beds
