@@ -207,6 +207,10 @@ def email_function(**kwargs):
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_template = f"""
+
+    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+
     Shelter Report for {exec_time}.
 
     The Current Number of Reporting Shelters is
@@ -216,8 +220,6 @@ def email_function(**kwargs):
 
     {tbl}
 
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
-    <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     """
 
     if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
