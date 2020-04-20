@@ -3,6 +3,7 @@ import os
 from urllib.parse import urljoin
 
 import arcgis
+import geopandas
 import numpy
 import pandas
 import requests
@@ -20,6 +21,8 @@ FACILITIES_ID = "51a351e257374ed3a7776612c7eb0c6a"
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
 TIMESERIES_ID = "0235713060e74aca95f34ae2b861285f"
+
+COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -106,6 +109,18 @@ def get_facilities():
     df = pandas.concat(
         [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
     )
+    council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
+    print(council_districts)
+    df = geopandas.sjoin(
+        geopandas.GeoDataFrame(
+            df,
+            geometry=geopandas.points_from_xy(df.longitude, df.latitude),
+            crs={"init": "epsg:4326"},
+        ),
+        council_districts,
+        op="within",
+        how="left",
+    ).drop(columns=["geometry", "index_right"])
     return df
 
 
