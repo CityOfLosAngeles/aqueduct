@@ -7,6 +7,8 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 1. [COVID-19 Case Data](#covid-19-case-data)
 1. [Homeless Shelter Data](#shelter-data)
 1. [GetHelp Shelter Data](#gethelp-shelter-data)
+1. [Hospital Data](#hospital-data)
+1. [Testing Data](#testing-data)
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
 
 ## Data Sources
@@ -47,6 +49,20 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
+
+## Hospital Data
+
+LA County publishes a daily HavBed report that gives aggregate counts for hospital bed availability for medical/surgical, telemetry, and ICU beds, as well as ventilator counts.
+
+* [Hospital bed availability](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
+
+
+## Testing Data
+
+* [City of LA COVID-19 Tests Administered](http://lahub.maps.arcgis.com/home/item.html?id=d5aed319c0a747c389db893b9cbd772e)
+
+The relevant script is:
+
 
 ## COVID-19 Case Data
 
