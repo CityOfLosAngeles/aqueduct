@@ -256,11 +256,22 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["name"]
-    occupied_beds = integrify(row["totalBeds"] - row["availableBeds"])
+    occupied_beds = integrify(row["totalClients"])
+    occupied_beds_m = integrify(row["MALE"] + row["TRANSGENDER_F_TO_M"])
+    occupied_beds_f = integrify(row["FEMALE"] + row["TRANSGENDER_M_TO_F"])
+    occupied_beds_o = integrify(row["DECLINED"] + row["OTHER"] + row["UNDEFINED"])
+    pets = integrify(row["totalPets"])
+    ada = integrify(row["totalAda"])
     avail_beds = integrify(row["availableBeds"])
     shelter = f"""<b>{shelter_name}</b><br>
     <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Women: {occupied_beds_f}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Men: {occupied_beds_m}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+    Nonbinary/Other/Declined: {occupied_beds_o}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Clients with ADA Needs: {ada}</p>
     """
     return shelter.strip()
 
