@@ -388,26 +388,99 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["name"]
-    occupied_beds = integrify(row["totalClients"])
     occupied_beds_m = integrify(row["MALE"] + row["TRANSGENDER_F_TO_M"])
     occupied_beds_f = integrify(row["FEMALE"] + row["TRANSGENDER_M_TO_F"])
     occupied_beds_o = integrify(row["DECLINED"] + row["OTHER"] + row["UNDEFINED"])
     pets = integrify(row["totalPets"])
     ada = integrify(row["totalAda"])
-    avail_beds = integrify(row["availableBeds"])
     district = row["district"]
-    shelter = f"""<b>{shelter_name}</b><br>
+
+    old_ts = pandas.Timestamp("2020-01-01T00:00:00Z")
+
+    shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
+    shelter_avail = integrify(row["shelter_beds_available"] or 0)
+    shelter_updated = (
+        row["shelter_beds_updated"]
+        if not pandas.isna(row["shelter_beds_updated"])
+        else old_ts
+    )
+
+    trailer_occ = integrify(row["trailers_occupied"] or 0)
+    trailer_avail = integrify(row["trailers_available"] or 0)
+    trailer_updated = (
+        row["trailers_updated"] if not pandas.isna(row["trailers_updated"]) else old_ts
+    )
+
+    safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
+    safe_parking_updated = (
+        row["safe_parking_updated"]
+        if not pandas.isna(row["safe_parking_updated"])
+        else old_ts
+    )
+
+    last_update = max(max(shelter_updated, safe_parking_updated), trailer_updated)
+    last_update = (
+        last_update.tz_convert("US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+        if last_update != old_ts
+        else "Never"
+    )
+
+    entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Women: {occupied_beds_f}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Men: {occupied_beds_m}</p>
+    <i>Latest update: {last_update}</i><br><br>
+
+    <p style="margin-top:2px; margin-bottom: 2px">Total women: {occupied_beds_f}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Total men: {occupied_beds_m}</p>
     <p style="margin-top:2px; margin-bottom: 2px">
-    Nonbinary/Other/Declined: {occupied_beds_o}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Clients with ADA Needs: {ada}</p>
+        Total nonbinary/other/declined: {occupied_beds_o}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Total clients with ADA needs: {ada}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">Total pets: {pets}</p>
+    <br>
     """
-    return shelter.strip()
+
+    if shelter_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Available Shelter Beds: {shelter_avail}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Shelter Beds: {shelter_occ}
+            </p>
+            <br>
+            """
+        )
+    if trailer_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Available Trailers: {trailer_avail}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Trailers: {trailer_occ}
+            </p>
+            <br>
+            """
+        )
+    if safe_parking_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+       <p style="margin-top:2px; margin-bottom: 2px">
+         Occupied Safe Parking: {safe_parking_occ}
+       </p>
+       <br>
+       """
+        )
+
+    entry = entry + "<br>"
+
+    return entry.strip()
 
 
 def email_function(**kwargs):
@@ -415,6 +488,12 @@ def email_function(**kwargs):
     Sends a hourly email with the latest updates from each shelter
     Formatted for use
     """
+    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
+    # The end of the 45 minute schedule interval corresponds to the top
+    # of the hour, so only email during that run.
+    if airflow_timestamp.minute != 45:
+        return True
+
     facilities = kwargs["ti"].xcom_pull(key="facilities", task_ids="load_get_help_data")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
     exec_time = (
@@ -429,28 +508,22 @@ def email_function(**kwargs):
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_body = f"""
-    Shelter Report for {exec_time}.
-    <br>
     <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+    <br>
+    Shelter Report for {exec_time}.
     <br>
 
     The Current Number of Reporting Shelters is
     {integrify(stats_df['n_shelters_status_known'][0])}.
 
-    <br>
+    <br><br>
 
     {tbl}
 
     <br>
 
     """
-    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
-    # The end of the 45 minute schedule interval corresponds to the top
-    # of the hour, so only email during that run.
-    if airflow_timestamp.minute != 45:
-        return True
-
     if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
