@@ -1,20 +1,20 @@
 # City of LA COVID-19 Dashboard README
 
 ## Contents
-We've documented all the data that feeds into the City of LA COVID-19 Dashboard and listed each source in the [Section 1: Data Sources](#data-sources). We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation. It will prevent other entities from "reinventing the wheel". For more technical information on our methodology and workflow, please read through Section 2-5.
+We've documented all the data that feeds into the City of LA COVID-19 Dashboard and listed each source in [Section 1: Data Sources](#data-sources). We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation and avoid the need to "reinvent the wheel". For more technical information on our methodology and workflow, please read through Section 2-7.
 
 1. [Data Sources](#data-sources)
 1. [COVID-19 Case Data](#covid-19-case-data)
 1. [Homeless Shelter Data](#shelter-data)
 1. [GetHelp Shelter Data](#gethelp-shelter-data)
 1. [Hospital Bed and Equipment Availability Data](#hospital-bed-and-equipment-availability-data)
-1. [Testing Data](#testing-data)
+1. [COVID-19 Testing Data](#testing-data)
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
 
 ## Data Sources
 * [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62) and [Mobile Version](http://lahub.maps.arcgis.com/home/item.html?id=e5b46ffbbf8b4f77ae2761b18abbd22c) and FAQs
 
-* [City of LA's COVID-19 ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We welcome collaboration and pull requests on our work!
+* [City of LA's COVID-19 GitHub repo and ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We welcome collaboration and pull requests on our work!
 
 ### COVID-19 Cases
 * [Global province-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580)
@@ -27,7 +27,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=80627302612e49ef8145eac24c61e196)
 
-* The relevant scripts to transform JHU data and add additional columns are: `jhu-to-esri.py` and `jhu-county-to-esri.py`
+* The relevant scripts to transform JHU data and add additional columns are: `jhu-to-esri.py` and `jhu-county-to-esri.py`.
 
 
 ### Shelters (Google Form)
@@ -53,13 +53,13 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 ### Hospital Bed and Equipment Availability
 
-* [Hospital bed and equipment availability](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
+* [Hospital bed and equipment availability feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
 
-### Testing Data
+### COVID-19 Testing
 
-* [City of LA COVID-19 Tests Administered](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf)
+* [City of LA COVID-19 tests administered feature layer](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf)
 
-The relevant script is to transform testing data is: `sync_covid_testing_data.py`.
+* The relevant script is to transform testing data is: `sync_covid_testing_data.py`.
 
 
 ## COVID-19 Case Data
@@ -97,14 +97,14 @@ Our ETLs check JHU data ***every hour***. Our ESRI map layers are public and lis
 
 
 ### Disclaimer
-We are using the Johns Hopkins and New York Times data for our ETL and ESRI feature services. The Johns Hopkins University disclaimer is below:
+We are using the Johns Hopkins University data for our ETL and ESRI feature services. Their disclaimer is below:
 
 This website and its contents herein, including all data, mapping, and analysis (“Website”), copyright 2020 Johns Hopkins University, all rights reserved, is provided to the public strictly for educational and academic research purposes. The Website relies upon publicly available data from multiple sources, that do not always agree. The names of locations correspond with the official designations used by the U.S. State Department, including for Taiwan. The Johns Hopkins University hereby disclaims any and all representations and warranties with respect to the Website, including accuracy, fitness for use, and merchantability. Reliance on the Website for medical guidance or use of the Website in commerce is strictly prohibited.
 
 
 ## Shelter Data
 
-The DAG `shelter-to-esri.py` takes the Rec & Parks (RAP) shelter census (collected at 8 intervals a day) and pushes it into the City of LA GeoHub by merging it with the the official shelter data from LA Sanitation (LASAN) and RAP GIS staff. The report intervals are: 6:30am, 10:30am, 11:30am, 12:30pm, 1:30pm, 2:30pm, 3:30pm, 4:30pm, and 8:30pm. We do some timezone data cleaning and publish.
+The DAG `shelter-to-esri.py` takes the Rec & Parks (RAP) shelter census (collected at 8 intervals a day) and pushes it into the City of LA GeoHub by merging it with the official shelter data from LA Sanitation (LASAN) and RAP GIS staff. The report intervals are: 6:30am, 10:30am, 11:30am, 12:30pm, 1:30pm, 2:30pm, 3:30pm, 4:30pm, and 8:30pm. We do some time-zone data cleaning and publish.
 
 `Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for.
 
@@ -115,7 +115,7 @@ Our ESRI map layers are public and listed in the [Data Sources section](#data-so
 
 ## GetHelp Shelter Data
 
-The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to Esri for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
+The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to ESRI for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
 [this Google spreadsheet](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0). This DAG deliberately outputs similar ESRI feature layers to the above approach using the Google Form. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 ## Hospital Bed and Equipment Availability Data
@@ -130,7 +130,7 @@ The City collects data on the number of tests performed and test kits available 
 
 ## Prior Updates to Workflow
 ### COVID-19 Case Data
-**4/1/2020 update:** To reconcile the mutiple schemas from JHU and NYT for our US table, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs.
+**4/1/2020 update:** To reconcile the multiple schemas from JHU and NYT for our US table, we use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs.
 
 * **US:** Use NYT county-level time-series data up through 3/31. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals.
 
