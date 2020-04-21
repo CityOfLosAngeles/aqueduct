@@ -16,4 +16,4 @@ s3fs==0.4.0
 seaborn==0.9.0
 sodapy==2.0.0
 tableauserverclient==0.9
-xlrd=1.1
+xlrd==1.1
