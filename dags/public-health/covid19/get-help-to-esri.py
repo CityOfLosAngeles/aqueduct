@@ -340,7 +340,11 @@ def email_function(**kwargs):
     if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
-        email_list = ["itadata@lacity.org"]
+        email_list = [
+            "itadata@lacity.org",
+            "jimmy.kim@lacity.org",
+            "rap.dutyofficer@lacity.org",
+        ]
 
     send_email(
         to=email_list,
