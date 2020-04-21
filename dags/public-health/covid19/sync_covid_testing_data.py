@@ -5,7 +5,6 @@ import datetime
 
 import arcgis
 import pandas as pd
-
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
@@ -40,7 +39,7 @@ def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 16),
+    "start_date": datetime.datetime(2020, 4, 22),
     "email": [
         "ian.rose@lacity.org",
         "hunter.owens@lacity.org",
