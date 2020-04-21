@@ -2,3 +2,4 @@ apache-airflow[celery,postgres,hive,hdfs,jdbc,async,password,crypto,github_enter
 redis==3.3.11
 hiredis==1.0.0
 Werkzeug==0.16.0
+WTForms==2.2.1
