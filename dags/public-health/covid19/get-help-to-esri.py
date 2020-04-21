@@ -1,4 +1,5 @@
 import datetime
+import functools
 import os
 from urllib.parse import urljoin
 
@@ -109,6 +110,9 @@ def get_facilities():
     df = pandas.concat(
         [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
     )
+    df = pandas.concat(
+        [df, df.apply(lambda x: get_facility_program_status(x["id"]), axis=1)], axis=1,
+    )
     council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
     df = geopandas.GeoDataFrame(
         df,
@@ -127,11 +131,123 @@ def get_facilities():
 
 
 def get_client_stats(facility_id):
+    """
+    Given a facility ID, get the current client status.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID
+
+    Returns
+    =======
+
+    A pandas.Series with the client statistics for the facility.
+    """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request(
         f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
     )
     return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+
+
+def agg_facility_programs(program_list, match):
+    """
+    Aggregate the current bed occupancy data for a list of programs,
+    filtering by program name.
+
+    Parameters
+    ==========
+
+    program_list: list
+        A list of programs of the shape returned by the GetHelp
+        facility-programs endpoint.
+
+    match: str
+        A string which is tested for inclusion in a program name
+        to decide whether to include a program in the statistics.
+
+    Returns
+    =======
+    A tuple with occupied, available, and the last updated timestamp.
+    """
+    # A sentinel timestamp which is used to determine whether
+    # any programs actually matched.
+    sentinel = pandas.Timestamp("2020-01-01T00:00:00Z")
+    lastUpdated = functools.reduce(
+        lambda x, y: (
+            max(x, pandas.Timestamp(y["lastUpdated"]))
+            if match in y["name"].lower()
+            else x
+        ),
+        program_list,
+        sentinel,
+    )
+    if lastUpdated == sentinel:
+        # No programs matched, return early
+        return None
+
+    occupied = functools.reduce(
+        lambda x, y: x
+        + (y["bedsOccupied"] + y["bedsPending"] if match in y["name"].lower() else 0),
+        program_list,
+        0,
+    )
+    total = functools.reduce(
+        lambda x, y: x + (y["bedsTotal"] if match in y["name"].lower() else 0),
+        program_list,
+        0,
+    )
+    available = total - occupied
+    return occupied, available, lastUpdated
+
+
+def get_facility_program_status(facility_id):
+    """
+    Get the most recent status for a facility, broken
+    up into shelter beds, trailers, and safe parking.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID.
+
+    Returns
+    =======
+    A pandas.Series with program statistics for shelter beds, safe
+    parking, and trailer beds.
+    """
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(f"facilities/{facility_id}/facility-programs", TOKEN)
+    data = {}
+
+    shelter_beds = agg_facility_programs(res, "shelter bed")
+    if shelter_beds:
+        data = {
+            "shelter_beds_occupied": shelter_beds[0],
+            "shelter_beds_available": shelter_beds[1],
+            "shelter_beds_updated": shelter_beds[2],
+        }
+    trailers = agg_facility_programs(res, "trailer")
+    if trailers:
+        data = {
+            "trailers_occupied": trailers[0],
+            "trailers_available": trailers[1],
+            "trailers_updated": trailers[2],
+            **data,
+        }
+    safe_parking = agg_facility_programs(res, "parking")
+    if safe_parking:
+        data = {
+            "safe_parking_occupied": safe_parking[0],
+            "safe_parking_available": safe_parking[1],
+            "safe_parking_updated": safe_parking[2],
+            **data,
+        }
+
+    return pandas.Series(data)
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
@@ -163,10 +279,8 @@ def get_facility_history(facility_id, start_date=None, end_date=None):
     if not len(programs):
         return history
 
-    shelter_programs = programs[programs.name.str.lower().str.contains("shelter bed")]
-
     # Get the history stats for the shelter bed programs
-    for _, program in shelter_programs.iterrows():
+    for _, program in programs.iterrows():
         program_id = program["id"]
         res = make_get_help_request(
             f"facilities/{facility_id}/facility-programs/{program_id}/statistics",
