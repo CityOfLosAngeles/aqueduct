@@ -52,7 +52,7 @@ default_args = {
     "retry_delay": datetime.timedelta(days=1),
 }
 
-cron_string = "0 11-23 * * *"
+cron_string = "0 0-6,18-23 * * *"
 
 dag = DAG(
     "covid-testing-data", default_args=default_args, schedule_interval=cron_string
