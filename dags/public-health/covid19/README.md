@@ -7,7 +7,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 1. [COVID-19 Case Data](#covid-19-case-data)
 1. [Homeless Shelter Data](#shelter-data)
 1. [GetHelp Shelter Data](#gethelp-shelter-data)
-1. [Hospital Data](#hospital-data)
+1. [Hospital Bed and Equipment Availability Data](#hospital-bed-and-equipment-availability-data)
 1. [Testing Data](#testing-data)
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
 
@@ -31,9 +31,9 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 
 ### Shelters (Google Form)
-* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=2085cb061b834faf9fa5244b033b41ec) - a representation of the form data combined with known geospatial information, with minimal transformations.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=427065531b3c40de9747d67011f6a5b2) - a representation of the form data combined with known geospatial information, with minimal transformations.
 
-* [Shelter current feature layer](http://lahub.maps.arcgis.com/home/item.html?id=1b73a44e811549ec8952a1ff24e51cd0) - the most recent report for each shelter, along with computed occupancy numbers.
+* [Shelter current feature layer](http://lahub.maps.arcgis.com/home/item.html?id=312f7b5d49d04a9b9c384ab89de4a5a7) - the most recent report for each shelter, along with computed occupancy numbers.
 
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=8679b3973d254aca9e247ffa85b012dd) - a table that has 2 data points, the number of unique shelters in the entire dataset and the number of unique shelters that filed reports in the last 24 hours. Either of these can be used to produce open shelter numbers.
 
@@ -42,30 +42,24 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 ### Shelters (GetHelp)
 
-* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=0235713060e74aca95f34ae2b861285f) - a time-series of historical bed count data for all of the active shelters.
+* [Shelter time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=bd17014f8a954681be8c383acdb6c8008) - a time-series of historical bed count data for all of the active shelters.
 
-* [Current shelter feature layer](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
+* [Current shelter feature layer](http://lahub.maps.arcgis.com/home/item.html?id=52d003cf3761d4e04b6c65e35702ac72a) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
 
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
 
-## Hospital Bed and Equipment Availability
 
-The County issues a [daily pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google sheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing), and uploaded to the [Bed Availability V4 Layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) on ESRI for dashboarding and analysis.
-LA County publishes a daily HavBed report that gives aggregate counts for hospital bed availability for medical/surgical, telemetry, and ICU beds, as well as ventilator counts.
+### Hospital Bed and Equipment Availability
 
-* [Hospital bed availability](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
+* [Hospital bed and equipment availability](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
 
+### Testing Data
 
-## Testing Data
+* [City of LA COVID-19 Tests Administered](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf)
 
-* [City of LA COVID-19 Tests Administered](http://lahub.maps.arcgis.com/home/item.html?id=d5aed319c0a747c389db893b9cbd772e)
-
-The relevant script is:
-
-The City collects data on the number of tests performed and test kits available from its several COVID-19 testing sites. The DAG `sync_covid_testing_data.py` collects the data from a [Google sheet](https://docs.google.com/spreadsheets/d/1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/edit?usp=sharing), and uploads it to the [LA COVID Testing V5 Layer](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf) on ESRI for dashboarding and analysis.
-
+The relevant script is to transform testing data is: `sync_covid_testing_data.py`.
 
 
 ## COVID-19 Case Data
@@ -116,12 +110,22 @@ The DAG `shelter-to-esri.py` takes the Rec & Parks (RAP) shelter census (collect
 
 Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
 
-Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+Our ESRI map layers are public and listed in the [Data Sources section](#data-sources). Once GetHelp is ready to use, we will deprecate the Google Form.
+
 
 ## GetHelp Shelter Data
 
 The City will be transitioning shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to Esri for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
 [this Google spreadsheet](https://docs.google.com/spreadsheets/d/1z2i0-aPrw-dqSJLpkXrDRIJS_1noqxxEM0QBwl6yLTU/edit?ts=5e8e13e3#gid=0). This DAG deliberately outputs similar ESRI feature layers to the above approach using the Google Form. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+
+## Hospital Bed and Equipment Availability Data
+
+LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google sheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing), and uploaded as an ESRI feature layer. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+
+
+## Testing Data
+
+The City collects data on the number of tests performed and test kits available from its several COVID-19 testing sites. The DAG `sync_covid_testing_data.py` syncs the data from a [Google sheet](https://docs.google.com/spreadsheets/d/1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/edit?usp=sharing) with our ESRI feature layer. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ## Prior Updates to Workflow
@@ -191,3 +195,4 @@ The County issues a [daily pdf survey](http://file.lacounty.gov/SDSInter/dhs/107
 * [Hunter Owens](https://github.com/hunterowens)
 * [Ian Rose](https://github.com/ian-r-rose)
 * [Tiffany Chu](https://github.com/tiffanychu90)
+* [Brendan Bailey](https://github.com/brendanbailey)
