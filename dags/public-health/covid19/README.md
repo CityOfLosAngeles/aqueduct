@@ -115,6 +115,14 @@ Specifically, it produces:
 * [Current shelters](http://lahub.maps.arcgis.com/home/item.html?id=51a351e257374ed3a7776612c7eb0c6a) - A snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
 * [Shelter stats](http://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - Some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
+## Testing Data
+
+The City collects data on the number of tests performed and test kits available from its several COVID-19 testing sites. The DAG `sync_covid_testing_data.py` collects the data from a [Google sheet](https://docs.google.com/spreadsheets/d/1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/edit?usp=sharing), and uploads it to the [LA COVID Testing V5 Layer](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf) on ESRI for dashboarding and analysis.
+
+## Hospital Bed and Equipment Availability
+
+The County issues a [daily pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google sheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing), and uploaded to the [Bed Availability V4 Layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) on ESRI for dashboarding and analysis.
+
 ## Contributors
 * [Hunter Owens](https://github.com/hunterowens)
 * [Ian Rose](https://github.com/ian-r-rose)
