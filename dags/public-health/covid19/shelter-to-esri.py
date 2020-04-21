@@ -174,13 +174,15 @@ def format_table(row):
     male_tot = integrify(row["Total Men Currently at Site"])
     female_total = integrify(row["Total Women Currently at Site"])
     pets = integrify(row["Number of Pets Currently at Site"])
-    ems_calls = integrify(row["Number of EMS Calls"])
-    ems_transport = integrify(row["Number of EMS Transports"])
-    num_quar = integrify(row["Clients currently quarantined"])
-    trail_open = integrify(row["Number of Open Trailers"])
-    trail_occupied_women = integrify(row["Total Women Currently in Trailer"])
-    trail_occupied_men = integrify(row["Total Men Currently in Trailer"])
-    trail_occupied_pets = integrify(row["Total Pets Currently in Trailer"])
+
+    ems_calls = row["Number of EMS Calls"]
+    ems_transport = row["Number of EMS Transports"]
+    num_quar = row["Clients currently quarantined"]
+
+    trail_open = row["Number of Open Trailers"]
+    trail_occupied_women = row["Total Women Currently in Trailer"]
+    trail_occupied_men = row["Total Men Currently in Trailer"]
+    trail_occupied_pets = row["Total Pets Currently in Trailer"]
 
     shelter = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
@@ -190,28 +192,55 @@ def format_table(row):
     <p style="margin-top:2px; margin-bottom: 2px">Male: {male_tot}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Female: {female_total}</p>
     <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p><br>
-    <i>Trailer Details: </i>
-    <p style="margin-top:2px; margin-bottom: 2px">Trailer Open Beds: {trail_open}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-      Trailer Occupied - Men: {trail_occupied_men}
-    </p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-      Trailer Occupied - Women: {trail_occupied_women}
-    </p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-      Trailer Occupied - Pets: {trail_occupied_pets}
-    </p><br>
-    <i>Health Details: </i>
-    <p style="margin-top:2px; margin-bottom: 2px">Number of EMS Calls: {ems_calls}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-      Number of EMS Transports: {ems_transport}
-    </p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-      Number of currently quarantined clients: {num_quar}
-    </p>
-
-
     """
+
+    if any(
+        [
+            not pd.isna(trail_open),
+            not pd.isna(trail_occupied_women),
+            not pd.isna(trail_occupied_men),
+            not pd.isna(trail_occupied_pets),
+        ]
+    ):
+        shelter = (
+            shelter
+            + f"""
+            <i>Trailer Details: </i>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Trailer Open Beds: {integrify(trail_open)}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Trailers Occupied - Men: {integrify(trail_occupied_men)}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Trailers Occupied - Women: {integrify(trail_occupied_women)}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Trailers Occupied - Pets: {integrify(trail_occupied_pets)}
+            </p>
+            <br>
+        """
+        )
+
+    if any([not pd.isna(ems_calls), not pd.isna(ems_transport), not pd.isna(num_quar)]):
+        shelter = (
+            shelter
+            + f"""
+            <i>Health Details: </i>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Number of EMS Calls: {integrify(ems_calls)}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Number of EMS Transports: {integrify(ems_transport)}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Number of currently quarantined clients: {integrify(num_quar)}
+            </p>
+            <br>
+            """
+        )
+
+    shelter = shelter + "<br>"
     return shelter.strip()
 
 
@@ -244,7 +273,7 @@ def email_function(**kwargs):
     The Current Number of Reporting Shelters is
     {stats_df['Number_of_Reporting_Shelters'][0]}.
 
-    <br>
+    <br><br><br>
 
     {tbl}
 
