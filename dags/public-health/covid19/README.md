@@ -50,8 +50,9 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
 
-## Hospital Data
+## Hospital Bed and Equipment Availability
 
+The County issues a [daily pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google sheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing), and uploaded to the [Bed Availability V4 Layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) on ESRI for dashboarding and analysis.
 LA County publishes a daily HavBed report that gives aggregate counts for hospital bed availability for medical/surgical, telemetry, and ICU beds, as well as ventilator counts.
 
 * [Hospital bed availability](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
@@ -62,6 +63,9 @@ LA County publishes a daily HavBed report that gives aggregate counts for hospit
 * [City of LA COVID-19 Tests Administered](http://lahub.maps.arcgis.com/home/item.html?id=d5aed319c0a747c389db893b9cbd772e)
 
 The relevant script is:
+
+The City collects data on the number of tests performed and test kits available from its several COVID-19 testing sites. The DAG `sync_covid_testing_data.py` collects the data from a [Google sheet](https://docs.google.com/spreadsheets/d/1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/edit?usp=sharing), and uploads it to the [LA COVID Testing V5 Layer](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf) on ESRI for dashboarding and analysis.
+
 
 
 ## COVID-19 Case Data
