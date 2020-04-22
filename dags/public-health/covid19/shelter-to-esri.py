@@ -279,7 +279,7 @@ def email_function(**kwargs):
 
     """
 
-    if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20]:
+    if pd.Timestamp.now(tz="US/Pacific").hour in [8, 12, 15, 17, 20] and False:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
         email_list = ["itadata@lacity.org"]
