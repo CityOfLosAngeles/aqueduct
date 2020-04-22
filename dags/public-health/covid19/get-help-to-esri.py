@@ -426,22 +426,59 @@ def format_table(row):
 
     shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
     shelter_avail = integrify(row["shelter_beds_available"] or 0)
+    shelter_men = integrify(
+        row["shelter_beds_MALE"] + row["shelter_beds_TRANSGENDER_F_TO_M"]
+    )
+    shelter_women = integrify(
+        row["shelter_beds_FEMALE"] + row["shelter_beds_TRANSGENDER_M_TO_F"]
+    )
+    shelter_nonbinary = integrify(
+        row["shelter_beds_DECLINED"]
+        + row["shelter_beds_OTHER"]
+        + row["shelter_beds_UNDEFINED"]
+    )
+    shelter_pets = integrify(row["shelter_beds_totalPets"])
+    shelter_ada = integrify(row["shelter_beds_totalAda"])
     shelter_updated = (
-        row["shelter_beds_updated"]
-        if not pandas.isna(row["shelter_beds_updated"])
+        row["shelter_beds_last_updated"]
+        if not pandas.isna(row["shelter_beds_last_updated"])
         else old_ts
     )
 
     trailer_occ = integrify(row["trailers_occupied"] or 0)
     trailer_avail = integrify(row["trailers_available"] or 0)
+    trailer_men = integrify(row["trailers_MALE"] + row["trailers_TRANSGENDER_F_TO_M"])
+    trailer_women = integrify(
+        row["trailers_FEMALE"] + row["trailers_TRANSGENDER_M_TO_F"]
+    )
+    trailer_nonbinary = integrify(
+        row["trailers_DECLINED"] + row["trailers_OTHER"] + row["trailers_UNDEFINED"]
+    )
+    trailer_pets = integrify(row["trailers_totalPets"])
+    trailer_ada = integrify(row["trailers_totalAda"])
     trailer_updated = (
-        row["trailers_updated"] if not pandas.isna(row["trailers_updated"]) else old_ts
+        row["trailers_last_updated"]
+        if not pandas.isna(row["trailers_last_updated"])
+        else old_ts
     )
 
     safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
+    safe_parking_men = integrify(
+        row["safe_parking_MALE"] + row["safe_parking_TRANSGENDER_F_TO_M"]
+    )
+    safe_parking_women = integrify(
+        row["safe_parking_FEMALE"] + row["safe_parking_TRANSGENDER_M_TO_F"]
+    )
+    safe_parking_nonbinary = integrify(
+        row["safe_parking_DECLINED"]
+        + row["safe_parking_OTHER"]
+        + row["safe_parking_UNDEFINED"]
+    )
+    safe_parking_pets = integrify(row["safe_parking_totalPets"])
+    safe_parking_ada = integrify(row["safe_parking_totalAda"])
     safe_parking_updated = (
-        row["safe_parking_updated"]
-        if not pandas.isna(row["safe_parking_updated"])
+        row["safe_parking_last_updated"]
+        if not pandas.isna(row["safe_parking_last_updated"])
         else old_ts
     )
 
@@ -478,6 +515,21 @@ def format_table(row):
             <p style="margin-top:2px; margin-bottom: 2px">
                 Occupied Shelter Beds: {shelter_occ}
             </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {shelter_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {shelter_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {shelter_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {shelter_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {shelter_ada}
+            </p>
             <br>
             """
         )
@@ -491,16 +543,46 @@ def format_table(row):
             <p style="margin-top:2px; margin-bottom: 2px">
                 Occupied Trailers: {trailer_occ}
             </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {trailer_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {trailer_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {trailer_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {trailer_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {trailer_ada}
+            </p>
             <br>
             """
         )
-    if safe_parking_updated != old_ts:
+    if safe_parking_updated != old_ts and safe_parking_occ != "0":
         entry = (
             entry
             + f"""
-       <p style="margin-top:2px; margin-bottom: 2px">
-         Occupied Safe Parking: {safe_parking_occ}
-       </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Safe Parking: {safe_parking_occ}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {safe_parking_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {safe_parking_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {safe_parking_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {safe_parking_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {safe_parking_ada}
+            </p>
        <br>
        """
         )
