@@ -1,4 +1,5 @@
 import datetime
+import functools
 import os
 from urllib.parse import urljoin
 
@@ -16,7 +17,7 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "2d003cf3761d4e04b6c65e35702ac72a"
+FACILITIES_ID = "8b0c147a40144ccb82a89cafe9b2fcd0"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
@@ -109,6 +110,9 @@ def get_facilities():
     df = pandas.concat(
         [df, df.apply(lambda x: get_client_stats(x["id"]), axis=1)], axis=1,
     )
+    df = pandas.concat(
+        [df, df.apply(lambda x: get_facility_program_status(x["id"]), axis=1)], axis=1,
+    )
     council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
     df = geopandas.GeoDataFrame(
         df,
@@ -127,11 +131,123 @@ def get_facilities():
 
 
 def get_client_stats(facility_id):
+    """
+    Given a facility ID, get the current client status.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID
+
+    Returns
+    =======
+
+    A pandas.Series with the client statistics for the facility.
+    """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request(
         f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
     )
     return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+
+
+def agg_facility_programs(program_list, match):
+    """
+    Aggregate the current bed occupancy data for a list of programs,
+    filtering by program name.
+
+    Parameters
+    ==========
+
+    program_list: list
+        A list of programs of the shape returned by the GetHelp
+        facility-programs endpoint.
+
+    match: str
+        A string which is tested for inclusion in a program name
+        to decide whether to include a program in the statistics.
+
+    Returns
+    =======
+    A tuple with occupied, available, and the last updated timestamp.
+    """
+    # A sentinel timestamp which is used to determine whether
+    # any programs actually matched.
+    sentinel = pandas.Timestamp("2020-01-01T00:00:00Z")
+    lastUpdated = functools.reduce(
+        lambda x, y: (
+            max(x, pandas.Timestamp(y["lastUpdated"]))
+            if match in y["name"].lower()
+            else x
+        ),
+        program_list,
+        sentinel,
+    )
+    if lastUpdated == sentinel:
+        # No programs matched, return early
+        return None
+
+    occupied = functools.reduce(
+        lambda x, y: x
+        + (y["bedsOccupied"] + y["bedsPending"] if match in y["name"].lower() else 0),
+        program_list,
+        0,
+    )
+    total = functools.reduce(
+        lambda x, y: x + (y["bedsTotal"] if match in y["name"].lower() else 0),
+        program_list,
+        0,
+    )
+    available = total - occupied
+    return occupied, available, lastUpdated
+
+
+def get_facility_program_status(facility_id):
+    """
+    Get the most recent status for a facility, broken
+    up into shelter beds, trailers, and safe parking.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID.
+
+    Returns
+    =======
+    A pandas.Series with program statistics for shelter beds, safe
+    parking, and trailer beds.
+    """
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(f"facilities/{facility_id}/facility-programs", TOKEN)
+    data = {}
+
+    shelter_beds = agg_facility_programs(res, "shelter bed")
+    if shelter_beds:
+        data = {
+            "shelter_beds_occupied": shelter_beds[0],
+            "shelter_beds_available": shelter_beds[1],
+            "shelter_beds_updated": shelter_beds[2],
+        }
+    trailers = agg_facility_programs(res, "trailer")
+    if trailers:
+        data = {
+            "trailers_occupied": trailers[0],
+            "trailers_available": trailers[1],
+            "trailers_updated": trailers[2],
+            **data,
+        }
+    safe_parking = agg_facility_programs(res, "parking")
+    if safe_parking:
+        data = {
+            "safe_parking_occupied": safe_parking[0],
+            "safe_parking_available": safe_parking[1],
+            "safe_parking_updated": safe_parking[2],
+            **data,
+        }
+
+    return pandas.Series(data)
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
@@ -163,10 +279,8 @@ def get_facility_history(facility_id, start_date=None, end_date=None):
     if not len(programs):
         return history
 
-    shelter_programs = programs[programs.name.str.lower().str.contains("shelter bed")]
-
     # Get the history stats for the shelter bed programs
-    for _, program in shelter_programs.iterrows():
+    for _, program in programs.iterrows():
         program_id = program["id"]
         res = make_get_help_request(
             f"facilities/{facility_id}/facility-programs/{program_id}/statistics",
@@ -237,7 +351,7 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v2.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v3.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
@@ -274,26 +388,99 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["name"]
-    occupied_beds = integrify(row["totalClients"])
     occupied_beds_m = integrify(row["MALE"] + row["TRANSGENDER_F_TO_M"])
     occupied_beds_f = integrify(row["FEMALE"] + row["TRANSGENDER_M_TO_F"])
     occupied_beds_o = integrify(row["DECLINED"] + row["OTHER"] + row["UNDEFINED"])
     pets = integrify(row["totalPets"])
     ada = integrify(row["totalAda"])
-    avail_beds = integrify(row["availableBeds"])
     district = row["district"]
-    shelter = f"""<b>{shelter_name}</b><br>
+
+    old_ts = pandas.Timestamp("2020-01-01T00:00:00Z")
+
+    shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
+    shelter_avail = integrify(row["shelter_beds_available"] or 0)
+    shelter_updated = (
+        row["shelter_beds_updated"]
+        if not pandas.isna(row["shelter_beds_updated"])
+        else old_ts
+    )
+
+    trailer_occ = integrify(row["trailers_occupied"] or 0)
+    trailer_avail = integrify(row["trailers_available"] or 0)
+    trailer_updated = (
+        row["trailers_updated"] if not pandas.isna(row["trailers_updated"]) else old_ts
+    )
+
+    safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
+    safe_parking_updated = (
+        row["safe_parking_updated"]
+        if not pandas.isna(row["safe_parking_updated"])
+        else old_ts
+    )
+
+    last_update = max(max(shelter_updated, safe_parking_updated), trailer_updated)
+    last_update = (
+        last_update.tz_convert("US/Pacific").strftime("%m-%d-%Y %I:%M%p")
+        if last_update != old_ts
+        else "Never"
+    )
+
+    entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <p style="margin-top:2px; margin-bottom: 2px">Occupied Beds: {occupied_beds}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Available Beds: {avail_beds}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Women: {occupied_beds_f}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Men: {occupied_beds_m}</p>
+    <i>Latest update: {last_update}</i><br><br>
+
+    <p style="margin-top:2px; margin-bottom: 2px">Total women: {occupied_beds_f}</p>
+    <p style="margin-top:2px; margin-bottom: 2px">Total men: {occupied_beds_m}</p>
     <p style="margin-top:2px; margin-bottom: 2px">
-    Nonbinary/Other/Declined: {occupied_beds_o}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Pets: {pets}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Clients with ADA Needs: {ada}</p>
+        Total nonbinary/other/declined: {occupied_beds_o}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Total clients with ADA needs: {ada}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">Total pets: {pets}</p>
+    <br>
     """
-    return shelter.strip()
+
+    if shelter_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Available Shelter Beds: {shelter_avail}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Shelter Beds: {shelter_occ}
+            </p>
+            <br>
+            """
+        )
+    if trailer_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Available Trailers: {trailer_avail}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Trailers: {trailer_occ}
+            </p>
+            <br>
+            """
+        )
+    if safe_parking_updated != old_ts:
+        entry = (
+            entry
+            + f"""
+       <p style="margin-top:2px; margin-bottom: 2px">
+         Occupied Safe Parking: {safe_parking_occ}
+       </p>
+       <br>
+       """
+        )
+
+    entry = entry + "<br>"
+
+    return entry.strip()
 
 
 def email_function(**kwargs):
@@ -301,6 +488,12 @@ def email_function(**kwargs):
     Sends a hourly email with the latest updates from each shelter
     Formatted for use
     """
+    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
+    # The end of the 45 minute schedule interval corresponds to the top
+    # of the hour, so only email during that run.
+    if airflow_timestamp.minute != 45:
+        return True
+
     facilities = kwargs["ti"].xcom_pull(key="facilities", task_ids="load_get_help_data")
     stats_df = kwargs["ti"].xcom_pull(key="stats_df", task_ids="load_get_help_data")
     exec_time = (
@@ -315,29 +508,23 @@ def email_function(**kwargs):
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
     email_body = f"""
-    Shelter Report for {exec_time}.
-    <br>
     <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
+    <br>
+    Shelter Report for {exec_time}.
     <br>
 
     The Current Number of Reporting Shelters is
     {integrify(stats_df['n_shelters_status_known'][0])}.
 
-    <br>
+    <br><br>
 
     {tbl}
 
     <br>
 
     """
-    airflow_timestamp = pandas.to_datetime(kwargs["ts"]).tz_convert("US/Pacific")
-    # The end of the 45 minute schedule interval corresponds to the top
-    # of the hour, so only email during that run.
-    if airflow_timestamp.minute != 45:
-        return True
-
-    if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20] and False:
+    if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20]:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
         email_list = [
@@ -348,7 +535,7 @@ def email_function(**kwargs):
 
     send_email(
         to=email_list,
-        subject=f"""GETHELPTEST: Shelter Stats for {exec_time}""",
+        subject=f"""Shelter Stats for {exec_time}""",
         html_content=email_body,
     )
     return True
