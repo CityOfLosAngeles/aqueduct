@@ -17,7 +17,7 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "8b0c147a40144ccb82a89cafe9b2fcd0"
+FACILITIES_ID = "56974c9b3861473d9f9daade875b64b4"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
@@ -152,13 +152,43 @@ def get_client_stats(facility_id):
     return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
 
 
-def agg_facility_programs(program_list, match):
+def get_program_client_stats(facility_id, program_id):
+    """
+    Given a facility ID and a program ID, get the current client status.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID
+
+    program_id: int
+        The program ID
+
+    Returns
+    =======
+
+    A pandas.Series with the client statistics for the facility program.
+    """
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(
+        f"facilities/{facility_id}/facility-programs/{program_id}/client-statistics",
+        TOKEN,
+        paginated=False,
+    )
+    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+
+
+def agg_facility_programs(facility_id, program_list, match, prefix):
     """
     Aggregate the current bed occupancy data for a list of programs,
     filtering by program name.
 
     Parameters
     ==========
+
+    facility_id: int
+        The facility id.
 
     program_list: list
         A list of programs of the shape returned by the GetHelp
@@ -168,14 +198,17 @@ def agg_facility_programs(program_list, match):
         A string which is tested for inclusion in a program name
         to decide whether to include a program in the statistics.
 
+    prefix:
+        A string to prefix series labels with.
+
     Returns
     =======
-    A tuple with occupied, available, and the last updated timestamp.
+    A pandas.Series with the aggregated statistics for the matching facility progra,s.
     """
     # A sentinel timestamp which is used to determine whether
     # any programs actually matched.
     sentinel = pandas.Timestamp("2020-01-01T00:00:00Z")
-    lastUpdated = functools.reduce(
+    last_updated = functools.reduce(
         lambda x, y: (
             max(x, pandas.Timestamp(y["lastUpdated"]))
             if match in y["name"].lower()
@@ -184,7 +217,7 @@ def agg_facility_programs(program_list, match):
         program_list,
         sentinel,
     )
-    if lastUpdated == sentinel:
+    if last_updated == sentinel:
         # No programs matched, return early
         return None
 
@@ -200,7 +233,22 @@ def agg_facility_programs(program_list, match):
         0,
     )
     available = total - occupied
-    return occupied, available, lastUpdated
+    client_stats = functools.reduce(
+        lambda x, y: x.add(
+            get_program_client_stats(facility_id, y["id"]), fill_value=0,
+        )
+        if match in y["name"].lower()
+        else x,
+        program_list,
+        pandas.Series(),
+    )
+    return pandas.Series(
+        {
+            prefix + "occupied": occupied,
+            prefix + "available": available,
+            prefix + "last_updated": last_updated,
+        }
+    ).append(client_stats.rename(lambda x: prefix + x))
 
 
 def get_facility_program_status(facility_id):
@@ -221,33 +269,12 @@ def get_facility_program_status(facility_id):
     """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request(f"facilities/{facility_id}/facility-programs", TOKEN)
-    data = {}
-
-    shelter_beds = agg_facility_programs(res, "shelter bed")
-    if shelter_beds:
-        data = {
-            "shelter_beds_occupied": shelter_beds[0],
-            "shelter_beds_available": shelter_beds[1],
-            "shelter_beds_updated": shelter_beds[2],
-        }
-    trailers = agg_facility_programs(res, "trailer")
-    if trailers:
-        data = {
-            "trailers_occupied": trailers[0],
-            "trailers_available": trailers[1],
-            "trailers_updated": trailers[2],
-            **data,
-        }
-    safe_parking = agg_facility_programs(res, "parking")
-    if safe_parking:
-        data = {
-            "safe_parking_occupied": safe_parking[0],
-            "safe_parking_available": safe_parking[1],
-            "safe_parking_updated": safe_parking[2],
-            **data,
-        }
-
-    return pandas.Series(data)
+    shelter_beds = agg_facility_programs(
+        facility_id, res, "shelter bed", "shelter_beds_"
+    )
+    trailers = agg_facility_programs(facility_id, res, "trailer", "trailers_")
+    safe_parking = agg_facility_programs(facility_id, res, "parking", "safe_parking_")
+    return pandas.concat([shelter_beds, trailers, safe_parking])
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
@@ -351,7 +378,7 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v3.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v4.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
@@ -399,22 +426,59 @@ def format_table(row):
 
     shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
     shelter_avail = integrify(row["shelter_beds_available"] or 0)
+    shelter_men = integrify(
+        row["shelter_beds_MALE"] + row["shelter_beds_TRANSGENDER_F_TO_M"]
+    )
+    shelter_women = integrify(
+        row["shelter_beds_FEMALE"] + row["shelter_beds_TRANSGENDER_M_TO_F"]
+    )
+    shelter_nonbinary = integrify(
+        row["shelter_beds_DECLINED"]
+        + row["shelter_beds_OTHER"]
+        + row["shelter_beds_UNDEFINED"]
+    )
+    shelter_pets = integrify(row["shelter_beds_totalPets"])
+    shelter_ada = integrify(row["shelter_beds_totalAda"])
     shelter_updated = (
-        row["shelter_beds_updated"]
-        if not pandas.isna(row["shelter_beds_updated"])
+        row["shelter_beds_last_updated"]
+        if not pandas.isna(row["shelter_beds_last_updated"])
         else old_ts
     )
 
     trailer_occ = integrify(row["trailers_occupied"] or 0)
     trailer_avail = integrify(row["trailers_available"] or 0)
+    trailer_men = integrify(row["trailers_MALE"] + row["trailers_TRANSGENDER_F_TO_M"])
+    trailer_women = integrify(
+        row["trailers_FEMALE"] + row["trailers_TRANSGENDER_M_TO_F"]
+    )
+    trailer_nonbinary = integrify(
+        row["trailers_DECLINED"] + row["trailers_OTHER"] + row["trailers_UNDEFINED"]
+    )
+    trailer_pets = integrify(row["trailers_totalPets"])
+    trailer_ada = integrify(row["trailers_totalAda"])
     trailer_updated = (
-        row["trailers_updated"] if not pandas.isna(row["trailers_updated"]) else old_ts
+        row["trailers_last_updated"]
+        if not pandas.isna(row["trailers_last_updated"])
+        else old_ts
     )
 
     safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
+    safe_parking_men = integrify(
+        row["safe_parking_MALE"] + row["safe_parking_TRANSGENDER_F_TO_M"]
+    )
+    safe_parking_women = integrify(
+        row["safe_parking_FEMALE"] + row["safe_parking_TRANSGENDER_M_TO_F"]
+    )
+    safe_parking_nonbinary = integrify(
+        row["safe_parking_DECLINED"]
+        + row["safe_parking_OTHER"]
+        + row["safe_parking_UNDEFINED"]
+    )
+    safe_parking_pets = integrify(row["safe_parking_totalPets"])
+    safe_parking_ada = integrify(row["safe_parking_totalAda"])
     safe_parking_updated = (
-        row["safe_parking_updated"]
-        if not pandas.isna(row["safe_parking_updated"])
+        row["safe_parking_last_updated"]
+        if not pandas.isna(row["safe_parking_last_updated"])
         else old_ts
     )
 
@@ -451,6 +515,21 @@ def format_table(row):
             <p style="margin-top:2px; margin-bottom: 2px">
                 Occupied Shelter Beds: {shelter_occ}
             </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {shelter_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {shelter_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {shelter_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {shelter_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {shelter_ada}
+            </p>
             <br>
             """
         )
@@ -464,16 +543,46 @@ def format_table(row):
             <p style="margin-top:2px; margin-bottom: 2px">
                 Occupied Trailers: {trailer_occ}
             </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {trailer_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {trailer_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {trailer_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {trailer_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {trailer_ada}
+            </p>
             <br>
             """
         )
-    if safe_parking_updated != old_ts:
+    if safe_parking_updated != old_ts and safe_parking_occ != "0":
         entry = (
             entry
             + f"""
-       <p style="margin-top:2px; margin-bottom: 2px">
-         Occupied Safe Parking: {safe_parking_occ}
-       </p>
+            <p style="margin-top:2px; margin-bottom: 2px">
+                Occupied Safe Parking: {safe_parking_occ}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Women: {safe_parking_women}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Men: {safe_parking_men}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Nonbinary/other/declined: {safe_parking_nonbinary}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Pets: {safe_parking_pets}
+            </p>
+            <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
+                Clients with ADA needs: {safe_parking_ada}
+            </p>
        <br>
        """
         )
