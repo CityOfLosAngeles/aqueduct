@@ -535,7 +535,7 @@ def email_function(**kwargs):
 
     send_email(
         to=email_list,
-        subject=f"""GETHELPTEST: Shelter Stats for {exec_time}""",
+        subject=f"""Shelter Stats for {exec_time}""",
         html_content=email_body,
     )
     return True
