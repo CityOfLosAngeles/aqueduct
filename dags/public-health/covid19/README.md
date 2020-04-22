@@ -43,7 +43,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * [Hospital bed and equipment availability feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
 
 ### COVID-19 Testing
-* [City of LA COVID-19 tests administered feature layer](http://lahub.maps.arcgis.com/home/item.html?id=f00ffb81e4b848b192bc993cd22e0acf)
+* [City of LA COVID-19 tests administered feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c)
 
 * The relevant script is to transform testing data is: `sync-covid-testing-data.py`.
 

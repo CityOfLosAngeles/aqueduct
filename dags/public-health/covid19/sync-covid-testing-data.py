@@ -24,8 +24,8 @@ def get_data(filename, workbook, sheet_name):
     for i in df["Performed"]:
         temp_value += i
         cumulative.append(temp_value)
-    df["cumulative"] = cumulative
-    df.to_csv(filename, index=False)
+    df["Cumulative"] = cumulative
+    df.to_csv("/tmp/%s" % filename, index=False)
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
@@ -83,7 +83,7 @@ t1 = PythonOperator(
     python_callable=update_covid_testing_data,
     op_kwargs={
         "filename": "COVID_testing_data.csv",
-        "arcfeatureid": "f00ffb81e4b848b192bc993cd22e0acf",
+        "arcfeatureid": "64b91665fef4471dafb6b2ff98daee6c",
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/"
         "export?format=xlsx&#gid=0",
