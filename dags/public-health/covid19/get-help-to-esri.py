@@ -152,13 +152,43 @@ def get_client_stats(facility_id):
     return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
 
 
-def agg_facility_programs(program_list, match):
+def get_program_client_stats(facility_id, program_id):
+    """
+    Given a facility ID and a program ID, get the current client status.
+
+    Parameters
+    ==========
+
+    facility_id: int
+        The facility ID
+
+    program_id: int
+        The program ID
+
+    Returns
+    =======
+
+    A pandas.Series with the client statistics for the facility program.
+    """
+    TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
+    res = make_get_help_request(
+        f"facilities/{facility_id}/facility-programs/{program_id}/client-statistics",
+        TOKEN,
+        paginated=False,
+    )
+    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+
+
+def agg_facility_programs(facility_id, program_list, match, prefix):
     """
     Aggregate the current bed occupancy data for a list of programs,
     filtering by program name.
 
     Parameters
     ==========
+
+    facility_id: int
+        The facility id.
 
     program_list: list
         A list of programs of the shape returned by the GetHelp
@@ -168,14 +198,17 @@ def agg_facility_programs(program_list, match):
         A string which is tested for inclusion in a program name
         to decide whether to include a program in the statistics.
 
+    prefix:
+        A string to prefix series labels with.
+
     Returns
     =======
-    A tuple with occupied, available, and the last updated timestamp.
+    A pandas.Series with the aggregated statistics for the matching facility progra,s.
     """
     # A sentinel timestamp which is used to determine whether
     # any programs actually matched.
     sentinel = pandas.Timestamp("2020-01-01T00:00:00Z")
-    lastUpdated = functools.reduce(
+    last_updated = functools.reduce(
         lambda x, y: (
             max(x, pandas.Timestamp(y["lastUpdated"]))
             if match in y["name"].lower()
@@ -184,7 +217,7 @@ def agg_facility_programs(program_list, match):
         program_list,
         sentinel,
     )
-    if lastUpdated == sentinel:
+    if last_updated == sentinel:
         # No programs matched, return early
         return None
 
@@ -200,7 +233,22 @@ def agg_facility_programs(program_list, match):
         0,
     )
     available = total - occupied
-    return occupied, available, lastUpdated
+    client_stats = functools.reduce(
+        lambda x, y: x.add(
+            get_program_client_stats(facility_id, y["id"]), fill_value=0,
+        )
+        if match in y["name"].lower()
+        else x,
+        program_list,
+        pandas.Series(),
+    )
+    return pandas.Series(
+        {
+            prefix + "occupied": occupied,
+            prefix + "available": available,
+            prefix + "last_updated": last_updated,
+        }
+    ).append(client_stats.rename(lambda x: prefix + x))
 
 
 def get_facility_program_status(facility_id):
@@ -221,33 +269,12 @@ def get_facility_program_status(facility_id):
     """
     TOKEN = Variable.get("GETHELP_OAUTH_PASSWORD")
     res = make_get_help_request(f"facilities/{facility_id}/facility-programs", TOKEN)
-    data = {}
-
-    shelter_beds = agg_facility_programs(res, "shelter bed")
-    if shelter_beds:
-        data = {
-            "shelter_beds_occupied": shelter_beds[0],
-            "shelter_beds_available": shelter_beds[1],
-            "shelter_beds_updated": shelter_beds[2],
-        }
-    trailers = agg_facility_programs(res, "trailer")
-    if trailers:
-        data = {
-            "trailers_occupied": trailers[0],
-            "trailers_available": trailers[1],
-            "trailers_updated": trailers[2],
-            **data,
-        }
-    safe_parking = agg_facility_programs(res, "parking")
-    if safe_parking:
-        data = {
-            "safe_parking_occupied": safe_parking[0],
-            "safe_parking_available": safe_parking[1],
-            "safe_parking_updated": safe_parking[2],
-            **data,
-        }
-
-    return pandas.Series(data)
+    shelter_beds = agg_facility_programs(
+        facility_id, res, "shelter bed", "shelter_beds_"
+    )
+    trailers = agg_facility_programs(facility_id, res, "trailer", "trailers_")
+    safe_parking = agg_facility_programs(facility_id, res, "parking", "safe_parking_")
+    return pandas.concat([shelter_beds, trailers, safe_parking])
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
