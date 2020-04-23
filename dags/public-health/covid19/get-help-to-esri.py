@@ -415,15 +415,14 @@ def format_table(row):
     for each Shelter row
     """
     shelter_name = row["name"]
-    occupied_beds_m = integrify(row["MALE"] + row["TRANSGENDER_F_TO_M"])
-    occupied_beds_f = integrify(row["FEMALE"] + row["TRANSGENDER_M_TO_F"])
-    occupied_beds_o = integrify(row["DECLINED"] + row["OTHER"] + row["UNDEFINED"])
-    pets = integrify(row["totalPets"])
-    ada = integrify(row["totalAda"])
     district = row["district"]
 
+    # a sentinel timestamp to use as comparisons against updates,
+    # this should be older than any of the program updateds, and
+    # can be used to determine if it has never been updated.
     old_ts = pandas.Timestamp("2020-01-01T00:00:00Z")
 
+    # Shelter stats
     shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
     shelter_avail = integrify(row["shelter_beds_available"] or 0)
     shelter_men = integrify(
@@ -445,6 +444,7 @@ def format_table(row):
         else old_ts
     )
 
+    # Trailer stats
     trailer_occ = integrify(row["trailers_occupied"] or 0)
     trailer_avail = integrify(row["trailers_available"] or 0)
     trailer_men = integrify(row["trailers_MALE"] + row["trailers_TRANSGENDER_F_TO_M"])
@@ -462,6 +462,7 @@ def format_table(row):
         else old_ts
     )
 
+    # Safe parking stats
     safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
     safe_parking_men = integrify(
         row["safe_parking_MALE"] + row["safe_parking_TRANSGENDER_F_TO_M"]
@@ -482,6 +483,7 @@ def format_table(row):
         else old_ts
     )
 
+    # Determine the most recent update across all programs
     last_update = max(max(shelter_updated, safe_parking_updated), trailer_updated)
     last_update = (
         last_update.tz_convert("US/Pacific").strftime("%m-%d-%Y %I:%M%p")
@@ -489,20 +491,10 @@ def format_table(row):
         else "Never"
     )
 
+    # Create the email body.
     entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
     <i>Latest update: {last_update}</i><br><br>
-
-    <p style="margin-top:2px; margin-bottom: 2px">Total women: {occupied_beds_f}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">Total men: {occupied_beds_m}</p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-        Total nonbinary/other/declined: {occupied_beds_o}
-    </p>
-    <p style="margin-top:2px; margin-bottom: 2px">
-        Total clients with ADA needs: {ada}
-    </p>
-    <p style="margin-top:2px; margin-bottom: 2px">Total pets: {pets}</p>
-    <br>
     """
 
     if shelter_updated != old_ts:
