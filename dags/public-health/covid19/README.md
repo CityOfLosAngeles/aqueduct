@@ -26,6 +26,8 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=80627302612e49ef8145eac24c61e196)
 
+* [LA City Cases Table](https://lahub.maps.arcgis.com/home/item.html?id=3941e4d2120545a59ca3874757e58580)
+
 * The relevant scripts to transform JHU data and add additional columns are: `jhu-to-esri.py` and `jhu-county-to-esri.py`.
 
 
@@ -79,6 +81,7 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 
 Our ETLs check JHU data ***every hour***. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
+Additionally, a [Google Sheet](https://docs.google.com/spreadsheets/d/1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/edit?usp=sharing) is manually maintained for the City of Los Angeles Cases information based on what the LA County Department of Public Health reports, and is updated by the `sync-la-cases-data.py` DAG.
 
 ### Disclaimer
 We are using the Johns Hopkins University data for our ETL and ESRI feature services. Their disclaimer is below:
@@ -92,7 +95,7 @@ The City uses a shelter data management to a system run by [GetHelp](https://get
 
 
 ## Hospital Bed and Equipment Availability Data
-LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and uploaded as an ESRI feature layer. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and updated via the `sync-bed-availability-data.py` DAG. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ## Testing Data
