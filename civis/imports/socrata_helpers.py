@@ -1,3 +1,6 @@
+"""
+Helpers functions for the socrata import
+"""
 import pandas as pd
 import os
 import civis
@@ -13,6 +16,7 @@ from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, quer
 
 LOG = logging.getLogger(__name__)
 
+
 def _parse_metadata(metadata: dict, paths: dict):
     out = {}
     for name, path in paths.items():
@@ -22,6 +26,7 @@ def _parse_metadata(metadata: dict, paths: dict):
             metadata,
         )
     return out
+
 
 def _store_and_attach_metadata(
     client: APIClient, metadata: dict, metadata_paths: dict, filename: str,
@@ -76,8 +81,6 @@ def _store_and_attach_metadata(
     return file_id, cleaned_metadata
 
 
-
-
 def write_and_attach_jsonvalue(
     json_value: str, name: str, client: APIClient = None,
 ) -> None:
@@ -88,6 +91,7 @@ def write_and_attach_jsonvalue(
         object_type="JSONValue",
         object_id=json_obj.id,
     )
+
 
 def _store_and_attach_dataset(
     client: civis.APIClient, df: pd.DataFrame, filename: str
@@ -174,6 +178,7 @@ def _store_and_attach_metadata(
         write_and_attach_jsonvalue(json_value=value, name=key, client=client)
     return file_id, cleaned_metadata
 
+
 def _read_paginated(
     client, dataset_id: int, page_limit: int = 50000, size_limit: int = None
 ):
@@ -213,4 +218,3 @@ def _read_paginated(
         offset += page_limit
 
     return df
-© 2020 GitHub, Inc.
