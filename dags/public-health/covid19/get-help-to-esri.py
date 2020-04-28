@@ -149,7 +149,11 @@ def get_client_stats(facility_id):
     res = make_get_help_request(
         f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
     )
-    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+    return (
+        pandas.Series({**res, **res["genderStats"]})
+        .drop(["genderStats", "clientEvents"])
+        .astype(int)
+    )
 
 
 def get_program_client_stats(facility_id, program_id):
@@ -176,7 +180,11 @@ def get_program_client_stats(facility_id, program_id):
         TOKEN,
         paginated=False,
     )
-    return pandas.Series({**res, **res["genderStats"]}).drop("genderStats").astype(int)
+    return (
+        pandas.Series({**res, **res["genderStats"]})
+        .drop(["genderStats", "clientEvents"])
+        .astype(int)
+    )
 
 
 def agg_facility_programs(facility_id, program_list, match, prefix):
