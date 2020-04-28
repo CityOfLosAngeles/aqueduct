@@ -11,16 +11,15 @@ from airflow.operators.python_operator import PythonOperator
 
 def get_data(filename, workbook, sheet_name):
     df = pd.read_excel(workbook, sheet_name=sheet_name)
-    df.to_csv("/tmp/%s" % filename, index=False)
+    df.to_csv(filename, index=False)
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
-    filename = "/tmp/%s" % filename
     gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(filename)
-    os.remove("/tmp/%s" % filename)
+    os.remove(filename)
 
 
 default_args = {
@@ -65,8 +64,8 @@ t1 = PythonOperator(
     provide_context=True,
     python_callable=update_la_cases_data,
     op_kwargs={
-        "filename": "LA_Cases_Table.csv",
-        "arcfeatureid": "3941e4d2120545a59ca3874757e58580",
+        "filename": "/tmp/LA_Cases_Table.csv",
+        "arcfeatureid": "412c839a52044aa5a5b115552346e8b5",
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/"
         "export?format=xlsx&#gid=0",
