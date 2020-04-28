@@ -23,7 +23,7 @@ STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
 TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
 
-COUNCIL_DISTRICTS = "dags/public-health/covid19/council-districts.geojson"
+COUNCIL_DISTRICTS = "/home/ec2-user/aqueduct/dags/public-health/covid19/council-districts.geojson"  # noqa: E501
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
