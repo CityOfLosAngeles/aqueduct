@@ -2,7 +2,7 @@
 Pull data from Bed Availability Google Sheet and upload to ESRI
 """
 import datetime
-
+import os
 import arcgis
 import pandas as pd
 from airflow import DAG
@@ -21,12 +21,13 @@ def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(filename)
+    os.remove("/tmp/%s" % filename)
 
 
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": datetime.datetime(2020, 4, 27),
+    "start_date": datetime.datetime(2020, 4, 28),
     "email": [
         "ian.rose@lacity.org",
         "hunter.owens@lacity.org",
