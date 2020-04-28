@@ -23,7 +23,7 @@ STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
 TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
 
-COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
+COUNCIL_DISTRICTS = "dags/public-health/covid19/council-districts.geojson"
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -113,7 +113,9 @@ def get_facilities():
     df = pandas.concat(
         [df, df.apply(lambda x: get_facility_program_status(x["id"]), axis=1)], axis=1,
     )
-    council_districts = geopandas.read_file(COUNCIL_DISTRICTS)[["geometry", "District"]]
+    council_districts = geopandas.read_file(COUNCIL_DISTRICTS, driver="GeoJSON")[
+        ["geometry", "District"]
+    ]
     df = geopandas.GeoDataFrame(
         df,
         geometry=geopandas.points_from_xy(df.longitude, df.latitude),
