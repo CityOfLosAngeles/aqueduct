@@ -290,9 +290,10 @@ def get_facility_program_status(facility_id):
     shelter_beds = agg_facility_programs(
         facility_id, res, "shelter bed", "shelter_beds_"
     )
+    isolation = agg_facility_programs(facility_id, res, "isolation", "isolation_")
     trailers = agg_facility_programs(facility_id, res, "trailer", "trailers_")
     safe_parking = agg_facility_programs(facility_id, res, "parking", "safe_parking_")
-    return pandas.concat([shelter_beds, trailers, safe_parking])
+    return pandas.concat([shelter_beds, isolation, trailers, safe_parking])
 
 
 def get_facility_history(facility_id, start_date=None, end_date=None):
