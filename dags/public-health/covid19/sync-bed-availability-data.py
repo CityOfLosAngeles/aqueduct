@@ -12,16 +12,15 @@ from airflow.operators.python_operator import PythonOperator
 
 def get_data(filename, workbook):
     df = pd.read_csv(workbook)
-    df.to_csv("/tmp/%s" % filename, index=False)
+    df.to_csv(filename, index=False)
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
-    filename = "/tmp/%s" % filename
     gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
     gis_item = gis.content.get(arcfeatureid)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(filename)
-    os.remove("/tmp/%s" % filename)
+    os.remove(filename)
 
 
 default_args = {
@@ -67,7 +66,7 @@ t1 = PythonOperator(
     provide_context=True,
     python_callable=update_bed_availability_data,
     op_kwargs={
-        "filename": "Bed_Availability_Data.csv",
+        "filename": "/tmp/Bed_Availability_Data.csv",
         "arcfeatureid": "956e105f422a4c1ba9ce5d215b835951",
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/"
