@@ -26,8 +26,9 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=80627302612e49ef8145eac24c61e196)
 
-* The relevant scripts to transform JHU data and add additional columns are: `jhu-to-esri.py` and `jhu-county-to-esri.py`.
+* [City of LA case count time-series table](https://lahub.maps.arcgis.com/home/item.html?id=3941e4d2120545a59ca3874757e58580)
 
+* The relevant scripts are: `jhu-to-esri.py`, `jhu-county-to-esri.py`, and `sync-la-cases-data.py`.
 
 ### Shelters
 * [Shelter time-series feature layer](https://lahub.maps.arcgis.com/home/item.html?id=bd17014f8a954681be8c383acdb6c808) - a time-series of historical bed count data for all of the active shelters.
@@ -37,7 +38,6 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * [Shelter stats](https://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
-
 
 ### Hospital Bed and Equipment Availability
 * [Hospital bed and equipment availability feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
@@ -77,7 +77,9 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 * **US:** Use JHU's historical county-level time-series data up through 4/8. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals and change in cases from prior day.
 * **MSA Comparison:** An automatic comparison of number of cases per million for key metropolitan statistical areas (MSAs) to power our chart in the dashboard. These key MSAs (and CBSA FIPS codes) are: Los Angeles/Orange County (31080), San Francisco/San Jose (41860, 41940), New York City (35620), Seattle (42660), and Detroit (19820).
 
-Our ETLs check JHU data ***every hour***. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+Additionally, a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/) is manually maintained for the number of cases that fall within the City of LA. Since the City of LA falls within LA County, the LA County Department of Public Health reports neighborhood breakdowns of case counts, with a subtotal for the City of LA. We sync the Google spreadsheet with our ESRI layer in the `sync-la-cases-data.py` DAG.
+
+Our ETLs check JHU data ***every hour***. Our  Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ### Disclaimer
@@ -92,7 +94,7 @@ The City uses a shelter data management to a system run by [GetHelp](https://get
 
 
 ## Hospital Bed and Equipment Availability Data
-LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and uploaded as an ESRI feature layer. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and updated via the `sync-bed-availability-data.py` DAG. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ## Testing Data
