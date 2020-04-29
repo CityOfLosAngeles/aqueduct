@@ -17,7 +17,7 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "56974c9b3861473d9f9daade875b64b4"
+FACILITIES_ID = "63e3696eddc94262a472d8c99a58780c"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
@@ -397,7 +397,7 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v4.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v5.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
