@@ -11,6 +11,12 @@ from airflow.operators.python_operator import PythonOperator
 
 def get_data(filename, workbook, sheet_name):
     df = pd.read_excel(workbook, sheet_name=sheet_name)
+    df = df.loc[:, ["Date", "City of LA Cases", "City of LA New Cases"]]
+    df.dropna(
+        subset=["City of LA Cases", "City of LA New Cases"], how="all", inplace=True
+    )
+    df["City of LA Cases"] = df["City of LA Cases"].astype(int)
+    df["City of LA New Cases"] = df["City of LA New Cases"].astype(int)
     df.to_csv(filename, index=False)
 
 
@@ -64,8 +70,8 @@ t1 = PythonOperator(
     provide_context=True,
     python_callable=update_la_cases_data,
     op_kwargs={
-        "filename": "/tmp/LA_Cases_Table.csv",
-        "arcfeatureid": "412c839a52044aa5a5b115552346e8b5",
+        "filename": "/tmp/LA_Cases_Table_V2.csv",
+        "arcfeatureid": "1d1e4679a94e43e884b97a0488fc04cf",
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/"
         "export?format=xlsx&#gid=0",
