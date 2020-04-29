@@ -160,7 +160,7 @@ def get_client_stats(facility_id):
         f"facilities/{facility_id}/client-statistics", TOKEN, paginated=False,
     )
     return (
-        pandas.Series({**res, **res["genderStats"]})
+        pandas.Series({**res, **res["genderStats"], **res["clientEvents"]})
         .drop(["genderStats", "clientEvents"])
         .astype(int)
     )
@@ -191,7 +191,7 @@ def get_program_client_stats(facility_id, program_id):
         paginated=False,
     )
     return (
-        pandas.Series({**res, **res["genderStats"]})
+        pandas.Series({**res, **res["genderStats"], **res["clientEvents"]})
         .drop(["genderStats", "clientEvents"])
         .astype(int)
     )
