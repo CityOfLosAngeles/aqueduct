@@ -494,7 +494,7 @@ def format_table(row):
     # Create the email body.
     entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <i>Last Change in Program: {last_update}</i><br><br>
+    <i>Last Change at site: {last_update}</i><br><br>
     """
 
     if shelter_updated != old_ts:
