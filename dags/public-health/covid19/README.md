@@ -26,7 +26,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [LA County Dept of Public Health neighborhood-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=80627302612e49ef8145eac24c61e196)
 
-* [City of LA case count time-series table](https://lahub.maps.arcgis.com/home/item.html?id=412c839a52044aa5a5b115552346e8b5)
+* [City of LA case count time-series table](https://lahub.maps.arcgis.com/home/item.html?id=1d1e4679a94e43e884b97a0488fc04cf)
 
 * The relevant scripts are: `jhu-to-esri.py`, `jhu-county-to-esri.py`, and `sync-la-cases-data.py`.
 
