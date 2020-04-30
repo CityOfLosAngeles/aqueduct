@@ -623,6 +623,7 @@ def email_function(**kwargs):
         facilities.apply(format_table, axis=1).str.replace("\n", "").values
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
+
     email_body = f"""
     <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
@@ -633,6 +634,12 @@ def email_function(**kwargs):
     The Current Number of Reporting Shelters is
     {integrify(stats_df['n_shelters_status_known'][0])}.
 
+    <b>Summary Statistics</b>
+    Beds:
+    {format_program_client_stats(facilities.sum(), "shelter_beds_")}
+
+    Trailers:
+    {format_program_client_stats(facilities.sum()), "trailers_"}
     <br><br>
 
     {tbl}
@@ -640,6 +647,7 @@ def email_function(**kwargs):
     <br>
 
     """
+
     if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20]:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
