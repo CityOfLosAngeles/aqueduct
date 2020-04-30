@@ -45,6 +45,8 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password):
     socrata_client = Socrata(
         "data.lacity.org", None, username=socrata_username, password=socrata_password
     )
+    
+    socrata_client.timeout = 50
 
     raw_metadata = socrata_client.get_metadata(dataset_id)
 
