@@ -1,7 +1,7 @@
 # Aqueduct
 A shared pipeline for building ETLs and batch jobs that we run at the City of LA for Data Science Projects. Built on Apache Airflow.
 
-Lots of the following code and documentation was based on the excellent [Mozilla-Telemetry](https://raw.githubusercontent.com/mozilla/telemetry-airflow/master/README.md) project. 
+Lots of the following code and documentation was based on the excellent [Mozilla-Telemetry](https://raw.githubusercontent.com/mozilla/telemetry-airflow/master/README.md) project.
 
 ## Structure
 
