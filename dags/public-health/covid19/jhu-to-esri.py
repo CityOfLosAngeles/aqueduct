@@ -16,7 +16,7 @@ from arcgis.gis import GIS
 # This ref is to the last commit that JHU had before they
 # switched to not providing county-level data. We use it
 # below to backfill some case counts in a county-level time series.
-JHU_COUNTY_BRANCH = "35a425a1da92c3a05c9b33341a9ca154c1e47b07"
+# JHU_BRANCH = "35a425a1da92c3a05c9b33341a9ca154c1e47b07"
 
 # URL to JHU confirmed cases time series.
 CASES_URL = (
@@ -38,10 +38,6 @@ RECOVERED_URL = (
     "csse_covid_19_data/csse_covid_19_time_series/"
     "time_series_covid19_recovered_global.csv"
 )
-
-# Feature IDs for county level time series and current status
-time_series_featureid = "d61924e1d8344a09a1298707cfff388c"
-current_featureid = "523a372d71014bd491064d74e3eba2c7"
 
 # Feature IDs for state/province level time series and current status
 jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
@@ -70,21 +66,6 @@ def parse_columns(df):
         else:
             id_vars.append(c)
     return id_vars, dates
-
-
-def rename_geog_cols(df):
-    """
-    # Rename geography columns to be the same as future schemas
-    """
-    df.rename(
-        columns={
-            "Country/Region": "Country_Region",
-            "Province/State": "Province_State",
-            "Long": "Lon",
-        },
-        inplace=True,
-    )
-    return df
 
 
 def coerce_integer(df):
@@ -142,20 +123,6 @@ def load_jhu_global_time_series(branch="master"):
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
         drop=True
     )
-
-
-def load_esri_time_series(gis):
-    """
-    Load the county-level time series dataframe from the ESRI feature server.
-    """
-    gis_item = gis.content.get(time_series_featureid)
-    layer = gis_item.layers[0]
-    sdf = arcgis.features.GeoAccessor.from_layer(layer)
-    # Drop some ESRI faf
-    sdf = sdf.drop(columns=["ObjectId", "SHAPE"]).drop_duplicates(
-        subset=["date", "county"], keep="last"
-    )
-    return sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
 
 
 def load_global_covid_data():
