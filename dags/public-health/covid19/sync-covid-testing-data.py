@@ -2,7 +2,7 @@
 Pull data from MOPS COVID Dashboard and upload to ESRI
 """
 import datetime
-
+import pytz
 import arcgis
 import pandas as pd
 from airflow import DAG
@@ -17,7 +17,12 @@ def get_data(filename, workbook, sheet_name):
     df.reset_index(level=0, inplace=True)
     df.columns = ["Date", "Performed", "Test Kit Inventory"]
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-    df = df.loc[df["Date"].dt.date < datetime.datetime.now().date()]
+    df = df.loc[
+        df["Date"].dt.date
+        < datetime.datetime.now()
+        .astimezone(pytz.timezone("America/Los_Angeles"))
+        .date()
+    ]
     df.sort_values("Date", inplace=True)
     cumulative = []
     temp_value = 0
