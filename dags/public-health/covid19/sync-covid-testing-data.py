@@ -30,6 +30,8 @@ def get_data(filename, workbook, sheet_name):
         temp_value += i
         cumulative.append(temp_value)
     df["Cumulative"] = cumulative
+    df["Performed"] = df["Performed"].astype(int)
+    df["Cumulative"] = df["Cumulative"].astype(int)
     df.to_csv("/tmp/%s" % filename, index=False)
 
 
