@@ -635,11 +635,11 @@ def email_function(**kwargs):
     {integrify(stats_df['n_shelters_status_known'][0])}.
 
     <b>Summary Statistics</b>
-    Beds:
+    Shelter Beds:
     {format_program_client_stats(facilities.sum(), "shelter_beds_")}
 
     Trailers:
-    {format_program_client_stats(facilities.sum()), "trailers_"}
+    {format_program_client_stats(facilities.sum(), "trailers_")}
     <br><br>
 
     {tbl}
