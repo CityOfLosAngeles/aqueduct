@@ -180,7 +180,7 @@ def _store_and_attach_metadata(
 
 
 def _read_paginated(
-    client, dataset_id: int, page_limit: int = 50000, size_limit: int = None
+    client, dataset_id: int, page_limit: int = 50000, size_limit: int = None, where: str = None
 ):
     df = pd.DataFrame()
     offset = 0
@@ -192,6 +192,7 @@ def _read_paginated(
             content_type="csv",
             exclude_system_fields=False,
             offset=offset,
+            where = where
         )
 
         if not results[1:]:
