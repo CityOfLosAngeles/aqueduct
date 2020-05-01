@@ -16,7 +16,6 @@ from arcgis.gis import GIS
 # This ref is to the last commit that JHU had before they
 # switched to not providing county-level data. We use it
 # below to backfill some case counts in a county-level time series.
-# JHU_BRANCH = "35a425a1da92c3a05c9b33341a9ca154c1e47b07"
 
 # URL to JHU confirmed cases time series.
 CASES_URL = (
@@ -117,7 +116,9 @@ def load_jhu_global_time_series(branch="master"):
 
     # join
     df = df.assign(
-        number_of_deaths=deaths_df.deaths, number_of_recovered=recovered_df.recovered,
+        number_of_deaths=deaths_df.deaths,
+        number_of_recovered=recovered_df.recovered,
+        date=pd.to_datetime(df.date).dt.tz_localize("UTC"),
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
