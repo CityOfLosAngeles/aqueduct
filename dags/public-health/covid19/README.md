@@ -16,17 +16,17 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * [City of LA's COVID-19 GitHub repo and ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We welcome collaboration and pull requests on our work!
 
 ### COVID-19 Cases
-* [Global province-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580)
+* [Global province-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
 
-* [Global province-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59)
+* [Global province-level current date's feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=6f3f214220f443b2beed8d1374b02cf7)
 
-* [US county-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2)
+* [US county-level time-series feature layer](http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=8aba663239fc428f8bcdc48e213e3172)
 
-* [Comparison of metropolitan infection rates table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv). Our crosswalk was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html).
+* [Comparison of metropolitan infection rates table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv), which was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html).
 
 * [LA County Dept of Public Health (DPH) neighborhood-level current date's feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233) and [LA County DPH county total for current date](https://lahub.maps.arcgis.com/home/item.html?id=55c2f06850fd46508be313de03b3a591)
 
-* [City of LA case count time-series table](https://lahub.maps.arcgis.com/home/item.html?id=1d1e4679a94e43e884b97a0488fc04cf)
+* [City of LA case count time-series table](https://lahub.maps.arcgis.com/home/item.html?id=1d1e4679a94e43e884b97a0488fc04cf) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=7175fba373f541a7a19df56b6a0617f4)
 
 * The relevant scripts are: `jhu-to-esri.py`, `jhu-county-to-esri.py`, and `sync-la-cases-data.py`.
 
@@ -40,10 +40,10 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
 
 ### Hospital Bed and Equipment Availability
-* [Hospital bed and equipment availability feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951)
+* [Hospital bed and equipment availability feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=3da1eb3e13a14743973c96b945bd1117)
 
 ### COVID-19 Testing
-* [City of LA COVID-19 tests administered feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c)
+* [City of LA COVID-19 tests administered feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=158dab4a07b04ecb8d47fea1746303ac)
 
 * The relevant script is to transform testing data is: `sync-covid-testing-data.py`.
 
