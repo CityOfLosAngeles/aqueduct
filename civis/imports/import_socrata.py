@@ -76,6 +76,10 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
             # Optionally start table upload
             LOG.info(f"Storing data in table {table_name} on database {database}")
             print("writing table")
+            run_id = os.environ["CIVIS_RUN_ID"]
+            job_id = os.environ["CIVIS_JOB_ID"]
+            dataset["civis_job_id"] = job_id
+            dataset["civis_run_id"] = run_id
             table_upload = civis.io.dataframe_to_civis(
                 dataset, database=database, table=table_name, existing_table_rows=existing_table_rows
             ).result()
