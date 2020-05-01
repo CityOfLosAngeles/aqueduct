@@ -11,7 +11,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
 
 ## Data Sources
-* [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62) and [Mobile Version](http://lahub.maps.arcgis.com/home/item.html?id=e5b46ffbbf8b4f77ae2761b18abbd22c) and FAQs
+* [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62) and [Mobile Version](http://lahub.maps.arcgis.com/home/item.html?id=e5b46ffbbf8b4f77ae2761b18abbd22c) and [FAQs](https://docs.google.com/document/d/1U96_d1LTabeWl6uZv97ZEVKaKYse_UdebzO_6gAfNAc/)
 
 * [City of LA's COVID-19 GitHub repo and ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We welcome collaboration and pull requests on our work!
 
