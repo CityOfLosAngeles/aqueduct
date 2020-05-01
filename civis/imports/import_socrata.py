@@ -21,7 +21,7 @@ from socrata_helpers import (
 LOG = logging.getLogger(__name__)
 
 
-def main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause):
+def main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause, existing_table_rows = 'drop'):
     """
     Read in dataset from Socrata and write output to Platform
     Parameters
@@ -36,6 +36,11 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
         username for socrata account, required for private data sets
     socrata_password: str, optional
         password for socrata account, required for private data sets
+    where_clause: str, optional
+        SoQL for filtering dataset
+    existing_table_rows: str, optional
+        options to pass to dataframe_to_civis command
+        
     Outputs
     ------
     Adds data as file output
@@ -72,7 +77,7 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
             LOG.info(f"Storing data in table {table_name} on database {database}")
             print("writing table")
             table_upload = civis.io.dataframe_to_civis(
-                dataset, database=database, table=table_name, existing_table_rows="drop"
+                dataset, database=database, table=table_name, existing_table_rows=existing_table_rows
             ).result()
             LOG.info(f"using {table_upload}")
 
@@ -105,6 +110,7 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
 
 if __name__ == "__main__":
     dataset_id = os.environ["dataset_id"]
+    existing_table_rows = os.environ["existing_table_rows"]
     if "table_name" in list(os.environ.keys()) and "database" in list(
         os.environ.keys()
     ):
@@ -123,4 +129,4 @@ if __name__ == "__main__":
         where_clause = os.environ["where_clause"]
     else:
         where_clause = None
-    main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause)
+    main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause, existing_table_rows)
