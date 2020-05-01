@@ -16,7 +16,7 @@ from arcgis.gis import GIS
 # This ref is to the last commit that JHU had before they
 # switched to not providing county-level data. We use it
 # below to backfill some case counts in a county-level time series.
-JHU_COUNTY_BRANCH = "a3e83c7bafdb2c3f310e2a0f6651126d9fe0936f"
+JHU_COUNTY_BRANCH = "35a425a1da92c3a05c9b33341a9ca154c1e47b07"
 
 # URL to JHU confirmed cases time series.
 CASES_URL = (
@@ -53,22 +53,6 @@ max_record_count = 6_000_000
 # but then convert to UTC since that is what AGOL expects. When the feature layer
 # is viewed in a dashboard it is converted back to local time.
 date = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
-
-# Columns expected for our county level timeseries.
-columns = [
-    "state",
-    "county",
-    "date",
-    "latitude",
-    "longitude",
-    "cases",
-    "deaths",
-    "recovered",
-    "travel_based",
-    "locally_acquired",
-    "ca_total",
-    "non_scag_total",
-]
 
 
 def parse_columns(df):
@@ -118,10 +102,6 @@ def coerce_integer(df):
         "cases",
         "deaths",
         "recovered",
-        "travel_based",
-        "locally_acquired",
-        "ca_total",
-        "non_scag_total",
     ]
     new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
     return df.assign(**new_cols)
