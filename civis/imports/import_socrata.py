@@ -21,7 +21,7 @@ from socrata_helpers import (
 LOG = logging.getLogger(__name__)
 
 
-def main(dataset_id, table_name, database, socrata_username, socrata_password):
+def main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause):
     """
     Read in dataset from Socrata and write output to Platform
     Parameters
@@ -50,7 +50,7 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password):
 
     raw_metadata = socrata_client.get_metadata(dataset_id)
 
-    dataset = _read_paginated(socrata_client, dataset_id)
+    dataset = _read_paginated(socrata_client, dataset_id, where = where_clause)
 
     civis_client = civis.APIClient()
 
@@ -114,10 +114,13 @@ if __name__ == "__main__":
         table_name = None
         database = None
     if "socrata_username" in list(os.environ.keys()):
-        print("found username")
         socrata_username = os.environ["socrata_username"]
         socrata_password = os.environ["socrata_password"]
     else:
         socrata_username = None
         socrata_password = None
-    main(dataset_id, table_name, database, socrata_username, socrata_password)
+    if "where_clause" in list(os.environ.keys()):
+        where_clause = os.environ["where_clause"]
+    else:
+        where_clause = None
+    main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause)
