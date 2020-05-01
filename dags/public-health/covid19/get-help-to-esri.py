@@ -540,7 +540,7 @@ def format_table(row):
     # Create the email body.
     entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <i>Last Change at site: {last_update}</i><br><br>
+    <i>Last change at site: {last_update}</i><br><br>
     """
 
     if shelter_updated != old_ts:
@@ -623,8 +623,17 @@ def email_function(**kwargs):
         facilities.apply(format_table, axis=1).str.replace("\n", "").values
     )
     tbl = tbl.replace("""'\n '""", "").lstrip(""" [' """).rstrip(""" '] """)
+
+    # Get some top-level summary statistics
+    summary = facilities.sum()
+    shelter_occ = integrify(summary["shelter_beds_occupied"] or 0)
+    shelter_avail = integrify(summary["shelter_beds_available"] or 0)
+    trailer_occ = integrify(summary["trailers_occupied"] or 0)
+    trailer_avail = integrify(summary["trailers_available"] or 0)
+    safe_parking_occ = integrify(summary["safe_parking_occupied"] or 0)
+
     email_body = f"""
-    <b>PLEASE DO NOT REPLY TO THIS EMAIL </b>
+    <h3><b>PLEASE DO NOT REPLY TO THIS EMAIL </b></h3>
     <p>Questions should be sent directly to rap.dutyofficer@lacity.org</p>
     <br>
     Shelter Report for {exec_time}.
@@ -632,14 +641,41 @@ def email_function(**kwargs):
 
     The Current Number of Reporting Shelters is
     {integrify(stats_df['n_shelters_status_known'][0])}.
-
     <br><br>
+
+    <h3><b>System Summary</b></h3>
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Available Shelter Beds: {shelter_avail}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Occupied Shelter Beds: {shelter_occ}
+    </p>
+    {format_program_client_stats(summary, "shelter_beds_")}
+    <br>
+
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Available Trailers: {trailer_avail}
+    </p>
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Occupied Trailers: {trailer_occ}
+    </p>
+    {format_program_client_stats(summary, "trailers_")}
+    <br>
+
+    <p style="margin-top:2px; margin-bottom: 2px">
+        Occupied Safe Parking: {safe_parking_occ}
+    </p>
+    {format_program_client_stats(summary, "safe_parking_")}
+    <br><br>
+
+    <h3><b>Individual Facilities</b></h3>
 
     {tbl}
 
     <br>
 
     """
+
     if airflow_timestamp.hour + 1 in [8, 12, 15, 17, 20]:
         email_list = ["rap-shelter-updates@lacity.org"]
     else:
