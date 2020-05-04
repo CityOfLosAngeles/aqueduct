@@ -118,7 +118,7 @@ def load_jhu_global_time_series(branch="master"):
     df = df.assign(
         number_of_deaths=deaths_df.deaths,
         number_of_recovered=recovered_df.recovered,
-        date=pd.to_datetime(df.date).dt.tz_localize("UTC"),
+        date=pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC"),
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
@@ -170,7 +170,7 @@ def load_jhu_global_current(**kwargs):
     df = df.assign(
         number_of_deaths=deaths_df.deaths,
         number_of_recovered="",
-        date=pd.to_datetime(df.date).dt.tz_localize("UTC"),
+        date=pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC"),
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
@@ -196,10 +196,14 @@ def load_global_covid_data():
     # Append
     df = historical_df.append(today_df, sort=False)
 
-    df = df.assign(
-        number_of_cases=pd.to_numeric(df.number_of_cases),
-        number_of_deaths=pd.to_numeric(df.number_of_deaths),
-        number_of_recovered=pd.to_numeric(df.number_of_recovered),
+    df = (
+        df.assign(
+            number_of_cases=pd.to_numeric(df.number_of_cases),
+            number_of_deaths=pd.to_numeric(df.number_of_deaths),
+            number_of_recovered=pd.to_numeric(df.number_of_recovered),
+        )
+        .sort_values(["date", "Country/Region", "Province/State"])
+        .reset_index(drop=True)
     )
 
     # Output to CSV
