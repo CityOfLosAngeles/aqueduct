@@ -126,7 +126,10 @@ def load_jhu_global_time_series(branch="master"):
         .dt.normalize()
         .dt.tz_convert("UTC"),
     ).rename(
-        columms={"Country/Region": "Country_Region", "Province/State": "Province_State"}
+        columns={
+            "Country/Region": "Country_Region",
+            "Province/State": "Province_State",
+        }
     )
 
     return df.sort_values(sort_cols).reset_index(drop=True)
@@ -153,7 +156,7 @@ def load_jhu_global_current(**kwargs):
         .dt.tz_convert("UTC")
     )
     # Drop some ESRI faf
-    df = sdf.drop(columns=["ObjectId", "SHAPE"])
+    df = sdf.drop(columns=["OBJECTID", "SHAPE"])
 
     df = df.assign(
         number_of_cases=pd.to_numeric(df.Confirmed),
