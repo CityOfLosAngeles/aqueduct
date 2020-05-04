@@ -47,7 +47,7 @@ max_record_count = 6_000_000
 # The date at the time of execution. We choose midnight in the US/Pacific timezone,
 # but then convert to UTC since that is what AGOL expects. When the feature layer
 # is viewed in a dashboard it is converted back to local time.
-date = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
+# date = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
 
 
 def parse_columns(df):
@@ -118,7 +118,10 @@ def load_jhu_global_time_series(branch="master"):
     df = df.assign(
         number_of_deaths=deaths_df.deaths,
         number_of_recovered=recovered_df.recovered,
-        date=pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC"),
+        date=pd.to_datetime(df.date)
+        .dt.tz_localize("US/Pacific")
+        .dt.normalize()
+        .dt.tz_convert("UTC"),
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
@@ -152,25 +155,21 @@ def load_jhu_global_current(**kwargs):
     # Drop some ESRI faf
     deaths = deaths.drop(columns=["ObjectId", "SHAPE"])
 
-    # melt cases
-    id_vars, dates = parse_columns(cases)
-    df = pd.melt(
+    df = pd.merge(
         cases,
-        id_vars=id_vars,
-        value_vars=dates,
-        value_name="number_of_cases",
-        var_name="date",
+        deaths,
+        on=["Province/State", "Country/Region", "Lat", "Long", "date"],
+        how="left",
     )
-
-    # melt deaths
-    id_vars, dates = parse_columns(deaths)
-    deaths_df = pd.melt(deaths, id_vars=id_vars, value_vars=dates, value_name="deaths")
 
     # join
     df = df.assign(
-        number_of_deaths=deaths_df.deaths,
-        number_of_recovered="",
-        date=pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC"),
+        number_of_cases=pd.to_numeric(df.number_of_cases),
+        number_of_deaths=pd.to_numeric(df.number_of_deaths),
+        date=pd.to_datetime(df.date)
+        .dt.tz_localize("US/Pacific")
+        .dt.normalize()
+        .dt.tz_convert("UTC"),
     )
 
     return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
@@ -202,7 +201,13 @@ def load_global_covid_data():
             number_of_deaths=pd.to_numeric(df.number_of_deaths),
             number_of_recovered=pd.to_numeric(df.number_of_recovered),
         )
-        .sort_values(["date", "Country/Region", "Province/State"])
+        .rename(
+            columns={
+                "Country/Region": "Country_Region",
+                "Province/State": "Province_State",
+            }
+        )
+        .sort_values(["date", "Country_Region", "Province_State"])
         .reset_index(drop=True)
     )
 
@@ -212,10 +217,7 @@ def load_global_covid_data():
 
     # Also output the most current date as a separate CSV for convenience
     most_recent_date_filename = "/tmp/jhu_covid19_current.csv"
-    current_df = df.assign(date=pd.to_datetime(df.date))
-    current_df[current_df.date == current_df.date.max()].to_csv(
-        most_recent_date_filename, index=False
-    )
+    df[df.date == df.date.max()].to_csv(most_recent_date_filename, index=False)
 
     # Overwrite the existing layers
     gis_item = gis.content.get(jhu_time_series_featureid)
