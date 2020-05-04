@@ -1,6 +1,6 @@
 """
 ETL for COVID-19 Data.
-Pulls from Johns-Hopkins CSSE data as well as local government agencies.
+Pulls from Johns-Hopkins CSSE data.
 """
 import logging
 import os
@@ -13,9 +13,6 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
-# This ref is to the last commit that JHU had before they
-# switched to not providing county-level data. We use it
-# below to backfill some case counts in a county-level time series.
 
 # URL to JHU confirmed cases time series.
 CASES_URL = (
@@ -37,6 +34,9 @@ RECOVERED_URL = (
     "csse_covid_19_data/csse_covid_19_time_series/"
     "time_series_covid19_recovered_global.csv"
 )
+
+# Feature ID for JHU global source data
+JHU_GLOBAL_SOURCE_ID = "c0b356e20b30490c8b8b4c7bb9554e7c"
 
 # Feature IDs for state/province level time series and current status
 jhu_time_series_featureid = "20271474d3c3404d9c79bed0dbd48580"
@@ -126,6 +126,58 @@ def load_jhu_global_time_series(branch="master"):
     )
 
 
+def load_jhu_global_current(**kwargs):
+    """
+    Loads the JHU global current data, transforms it so we are happy with it.
+    """
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    # (1) Load current data from ESRI
+    gis_item = gis.content.get(JHU_GLOBAL_SOURCE_ID)
+    cases_layer = gis_item.layers[1]
+    sdf = arcgis.features.GeoAccessor.from_layer(cases_layer)
+    # ESRI dataframes seem to lose their localization.
+    cases = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    # Drop some ESRI faf
+    cases = cases.drop(columns=["ObjectId", "SHAPE"])
+
+    deaths_layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(deaths_layer)
+    # ESRI dataframes seem to lose their localization.
+    deaths = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
+    # Drop some ESRI faf
+    deaths = deaths.drop(columns=["ObjectId", "SHAPE"])
+
+    # melt cases
+    id_vars, dates = parse_columns(cases)
+    df = pd.melt(
+        cases,
+        id_vars=id_vars,
+        value_vars=dates,
+        value_name="number_of_cases",
+        var_name="date",
+    )
+
+    # melt deaths
+    id_vars, dates = parse_columns(deaths)
+    deaths_df = pd.melt(deaths, id_vars=id_vars, value_vars=dates, value_name="deaths")
+
+    # join
+    df = df.assign(
+        number_of_deaths=deaths_df.deaths,
+        number_of_recovered="",
+        date=pd.to_datetime(df.date).dt.tz_localize("UTC"),
+    )
+
+    return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
+        drop=True
+    )
+
+
 def load_global_covid_data():
     """
     Load global COVID-19 data from JHU.
@@ -136,13 +188,20 @@ def load_global_covid_data():
     arcpassword = arcconnection.password
     gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
 
-    df = load_jhu_global_time_series()
+    historical_df = load_jhu_global_time_series()
+
+    # Bring in the current date's JHU data
+    today_df = load_jhu_global_current()
+
+    # Append
+    df = historical_df.append(today_df, sort=False)
 
     df = df.assign(
         number_of_cases=pd.to_numeric(df.number_of_cases),
         number_of_deaths=pd.to_numeric(df.number_of_deaths),
         number_of_recovered=pd.to_numeric(df.number_of_recovered),
     )
+
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
