@@ -99,7 +99,7 @@ def load_jhu_global_time_series(branch="master"):
     recovered = pd.read_csv(RECOVERED_URL.format(branch))
     # melt cases
     id_vars, dates = parse_columns(cases)
-    df = pd.melt(
+    cases_df = pd.melt(
         cases,
         id_vars=id_vars,
         value_vars=dates,
@@ -118,10 +118,11 @@ def load_jhu_global_time_series(branch="master"):
     )
 
     # join
+    merge_cols = ["Province/State", "Country/Region", "Lat", "Long", "date"]
+    m1 = pd.merge(cases_df, deaths_df, on=merge_cols, how="left")
+    df = pd.merge(m1, recovered_df, on=merge_cols, how="left")
+
     df = df.assign(
-        number_of_cases=pd.to_numeric(df.number_of_cases),
-        number_of_deaths=pd.to_numeric(deaths_df.deaths),
-        number_of_recovered=pd.to_numeric(recovered_df.recovered),
         date=pd.to_datetime(df.date)
         .dt.tz_localize("US/Pacific")
         .dt.normalize()
