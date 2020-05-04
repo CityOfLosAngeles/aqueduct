@@ -79,12 +79,15 @@ def coerce_integer(df):
         return int(float(x)) if not pd.isna(x) else None
 
     cols = [
-        "cases",
-        "deaths",
-        "recovered",
+        "number_of_cases",
+        "number_of_deaths",
+        "number_of_recovered",
     ]
     new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
     return df.assign(**new_cols)
+
+
+sort_cols = ["Country_Region", "Province_State", "date"]
 
 
 def load_jhu_global_time_series(branch="master"):
@@ -122,11 +125,11 @@ def load_jhu_global_time_series(branch="master"):
         .dt.tz_localize("US/Pacific")
         .dt.normalize()
         .dt.tz_convert("UTC"),
+    ).rename(
+        columms={"Country/Region": "Country_Region", "Province/State": "Province_State"}
     )
 
-    return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
-        drop=True
-    )
+    return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 def load_jhu_global_current(**kwargs):
@@ -141,40 +144,37 @@ def load_jhu_global_current(**kwargs):
 
     # (1) Load current data from ESRI
     gis_item = gis.content.get(JHU_GLOBAL_SOURCE_ID)
-    cases_layer = gis_item.layers[1]
-    sdf = arcgis.features.GeoAccessor.from_layer(cases_layer)
+    layer = gis_item.layers[1]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
     # ESRI dataframes seem to lose their localization.
-    cases = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
-    # Drop some ESRI faf
-    cases = cases.drop(columns=["ObjectId", "SHAPE"])
-
-    deaths_layer = gis_item.layers[0]
-    sdf = arcgis.features.GeoAccessor.from_layer(deaths_layer)
-    # ESRI dataframes seem to lose their localization.
-    deaths = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
-    # Drop some ESRI faf
-    deaths = deaths.drop(columns=["ObjectId", "SHAPE"])
-
-    df = pd.merge(
-        cases,
-        deaths,
-        on=["Province/State", "Country/Region", "Lat", "Long", "date"],
-        how="left",
-    )
-
-    # join
-    df = df.assign(
-        number_of_cases=pd.to_numeric(df.number_of_cases),
-        number_of_deaths=pd.to_numeric(df.number_of_deaths),
-        date=pd.to_datetime(df.date)
-        .dt.tz_localize("US/Pacific")
+    sdf = sdf.assign(
+        date=sdf.Last_Update.dt.tz_localize("US/Pacific")
         .dt.normalize()
-        .dt.tz_convert("UTC"),
+        .dt.tz_convert("UTC")
     )
+    # Drop some ESRI faf
+    df = sdf.drop(columns=["ObjectId", "SHAPE"])
 
-    return df.sort_values(["date", "Country/Region", "Province/State"]).reset_index(
-        drop=True
-    )
+    df = df.assign(
+        number_of_cases=pd.to_numeric(df.Confirmed),
+        number_of_recovered=pd.to_numeric(df.Recovered),
+        number_of_deaths=pd.to_numeric(df.Deaths),
+    ).rename(columns={"Long_": "Long"})
+
+    keep_cols = [
+        "Province_State",
+        "Country_Region",
+        "date",
+        "Lat",
+        "Long",
+        "number_of_cases",
+        "number_of_recovered",
+        "number_of_deaths",
+    ]
+
+    df = df[keep_cols]
+
+    return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 def load_global_covid_data():
@@ -201,13 +201,9 @@ def load_global_covid_data():
             number_of_deaths=pd.to_numeric(df.number_of_deaths),
             number_of_recovered=pd.to_numeric(df.number_of_recovered),
         )
-        .rename(
-            columns={
-                "Country/Region": "Country_Region",
-                "Province/State": "Province_State",
-            }
-        )
-        .sort_values(["date", "Country_Region", "Province_State"])
+        .pipe(coerce_integer)
+        .drop_duplicates(subset=sort_cols, keep="last")
+        .sort_values(sort_cols)
         .reset_index(drop=True)
     )
 
