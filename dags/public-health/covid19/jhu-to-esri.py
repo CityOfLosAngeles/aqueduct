@@ -119,8 +119,9 @@ def load_jhu_global_time_series(branch="master"):
 
     # join
     df = df.assign(
-        number_of_deaths=deaths_df.deaths,
-        number_of_recovered=recovered_df.recovered,
+        number_of_cases=pd.to_numeric(df.number_of_cases),
+        number_of_deaths=pd.to_numeric(deaths_df.deaths),
+        number_of_recovered=pd.to_numeric(recovered_df.recovered),
         date=pd.to_datetime(df.date)
         .dt.tz_localize("US/Pacific")
         .dt.normalize()
@@ -156,7 +157,27 @@ def load_jhu_global_current(**kwargs):
         .dt.tz_convert("UTC")
     )
     # Drop some ESRI faf
-    df = sdf.drop(columns=["OBJECTID", "SHAPE"])
+    sdf = sdf.drop(columns=["OBJECTID", "SHAPE"])
+
+    # CSVs report province-level totals for every country except US.
+    global_df = sdf[sdf.Country_Region != "US"]
+    # US should just have 1 observation.
+    us_df = sdf[sdf.Country_Region == "US"]
+    us_totals = (
+        us_df.groupby(["Country_Region", "date"])
+        .agg({"Confirmed": "sum", "Recovered": "sum", "Deaths": "sum"})
+        .assign(Lat=37.0902, Long_=-95.7129,)
+        .reset_index()
+    )
+
+    us_df = pd.merge(
+        us_df.drop(columns=["Lat", "Long_", "Confirmed", "Recovered", "Deaths"]),
+        us_totals,
+        on=["Country_Region", "date"],
+        how="left",
+    )
+
+    df = global_df.append(us_totals, sort=False)
 
     df = df.assign(
         number_of_cases=pd.to_numeric(df.Confirmed),
