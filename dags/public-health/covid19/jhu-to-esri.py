@@ -109,12 +109,22 @@ def load_jhu_global_time_series(branch="master"):
 
     # melt deaths
     id_vars, dates = parse_columns(deaths)
-    deaths_df = pd.melt(deaths, id_vars=id_vars, value_vars=dates, value_name="deaths")
+    deaths_df = pd.melt(
+        deaths,
+        id_vars=id_vars,
+        value_vars=dates,
+        value_name="number_of_deaths",
+        var_name="date",
+    )
 
     # melt recovered
     id_vars, dates = parse_columns(recovered)
     recovered_df = pd.melt(
-        recovered, id_vars=id_vars, value_vars=dates, value_name="recovered"
+        recovered,
+        id_vars=id_vars,
+        value_vars=dates,
+        value_name="number_of_recovered",
+        var_name="date",
     )
 
     # join
