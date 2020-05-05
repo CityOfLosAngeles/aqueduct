@@ -11,11 +11,11 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
 
 ## Data Sources
-* [City of LA COVID-19 Dashboard](http://lahub.maps.arcgis.com/apps/opsdashboard/index.html#/f1c6c7f54f964900aacfa6b76b99eb62) and [Mobile Version](http://lahub.maps.arcgis.com/home/item.html?id=e5b46ffbbf8b4f77ae2761b18abbd22c) and [FAQs](https://docs.google.com/document/d/1U96_d1LTabeWl6uZv97ZEVKaKYse_UdebzO_6gAfNAc/)
+* City of LA COVID-19 Dashboard: [Desktop Version](https://arcg.is/0WqSmb) and [Mobile Version](https://arcg.is/0yD90W0) and [FAQs](https://docs.google.com/document/d/1U96_d1LTabeWl6uZv97ZEVKaKYse_UdebzO_6gAfNAc/)
 
-* [City of LA's COVID-19 GitHub repo and ETL](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We welcome collaboration and pull requests on our work!
+* [City of LA's COVID-19 GitHub repo](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We welcome collaboration and pull requests on our work!
 
-### COVID-19 Cases
+#### COVID-19 Cases
 * Global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
 
 * Global province-level current date's [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=6f3f214220f443b2beed8d1374b02cf7)
@@ -24,13 +24,13 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * Comparison of metropolitan infection rates [feature table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv) was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html).
 
-* LA County Dept of Public Health (DPH) neighborhood-level current date's [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233) and LA County DPH county total for current date [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=55c2f06850fd46508be313de03b3a591)
+* LA County Dept of Public Health (DPH) neighborhood-level current date's [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233) and county-level time-series [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=55c2f06850fd46508be313de03b3a591)
 
 * City of LA case count time-series [feature table](https://lahub.maps.arcgis.com/home/item.html?id=1d1e4679a94e43e884b97a0488fc04cf) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=7175fba373f541a7a19df56b6a0617f4)
 
 * The relevant scripts are: `jhu-to-esri.py`, `jhu-county-to-esri.py`, and `sync-la-cases-data.py`.
 
-### Shelters
+#### Shelters
 * [Shelter time-series feature layer](https://lahub.maps.arcgis.com/home/item.html?id=bd17014f8a954681be8c383acdb6c808) - a time-series of historical bed count data for all of the active shelters.
 
 * [Current shelter feature layer](https://lahub.maps.arcgis.com/home/item.html?id=63e3696eddc94262a472d8c99a58780c) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
@@ -39,10 +39,10 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
 
-### Hospital Bed and Equipment Availability
+#### Hospital Bed and Equipment Availability
 * Hospital bed and equipment availability [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=3da1eb3e13a14743973c96b945bd1117)
 
-### COVID-19 Testing
+#### COVID-19 Testing
 * City of LA COVID-19 tests administered [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=158dab4a07b04ecb8d47fea1746303ac)
 
 * The relevant script is to transform testing data is: `sync-covid-testing-data.py`.
@@ -71,7 +71,7 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 
 
 ### City of LA Workflow
-**4/9/2020 update:** We use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We create one table for the US and one for the rest of the world, called *global*:
+**4/9/2020 update:** We create one table for the US and one for the rest of the world, called *global*:
 
 * **Global:** Use JHU province-level time-series data. The US is a singular observation as a country. Smaller countries report only country-level data, while larger countries like China, Australia, and Canada include province-level data.
 * **US:** Use JHU's historical county-level time-series data up through 4/8. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals and change in cases from prior day.
@@ -90,7 +90,7 @@ This website and its contents herein, including all data, mapping, and analysis 
 
 ## Homeless Shelter Data
 The City uses a shelter data management to a system run by [GetHelp](https://gethelp.com). This includes bed counts, shelter service information, and historical data. The DAG `get-help-to-esri.py` loads shelter data from the GetHelp shelter management platform and uploads it to ESRI for GIS analysis and dashboarding. API documentation for the GetHelp system can be found in
-[this Google spreadsheet](https://docs.google.com/spreadsheets/d/1n08OgJ6BCFnbSxGMyY9v9vDFN8jqz_xgZEk7x7-vUUA/edit?usp=sharing/#gid=864625912). This DAG deliberately outputs similar ESRI feature layers to the above approach using the Google Form. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+[this Google spreadsheet](https://docs.google.com/spreadsheets/d/1n08OgJ6BCFnbSxGMyY9v9vDFN8jqz_xgZEk7x7-vUUA/edit?usp=sharing/#gid=864625912). Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ## Hospital Bed and Equipment Availability Data
