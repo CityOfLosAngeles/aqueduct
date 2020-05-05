@@ -226,9 +226,22 @@ def load_global_covid_data():
 
     # Bring in the current date's JHU data
     today_df = load_jhu_global_current()
+    coordinates = today_df[
+        ["Province_State", "Country_Region", "Lat", "Long"]
+    ].drop_duplicates()
 
     # Append
     df = historical_df.append(today_df, sort=False)
+
+    # Merge in lat/lon coordinates
+    # There are differences between GitHub CSV and feature layer. Use feature layer's.
+    df = pd.merge(
+        df.drop(columns=["Lat", "Long"]),
+        coordinates,
+        on=["Province_State", "Country_Region"],
+        how="left",
+        validate="m:1",
+    )
 
     df = (
         df.assign(
