@@ -630,7 +630,7 @@ def email_function(**kwargs):
     shelter_avail = integrify(summary["shelter_beds_available"] or 0)
     trailer_occ = integrify(summary["trailers_occupied"] or 0)
     trailer_avail = integrify(summary["trailers_available"] or 0)
-    safe_parking_occ = integrify(summary["safe_parking_occupied"] or 0)
+    safe_parking_occ = integrify(summary["safe_parking_totalClients"] or 0)
 
     email_body = f"""
     <h3><b>PLEASE DO NOT REPLY TO THIS EMAIL </b></h3>
