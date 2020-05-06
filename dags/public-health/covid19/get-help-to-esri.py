@@ -520,7 +520,7 @@ def format_table(row):
     )
 
     # Safe parking stats
-    safe_parking_occ = integrify(row["safe_parking_occupied"] or 0)
+    safe_parking_occ = integrify(row["safe_parking_totalClients"] or 0)
     safe_parking_updated = (
         row["safe_parking_last_updated"]
         if not pandas.isna(row["safe_parking_last_updated"])
