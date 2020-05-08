@@ -24,7 +24,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * Comparison of metropolitan infection rates [feature table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv) was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html).
 
-* LA County Dept of Public Health (DPH) neighborhood-level current date's [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233) and county-level time-series [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=55c2f06850fd46508be313de03b3a591)
+* LA County Dept of Public Health (DPH) neighborhood-level current date's [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233)
 
 * City of LA case count time-series [feature table](https://lahub.maps.arcgis.com/home/item.html?id=1d1e4679a94e43e884b97a0488fc04cf) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=7175fba373f541a7a19df56b6a0617f4)
 
