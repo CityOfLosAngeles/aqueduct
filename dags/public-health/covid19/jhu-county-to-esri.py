@@ -1,6 +1,6 @@
 """
-Grab the 'static' portion of time-series from NYT
-and add JHU DAG to this.
+Grab the JHU US county CSV
+and add JHU current feature layer to this.
 """
 import os
 from datetime import datetime, timedelta
@@ -12,6 +12,26 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
+# URL to JHU confirmed cases US county time series.
+CASES_URL = (
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
+    "csse_covid_19_data/csse_covid_19_time_series/"
+    "time_series_covid19_confirmed_US.csv"
+)
+
+# URL to JHU deaths US county time series.
+DEATHS_URL = (
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
+    "csse_covid_19_data/csse_covid_19_time_series/"
+    "time_series_covid19_deaths_US.csv"
+)
+
+LOOKUP_TABLE_URL = (
+    "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
+    "csse_covid_19_data/"
+    "UID_ISO_FIPS_LookUp_Table.csv"
+)
+
 # General function
 TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
 JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
@@ -19,57 +39,42 @@ MSA_FEATURE_ID = "b37e229b71dc4c65a479e4b5912ded66"
 max_record_count = 6_000_000
 
 
-def append_county_time_series(**kwargs):
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+def parse_columns(df):
+    """
+    quick helper function to parse columns into values
+    uses for pd.melt
+    """
+    columns = list(df.columns)
 
-    # (1) Load time series data from ESRI
-    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
-    layer = gis_item.layers[0]
-    sdf = arcgis.features.GeoAccessor.from_layer(layer)
-    # ESRI dataframes seem to lose their localization.
-    sdf = sdf.assign(date=sdf.date.dt.tz_localize("UTC"))
-    # Drop some ESRI faf
-    old_ts = sdf.drop(columns=["ObjectId", "SHAPE"])
+    id_vars, dates = [], []
 
-    # (2) Bring in current JHU feature layer and clean
-    gis_item = gis.content.get(JHU_FEATURE_ID)
-    layer = gis_item.layers[0]
-    sdf = arcgis.features.GeoAccessor.from_layer(layer)
-    # Drop some ESRI faf
-    jhu = sdf.drop(columns=["OBJECTID", "SHAPE"])
-
-    # Create localized then normalized date column
-    jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
-    jhu = clean_jhu_county(jhu)
-
-    # (3) Fill in missing stuff after appending
-    us_county = old_ts.append(jhu, sort=False)
-    us_county = fill_missing_stuff(us_county)
-
-    # (4) Calculate US state totals
-    us_county = us_state_totals(us_county)
-
-    # (5) Calculate change in caseloads from prior day
-    us_county = calculate_change(us_county)
-
-    # (6) Fix column types before exporting
-    final = fix_column_dtypes(us_county)
-
-    # (7) Write to CSV and overwrite the old feature layer.
-    time_series_filename = "/tmp/jhu-county-time-series.csv"
-    final.to_csv(time_series_filename)
-    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(time_series_filename)
-    gis_layer_collection.manager.update_definition({"maxRecordCount": max_record_count})
-
-    return True
+    for c in columns:
+        if c.endswith("20"):
+            dates.append(c)
+        else:
+            id_vars.append(c)
+    return id_vars, dates
 
 
-# Sub-functions to be used
+def coerce_integer(df):
+    """
+    Coerce nullable columns to integers for CSV export.
+
+    TODO: recent versions of pandas (>=0.25) support nullable integers.
+    Once we can safely upgrade, we should use those and remove this function.
+    """
+
+    def integrify(x):
+        return int(float(x)) if not pd.isna(x) else None
+
+    cols = [
+        "number_of_cases",
+        "number_of_deaths",
+    ]
+    new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
+    return df.assign(**new_cols)
+
+
 def coerce_fips_integer(df):
     def integrify(x):
         return int(float(x)) if not pd.isna(x) else None
@@ -93,6 +98,113 @@ def correct_county_fips(row):
 sort_cols = ["state", "county", "fips", "date"]
 
 
+def load_jhu_us_time_series(branch="master"):
+    """
+    Loads the JHU US timeseries data, transforms it so we are happy with it.
+    """
+    cases = pd.read_csv(CASES_URL.format(branch))
+    deaths = pd.read_csv(DEATHS_URL.format(branch))
+    lookup_table = pd.read_csv(LOOKUP_TABLE_URL.format(branch))
+
+    keep_lookup_cols = ["UID", "Population"]
+    lookup_table = lookup_table[keep_lookup_cols]
+
+    # melt cases
+    id_vars, dates = parse_columns(cases)
+    cases_df = pd.melt(
+        cases, id_vars=id_vars, value_vars=dates, value_name="cases", var_name="date",
+    )
+
+    # melt deaths
+    id_vars, dates = parse_columns(deaths)
+    deaths_df = pd.melt(
+        deaths, id_vars=id_vars, value_vars=dates, value_name="deaths", var_name="date",
+    )
+
+    # join
+    merge_cols = [
+        "UID",
+        "iso2",
+        "iso3",
+        "code3",
+        "FIPS",
+        "Admin2",
+        "Province_State",
+        "Country_Region",
+        "Lat",
+        "Long_",
+        "Combined_Key",
+        "date",
+    ]
+    m1 = pd.merge(cases_df, deaths_df, on=merge_cols, how="left")
+
+    df = pd.merge(m1.drop(columns="Population"), lookup_table, on="UID", how="left")
+
+    keep_cols = [
+        "Province_State",
+        "Admin2",
+        "Combined_Key",
+        "FIPS",
+        "Lat",
+        "Long_",
+        "date",
+        "cases",
+        "deaths",
+        "Population",
+    ]
+
+    df = (
+        df[keep_cols]
+        .assign(
+            date=pd.to_datetime(df.date)
+            .dt.tz_localize("US/Pacific")
+            .dt.normalize()
+            .dt.tz_convert("UTC"),
+        )
+        .rename(
+            columns={
+                "FIPS": "fips",
+                "Long_": "Lon",
+                "Province_State": "state",
+                "Admin2": "county",
+            }
+        )
+    )
+
+    # Fix fips
+    df = df.pipe(coerce_fips_integer)
+    df["fips"] = df.fips.astype(str)
+    df["fips"] = df.apply(correct_county_fips, axis=1)
+    for col in ["state", "county", "fips"]:
+        df[col] = df[col].fillna("")
+
+    return df.sort_values(sort_cols).reset_index(drop=True)
+
+
+def load_jhu_us_current(**kwargs):
+    """
+    Loads the JHU US current data, transforms it so we are happy with it.
+    """
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    gis_item = gis.content.get(JHU_FEATURE_ID)
+    layer = gis_item.layers[0]
+    sdf = arcgis.features.GeoAccessor.from_layer(layer)
+    # Drop some ESRI faf
+    jhu = sdf.drop(columns=["OBJECTID", "SHAPE"])
+
+    # Create localized then normalized date column
+    jhu["date"] = pd.Timestamp.now(tz="US/Pacific").normalize().tz_convert("UTC")
+    jhu = clean_jhu_county(jhu)
+
+    return jhu
+
+
+# T1 Sub-functions
 # (2) Bring in current JHU feature layer and clean
 def clean_jhu_county(df):
     # Only keep certain columns and rename them to match NYT schema
@@ -104,15 +216,12 @@ def clean_jhu_county(df):
         "Confirmed",
         "Deaths",
         "FIPS",
-        "Incident_Rate",
         "People_Tested",
         "date",
         "Combined_Key",
     ]
 
-    df = df[keep_cols]
-
-    df.rename(
+    df = df[keep_cols].rename(
         columns={
             "Confirmed": "cases",
             "Deaths": "deaths",
@@ -121,13 +230,11 @@ def clean_jhu_county(df):
             "Province_State": "state",
             "Admin2": "county",
             "People_Tested": "people_tested",
-            "Incident_Rate": "incident_rate",
-        },
-        inplace=True,
+        }
     )
 
     # Use floats
-    for col in ["people_tested", "incident_rate"]:
+    for col in ["people_tested"]:
         df[col] = df[col].astype(float)
 
     # Fix fips
@@ -147,12 +254,12 @@ def fill_missing_stuff(df):
         lambda row: "New York City" if row.fips == "36061" else row.county, axis=1
     )
 
-    not_missing_coords = df[df.Lat.notna()][
-        ["state", "county", "Lat", "Lon"]
+    not_missing_coords = df[(df.Lat.notna()) & (df.Population.notna())][
+        ["state", "county", "Lat", "Lon", "Population"]
     ].drop_duplicates()
 
     df = pd.merge(
-        df.drop(columns=["Lat", "Lon"]),
+        df.drop(columns=["Lat", "Lon", "Population"]),
         not_missing_coords,
         on=["state", "county"],
         how="left",
@@ -182,43 +289,55 @@ def us_state_totals(df):
         columns={"cases": "state_cases", "deaths": "state_deaths"}
     )
 
-    df = pd.merge(
-        df.drop(columns=["state_cases", "state_deaths"]),
-        state_totals,
-        on=state_grouping_cols,
-    )
+    df = pd.merge(df, state_totals, on=state_grouping_cols,)
 
     return df.sort_values(sort_cols).reset_index(drop=True)
 
 
 # (5) Calculate change in caseloads from prior day
 def calculate_change(df):
-    for col in ["cases", "deaths"]:
-        new_col = f"new_{col}"
-        county_group_cols = ["state", "county", "fips"]
-        df[new_col] = (
-            df.sort_values(sort_cols)
-            .groupby(county_group_cols)[col]
-            .apply(lambda row: row - row.shift(1))
-        )
-        # First obs will be NaN, but the change in caseload is just the # of cases.
-        df[new_col] = df[new_col].fillna(df[col])
+    county_group_cols = ["state", "county", "fips"]
+    state_group_cols = ["state"]
 
-    for col in ["state_cases", "state_deaths"]:
-        new_col = f"new_{col}"
-        state_group_cols = ["state"]
-        df[new_col] = (
+    df = df.assign(
+        new_cases=(
             df.sort_values(sort_cols)
-            .groupby(state_group_cols)[col]
-            .apply(lambda row: row - row.shift(1))
-        )
-        df[new_col] = df[new_col].fillna(df[col])
+            .groupby(county_group_cols)["cases"]
+            .diff(periods=1)
+        ),
+        new_deaths=(
+            df.sort_values(sort_cols)
+            .groupby(county_group_cols)["deaths"]
+            .diff(periods=1)
+        ),
+        new_state_cases=(
+            df.sort_values(sort_cols)
+            .groupby(state_group_cols)["state_cases"]
+            .diff(periods=1)
+        ),
+        new_state_deaths=(
+            df.sort_values(sort_cols)
+            .groupby(state_group_cols)["state_deaths"]
+            .diff(periods=1)
+        ),
+    )
+
+    df = df.assign(
+        new_cases=df.new_cases.fillna(df.cases),
+        new_deaths=df.new_deaths.fillna(df.deaths),
+        new_state_cases=df.new_state_cases.fillna(df.state_cases),
+        new_state_deaths=df.new_state_deaths.fillna(df.state_deaths),
+    )
 
     return df
 
 
 # (6) Fix column types before exporting
 def fix_column_dtypes(df):
+    # Calculate incident rate, which is cases per 100k
+    incident_rate_pop = 100_000
+    df = df.assign(incident_rate=(df.cases / df.Population * incident_rate_pop))
+
     def coerce_integer(df):
         def integrify(x):
             return int(float(x)) if not pd.isna(x) else None
@@ -264,9 +383,45 @@ def fix_column_dtypes(df):
         .sort_values(["state", "county", "fips", "date", "cases"])
     )
 
-    print(df.dtypes)
-
     return df
+
+
+def append_county_time_series():
+    """
+    Load JHU's CSV and append today's US county data.
+    """
+    # Login to ArcGIS
+    arcconnection = BaseHook.get_connection("arcgis")
+    arcuser = arcconnection.login
+    arcpassword = arcconnection.password
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    # (1) Load historical time-series
+    historical_df = load_jhu_us_time_series()
+
+    # (2) Bring in current JHU feature layer and clean
+    today_df = load_jhu_us_current()
+
+    # (3) Fill in missing stuff after appending
+    us_county = historical_df.append(today_df, sort=False)
+    us_county = fill_missing_stuff(us_county)
+
+    # (4) Calculate US state totals
+    us_county = us_state_totals(us_county)
+
+    # (5) Calculate change in caseloads from prior day
+    us_county = calculate_change(us_county)
+
+    # (6) Fix column types before exporting
+    final = fix_column_dtypes(us_county)
+
+    # (7) Write to CSV and overwrite the old feature layer.
+    time_series_filename = "/tmp/jhu-county-time-series.csv"
+    final.to_csv(time_series_filename)
+    gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(time_series_filename)
+    gis_layer_collection.manager.update_definition({"maxRecordCount": max_record_count})
 
 
 # T2 Sub-functions
