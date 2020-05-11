@@ -1,5 +1,5 @@
 """
-Grab the JHU US county CSV
+Grab the JHU US county CSV from GitHub
 and add JHU current feature layer to this.
 """
 import os
@@ -386,7 +386,7 @@ def fix_column_dtypes(df):
     return df
 
 
-def append_county_time_series():
+def append_county_time_series(**kwargs):
     """
     Load JHU's CSV and append today's US county data.
     """
