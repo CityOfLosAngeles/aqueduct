@@ -5,9 +5,15 @@ Use JHU county data.
 import altair as alt
 import pandas as pd
 
+from IPython.display import display
+
+
 # County-level case data
 def case_indicators_county(county_name, start_date):
-    US_COUNTY_URL = "http://lahub.maps.arcgis.com/sharing/rest/content/items/8aba663239fc428f8bcdc48e213e3172/data"
+    US_COUNTY_URL = (
+        "http://lahub.maps.arcgis.com/sharing/rest/content/items/"
+        "8aba663239fc428f8bcdc48e213e3172/data"
+    )
     county_df = pd.read_csv(US_COUNTY_URL, dtype={"fips": "str"})
 
     keep_cols = [
@@ -77,7 +83,10 @@ def case_indicators_county(county_name, start_date):
 
 # State-level case data
 def case_indicators_state(state_name, start_date):
-    US_COUNTY_URL = "http://lahub.maps.arcgis.com/sharing/rest/content/items/8aba663239fc428f8bcdc48e213e3172/data"
+    US_COUNTY_URL = (
+        "http://lahub.maps.arcgis.com/sharing/rest/content/items/"
+        "8aba663239fc428f8bcdc48e213e3172/data"
+    )
     county_df = pd.read_csv(US_COUNTY_URL, dtype={"fips": "str"})
 
     keep_cols = [
@@ -152,7 +161,10 @@ def case_indicators_state(state_name, start_date):
 
 # City of LA case data
 def case_indicators_lacity(start_date):
-    LA_CITY_URL = "http://lahub.maps.arcgis.com/sharing/rest/content/items/7175fba373f541a7a19df56b6a0617f4/data"
+    LA_CITY_URL = (
+        "http://lahub.maps.arcgis.com/sharing/rest/content/items/"
+        "7175fba373f541a7a19df56b6a0617f4/data"
+    )
     city_df = pd.read_csv(LA_CITY_URL)
 
     city_df["date"] = pd.to_datetime(city_df.Date)
