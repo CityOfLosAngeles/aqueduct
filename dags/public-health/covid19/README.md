@@ -71,10 +71,10 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 
 
 ### City of LA Workflow
-**4/9/2020 update:** We create one table for the US and one for the rest of the world, called *global*:
+**4/9/2020 update:** We create one table for the US and one for the rest of the world, called *global*. The historical time-series is pulled from JHU's [CSV on GitHub](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series) and appended with the current date's data from the ESRI feature layer.
 
 * **Global:** Use JHU province-level time-series data. The US is a singular observation as a country. Smaller countries report only country-level data, while larger countries like China, Australia, and Canada include province-level data.
-* **US:** Use JHU's historical county-level time-series data up through 4/8. Then, schedule a job that pulls JHU county-level time-series data (which is updated hourly). Append those into one time-series dataset and calculate state totals and change in cases from prior day.
+* **US:** Use JHU's US county-level time-series data and calculate state totals and change in cases and deaths from prior day.
 * **MSA Comparison:** An automatic comparison of number of cases per million for key metropolitan statistical areas (MSAs) to power our chart in the dashboard. These key MSAs (and CBSA FIPS codes) are: Los Angeles/Orange County (31080), San Francisco/San Jose (41860, 41940), New York City (35620), Seattle (42660), and Detroit (19820).
 
 Additionally, a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/) is manually maintained for the number of cases that fall within the City of LA. Since the City of LA falls within LA County, the LA County Department of Public Health reports neighborhood breakdowns of case counts, with a subtotal for the City of LA. We sync the Google spreadsheet with our ESRI layer in the `sync-la-cases-data.py` DAG.
