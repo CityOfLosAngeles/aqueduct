@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 
 import arcgis
+import numpy as np
 import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
@@ -334,6 +335,20 @@ def calculate_change(df):
 
 # (6) Fix column types before exporting
 def fix_column_dtypes(df):
+    # Counties with zero cases are included in Jan/Feb/Mar.
+    # Makes CSV huge. Drop these.
+    df["obs"] = (
+        df.sort_values(sort_cols).groupby(["state", "county", "fips"]).cumcount() + 1
+    )
+    df["nonzero_case"] = df.apply(
+        lambda row: row.obs if row.cases > 0 else np.nan, axis=1
+    )
+    df["first_case"] = df.groupby(["state", "county", "fips"])[
+        "nonzero_case"
+    ].transform("min")
+
+    df = df[df.obs >= df.first_case].drop(columns=["obs", "nonzero_case", "first_case"])
+
     # Calculate incident rate, which is cases per 100k
     incident_rate_pop = 100_000
     df = df.assign(incident_rate=(df.cases / df.Population * incident_rate_pop))
