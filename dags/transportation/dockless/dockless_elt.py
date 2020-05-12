@@ -149,7 +149,7 @@ def load_to_s3_pgdb(**kwargs):
     obj.put(Body=json.dumps(trips))
     logging.info(f"Wrote {company} trips to s3")
     logging.info("Connecting to DB")
-    logging.info(f"Logging into postgres")
+    logging.info("Logging into postgres")
     db = mds.Database(uri=POSTGRES_URI, version=version)
 
     if len(status_changes) != 0:

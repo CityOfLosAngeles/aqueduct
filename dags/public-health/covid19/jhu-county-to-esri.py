@@ -489,7 +489,7 @@ def update_msa_dataset(**kwargs):
 
     # MSA county - CBSA crosswalk with population crosswalk
     CROSSWALK_URL = (
-        f"https://raw.githubusercontent.com/CityOfLosAngeles/aqueduct/master/dags/"
+        "https://raw.githubusercontent.com/CityOfLosAngeles/aqueduct/master/dags/"
         "public-health/covid19/msa_county_pop_crosswalk.csv"
     )
 
