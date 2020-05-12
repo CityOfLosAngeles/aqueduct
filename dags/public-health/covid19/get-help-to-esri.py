@@ -17,13 +17,16 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "63e3696eddc94262a472d8c99a58780c"
+FACILITIES_ID = "dd618cab800549358bac01bf218406e4"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
 TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
 
-COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
+COUNCIL_DISTRICTS = (
+    "https://opendata.arcgis.com/datasets/"
+    "76104f230e384f38871eb3c4782f903d_13.geojson"
+)
 
 
 def download_council_districts():
@@ -417,7 +420,7 @@ def assemble_get_help_timeseries():
 
 def load_get_help_data(**kwargs):
     facilities = get_facilities().pipe(coerce_integer)
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v5.csv")
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v6.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 

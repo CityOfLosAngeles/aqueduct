@@ -33,7 +33,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 #### Shelters
 * [Shelter time-series feature layer](https://lahub.maps.arcgis.com/home/item.html?id=bd17014f8a954681be8c383acdb6c808) - a time-series of historical bed count data for all of the active shelters.
 
-* [Current shelter feature layer](https://lahub.maps.arcgis.com/home/item.html?id=63e3696eddc94262a472d8c99a58780c) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
+* [Current shelter feature layer](https://lahub.maps.arcgis.com/home/item.html?id=dd618cab800549358bac01bf218406e4) - a snapshot of the current status of bed counts for the shelters. Some shelters may be listed that are not yet active, and have inaccurate information. You can remove them by filtering for `status != 0`.
 
 * [Shelter stats](https://lahub.maps.arcgis.com/home/item.html?id=9db2e26c98134fae9a6f5c154a1e9ac9) - some aggregate statistics of the current shelter status, including number of unique shelters, number with known status, and number of available beds.
 
