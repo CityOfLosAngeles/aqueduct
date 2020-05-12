@@ -495,7 +495,9 @@ def update_msa_dataset(**kwargs):
 
     pop = pd.read_csv(CROSSWALK_URL, dtype={"county_fips": "str", "cbsacode": "str"},)
 
-    pop = pop[["cbsacode", "cbsatitle", "population", "county_fips"]]
+    pop = pop.rename(columns={"msa_pop": "population"})[
+        ["cbsacode", "cbsatitle", "population", "county_fips"]
+    ]
     pop = subset_msa(pop)
 
     # merge
