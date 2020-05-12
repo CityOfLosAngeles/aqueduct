@@ -34,6 +34,26 @@ def download_council_districts():
     return fname
 
 
+def coerce_integer(df):
+    """
+    Loop through the columns of a df, if it is numeric,
+    convert it to integer and fill nans with zeros.
+    This is somewhat heavy-handed in an attempt to force
+    Esri to recognize sparse columns as integers.
+    """
+    # Numeric columns to not coerce to integer
+    EXCEPT = ["latitude", "longitude", "zipCode"]
+
+    def numeric_column_to_int(series):
+        return (
+            series.fillna(0).astype(int)
+            if pandas.api.types.is_numeric_dtype(series) and series.name not in EXCEPT
+            else series
+        )
+
+    return df.transform(numeric_column_to_int, axis=0)
+
+
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
     """
     A quick helper function to upload a data frame
@@ -396,7 +416,7 @@ def assemble_get_help_timeseries():
 
 
 def load_get_help_data(**kwargs):
-    facilities = get_facilities()
+    facilities = get_facilities().pipe(coerce_integer)
     upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v5.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
