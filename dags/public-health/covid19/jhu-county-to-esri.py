@@ -489,13 +489,15 @@ def update_msa_dataset(**kwargs):
 
     # MSA county - CBSA crosswalk with population crosswalk
     CROSSWALK_URL = (
-        f"https://raw.githubusercontent.com/CityOfLosAngeles/aqueduct/master/dags/"
+        "https://raw.githubusercontent.com/CityOfLosAngeles/aqueduct/master/dags/"
         "public-health/covid19/msa_county_pop_crosswalk.csv"
     )
 
     pop = pd.read_csv(CROSSWALK_URL, dtype={"county_fips": "str", "cbsacode": "str"},)
 
-    pop = pop[["cbsacode", "cbsatitle", "population", "county_fips"]]
+    pop = pop.rename(columns={"msa_pop": "population"})[
+        ["cbsacode", "cbsatitle", "population", "county_fips"]
+    ]
     pop = subset_msa(pop)
 
     # merge

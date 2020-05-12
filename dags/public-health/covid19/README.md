@@ -22,7 +22,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * US county-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=8aba663239fc428f8bcdc48e213e3172)
 
-* Comparison of metropolitan infection rates [feature table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv) was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html).
+* Comparison of metropolitan infection rates [feature table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv) was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html) using `make-crosswalk.py`.
 
 * LA County Dept of Public Health (DPH) neighborhood-level current date's [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=ca30397902484e9c911e8092788a0233)
 
