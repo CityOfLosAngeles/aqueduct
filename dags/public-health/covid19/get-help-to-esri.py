@@ -17,13 +17,16 @@ from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
-FACILITIES_ID = "63e3696eddc94262a472d8c99a58780c"
+FACILITIES_ID = "dd618cab800549358bac01bf218406e4"
 
 STATS_ID = "9db2e26c98134fae9a6f5c154a1e9ac9"
 
 TIMESERIES_ID = "bd17014f8a954681be8c383acdb6c808"
 
-COUNCIL_DISTRICTS = "https://opendata.arcgis.com/datasets/76104f230e384f38871eb3c4782f903d_13.geojson"  # noqa: E501
+COUNCIL_DISTRICTS = (
+    "https://opendata.arcgis.com/datasets/"
+    "76104f230e384f38871eb3c4782f903d_13.geojson"
+)
 
 
 def download_council_districts():
@@ -32,6 +35,26 @@ def download_council_districts():
     with open(fname, "wb") as f:
         f.write(r.content)
     return fname
+
+
+def coerce_integer(df):
+    """
+    Loop through the columns of a df, if it is numeric,
+    convert it to integer and fill nans with zeros.
+    This is somewhat heavy-handed in an attempt to force
+    Esri to recognize sparse columns as integers.
+    """
+    # Numeric columns to not coerce to integer
+    EXCEPT = ["latitude", "longitude", "zipCode"]
+
+    def numeric_column_to_int(series):
+        return (
+            series.fillna(0).astype(int)
+            if pandas.api.types.is_numeric_dtype(series) and series.name not in EXCEPT
+            else series
+        )
+
+    return df.transform(numeric_column_to_int, axis=0)
 
 
 def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
@@ -396,8 +419,8 @@ def assemble_get_help_timeseries():
 
 
 def load_get_help_data(**kwargs):
-    facilities = get_facilities()
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v5.csv")
+    facilities = get_facilities().pipe(coerce_integer)
+    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v6.csv")
     timeseries = assemble_get_help_timeseries()
     upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
@@ -424,10 +447,6 @@ def load_get_help_data(**kwargs):
     kwargs["ti"].xcom_push(key="stats_df", value=stats_df)
 
 
-def integrify(x):
-    return str(int(x)) if not pandas.isna(x) else "Error"
-
-
 def format_program_client_stats(row, prefix):
     """
     Given a program in the facility DF (specified by string prefix),
@@ -446,15 +465,15 @@ def format_program_client_stats(row, prefix):
 
     An HTML string of the formatted client stats.
     """
-    men = integrify(row[prefix + "MALE"] + row[prefix + "TRANSGENDER_F_TO_M"])
-    women = integrify(row[prefix + "FEMALE"] + row[prefix + "TRANSGENDER_M_TO_F"])
-    nonbinary = integrify(
+    men = row[prefix + "MALE"] + row[prefix + "TRANSGENDER_F_TO_M"]
+    women = row[prefix + "FEMALE"] + row[prefix + "TRANSGENDER_M_TO_F"]
+    nonbinary = (
         row[prefix + "DECLINED"] + row[prefix + "OTHER"] + row[prefix + "UNDEFINED"]
     )
-    pets = integrify(row[prefix + "totalPets"])
-    ada = integrify(row[prefix + "totalAda"])
-    ems_calls = integrify(row[prefix + "EMS_CALL"])
-    ems_visits = integrify(row[prefix + "EMS_VISIT"])
+    pets = row[prefix + "totalPets"]
+    ada = row[prefix + "totalAda"]
+    ems_calls = row[prefix + "EMS_CALL"]
+    ems_visits = row[prefix + "EMS_VISIT"]
     return f"""
         <p style="margin-top:2px; margin-bottom: 2px; margin-left: 16px">
             Women: {women}
@@ -494,8 +513,8 @@ def format_table(row):
     old_ts = pandas.Timestamp("2020-01-01T00:00:00Z")
 
     # Shelter stats
-    shelter_occ = integrify(row["shelter_beds_occupied"] or 0)
-    shelter_avail = integrify(row["shelter_beds_available"] or 0)
+    shelter_occ = row["shelter_beds_occupied"]
+    shelter_avail = row["shelter_beds_available"]
     shelter_updated = (
         row["shelter_beds_last_updated"]
         if not pandas.isna(row["shelter_beds_last_updated"])
@@ -503,7 +522,7 @@ def format_table(row):
     )
 
     # Isolation stats
-    isolation_occ = integrify(row["isolation_occupied"] or 0)
+    isolation_occ = row["isolation_occupied"]
     isolation_updated = (
         row["isolation_last_updated"]
         if not pandas.isna(row["isolation_last_updated"])
@@ -511,8 +530,8 @@ def format_table(row):
     )
 
     # Trailer stats
-    trailer_occ = integrify(row["trailers_occupied"] or 0)
-    trailer_avail = integrify(row["trailers_available"] or 0)
+    trailer_occ = row["trailers_occupied"]
+    trailer_avail = row["trailers_available"]
     trailer_updated = (
         row["trailers_last_updated"]
         if not pandas.isna(row["trailers_last_updated"])
@@ -520,7 +539,7 @@ def format_table(row):
     )
 
     # Safe parking stats
-    safe_parking_occ = integrify(row["safe_parking_totalClients"] or 0)
+    safe_parking_occ = row["safe_parking_totalClients"]
     safe_parking_updated = (
         row["safe_parking_last_updated"]
         if not pandas.isna(row["safe_parking_last_updated"])
@@ -540,8 +559,13 @@ def format_table(row):
     # Create the email body.
     entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <i>Last change at site: {last_update}</i><br><br>
+    <i>Last change at site: {last_update}</i><br>
     """
+
+    if row.lockIntake == 1:
+        reason = row.lockIntakeReason or "No reason given"
+        entry = entry + f"""<i>Intake at this facility is locked: {reason}</i><br>"""
+    entry = entry + "<br>"
 
     if shelter_updated != old_ts:
         entry = (
@@ -557,7 +581,7 @@ def format_table(row):
             <br>
             """
         )
-    if isolation_updated != old_ts and isolation_occ != "0":
+    if isolation_updated != old_ts and isolation_occ != 0:
         entry = (
             entry
             + f"""
@@ -582,7 +606,7 @@ def format_table(row):
             <br>
             """
         )
-    if safe_parking_updated != old_ts and safe_parking_occ != "0":
+    if safe_parking_updated != old_ts and safe_parking_occ != 0:
         entry = (
             entry
             + f"""
@@ -626,11 +650,11 @@ def email_function(**kwargs):
 
     # Get some top-level summary statistics
     summary = facilities.sum()
-    shelter_occ = integrify(summary["shelter_beds_occupied"] or 0)
-    shelter_avail = integrify(summary["shelter_beds_available"] or 0)
-    trailer_occ = integrify(summary["trailers_occupied"] or 0)
-    trailer_avail = integrify(summary["trailers_available"] or 0)
-    safe_parking_occ = integrify(summary["safe_parking_totalClients"] or 0)
+    shelter_occ = summary["shelter_beds_occupied"]
+    shelter_avail = summary["shelter_beds_available"]
+    trailer_occ = summary["trailers_occupied"]
+    trailer_avail = summary["trailers_available"]
+    safe_parking_occ = summary["safe_parking_totalClients"]
 
     email_body = f"""
     <h3><b>PLEASE DO NOT REPLY TO THIS EMAIL </b></h3>
@@ -640,7 +664,7 @@ def email_function(**kwargs):
     <br>
 
     The Current Number of Reporting Shelters is
-    {integrify(stats_df['n_shelters_status_known'][0])}.
+    {stats_df['n_shelters_status_known'][0]}.
     <br><br>
 
     <h3><b>System Summary</b></h3>
