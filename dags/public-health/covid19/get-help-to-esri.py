@@ -560,8 +560,13 @@ def format_table(row):
     # Create the email body.
     entry = f"""<b>{shelter_name}</b><br>
     <i>Council District {district}</i><br>
-    <i>Last change at site: {last_update}</i><br><br>
+    <i>Last change at site: {last_update}</i><br>
     """
+
+    if row.lockIntake == 1:
+        reason = row.lockIntakeReason or "No reason given"
+        entry = entry + f"""<i>Intake at this facility is locked: {reason}</i><br>"""
+    entry = entry + "<br>"
 
     if shelter_updated != old_ts:
         entry = (
