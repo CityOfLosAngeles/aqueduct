@@ -4,7 +4,7 @@ Helpers functions for the socrata import
 import pandas as pd
 import os
 import civis
-from typing import Optional, Tuple
+from typing import Tuple
 from datetime import datetime
 from civis import APIClient
 import logging
@@ -12,7 +12,7 @@ import json
 from functools import reduce
 
 
-from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, query_civis
+from civis.io import dataframe_to_file, file_to_civis
 
 LOG = logging.getLogger(__name__)
 
@@ -180,7 +180,11 @@ def _store_and_attach_metadata(
 
 
 def _read_paginated(
-    client, dataset_id: int, page_limit: int = 50000, size_limit: int = None, where: str = None
+    client,
+    dataset_id: int,
+    page_limit: int = 50000,
+    size_limit: int = None,
+    where: str = None,
 ):
     df = pd.DataFrame()
     offset = 0
@@ -192,7 +196,7 @@ def _read_paginated(
             content_type="csv",
             exclude_system_fields=False,
             offset=offset,
-            where = where
+            where=where,
         )
 
         if not results[1:]:
