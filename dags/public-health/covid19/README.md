@@ -9,6 +9,8 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 1. [Hospital Bed and Equipment Availability Data](#hospital-bed-and-equipment-availability-data)
 1. [COVID-19 Testing Data](#testing-data)
 1. [Prior Updates to Workflow](#prior-updates-to-workflow)
+1. [Helpful Hints for Jupyter Notebooks](#helpful-hints)
+
 
 ## Data Sources
 * City of LA COVID-19 Dashboard: [Desktop Version](https://arcg.is/0WqSmb) and [Mobile Version](https://arcg.is/0yD90W0) and [FAQs](https://docs.google.com/document/d/1U96_d1LTabeWl6uZv97ZEVKaKYse_UdebzO_6gAfNAc/)
@@ -126,6 +128,49 @@ The DAG `shelter-to-esri.py` takes the Rec & Parks (RAP) shelter census (collect
 `Timestamp` is the time in which the shelter actually submitted the Google form. `Date` and `Time` are which "report" they are filing for.
 
 Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupied beds)`, rather than the normal capacity, which has been lower to help adhere to social distancing in the shelters.
+
+
+## Helpful Hints
+Jupyter Notebooks can read in both the ESRI feature layer and the CSV. In our [Data Sources](#data-sources), we often provide links to the ESRI feature layer and CSV.
+
+Ex: JHU global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
+
+**Import the CSV**
+
+All you need is the item ID of the CSV item. We use an f-string to construct the URL and use Python `pandas` package to import the CSV.
+
+```
+JHU_GLOBAL_ITEM_ID = "daeef8efe43941748cb98d7c1f716122"
+
+JHU_URL = f"http://lahub.maps.arcgis.com/sharing/rest/content/items/{JHU_GLOBAL_ITEM_ID}/data"
+
+import pandas as pd
+df = pd.read_csv(JHU_URL)
+```
+
+**Import ESRI feature layer**
+
+* From the feature layer, click on `service URL`.
+* Scroll to the bottom and click `Query`
+* Fill in the following parameters:
+    * WHERE: 1=1
+    * Out Fields (fill in the list of columns to retrieve): Province_State, Country_Region, Lat, Long, date, number_of_cases, number_of_deaths, number_of_recovered, ObjectId
+    * Format: GeoJSON
+    * Query (GET)
+* Now, grab the new URL (it should be quite long), and read in that URL through `geopandas`. Note: the ESRI date field is less understandable, and converting it to pandas datetime will be incorrect.
+
+```
+FEATURE_LAYER_URL = "http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580"
+
+SERVICE_URL = "https://services5.arcgis.com/7nsPwEMP38bSkCjy/arcgis/rest/services/jhu_covid19_time_series/FeatureServer/0"
+
+CORRECT_URL = "https://services5.arcgis.com/7nsPwEMP38bSkCjy/arcgis/rest/services/jhu_covid19_time_series/FeatureServer/0/query?where=1%3D1&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=Province_State%2C+Country_Region%2C+Lat%2C+Long%2C+date%2C+number_of_cases%2C+number_of_deaths%2C+number_of_recovered%2C+ObjectId&returnGeometry=true&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
+
+
+import geopandas as gpd
+gdf = gpd.read_file(CORRECT_URL)
+```
+
 
 ## Contributors
 * [Hunter Owens](https://github.com/hunterowens)

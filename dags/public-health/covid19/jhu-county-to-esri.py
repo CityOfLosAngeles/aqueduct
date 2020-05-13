@@ -475,6 +475,19 @@ def update_msa_dataset(**kwargs):
     takes the previous step data, aggegrates by MSA
     replaces feature layer.
     """
+
+    def coerce_integer(df):
+        def integrify(x):
+            return int(float(x)) if not pd.isna(x) else None
+
+        cols = [
+            "population",
+            "cases",
+            "deaths",
+        ]
+        new_cols = {c: df[c].apply(integrify, convert_dtype=False) for c in cols}
+        return df.assign(**new_cols)
+
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
@@ -520,7 +533,7 @@ def update_msa_dataset(**kwargs):
 
     # Calculate rate per 1M
     rate = 1_000_000
-    msa = msa.assign(
+    msa = msa.pipe(coerce_integer).assign(
         cases_per_1M=msa.cases / msa.population * rate,
         deaths_per_1M=msa.deaths / msa.population * rate,
         # Can't keep CBSA code, since SF/SJ are technically 2 CBSAs.
