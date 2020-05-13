@@ -6,7 +6,6 @@ import os
 import civis
 from typing import Tuple
 from datetime import datetime
-from civis import APIClient
 import logging
 import json
 from functools import reduce
@@ -28,61 +27,8 @@ def _parse_metadata(metadata: dict, paths: dict):
     return out
 
 
-def _store_and_attach_metadata(
-    client: APIClient, metadata: dict, metadata_paths: dict, filename: str,
-) -> Tuple[int, dict]:
-    """
-    Given an APIClient object, metadata read from DDL, a collection of keys
-    and paths within the DDL metadata, and a filename, this function:
-        (1) writes the cleaned metadata fields to a JSONValue object,
-        (2) writes the raw metadata fields to a file object,
-        (3) attaches both to the current script as outputs, and
-        (4) returns the file_id of the raw metadata and the cleaned metadata
-        as a dictionary.
-    Parameters
-    ---------
-    client: APIClient
-        An instance of civis.APIClient.
-    metadata: dict
-        The raw metadata read from DDL.
-    metadata_paths: dict
-        A dictionary of the paths used to clean the metadata read from DDL.
-        This should be the value of ddl_metadata_paths in configs.constants.
-    filename: str
-        The name of the file to which raw metadata should be written.
-    Returns
-    -------
-    Tuple[int, dict]:
-        file_id (int) of the raw metadata stored in S3, and
-        cleaned_metadata (dict)
-    Side Effects
-    ------------
-    - Stores object passed to metadata argument as a .json file in S3
-    - Attaches this .json file as a script output
-    - Stores cleaned metadata object as a JSONValues object
-    - Attaches this JSONValues object as a script output
-    """
-
-    with open(filename, "w") as f:
-        json.dump(metadata, f)
-    file_id = file_to_civis(buf=filename, name=filename, expires_at=None,)
-    client.scripts.post_containers_runs_outputs(
-        id=os.environ["CIVIS_JOB_ID"],
-        run_id=os.environ["CIVIS_RUN_ID"],
-        object_type="File",
-        object_id=file_id,
-    )
-
-    cleaned_metadata = _parse_metadata(metadata=metadata, paths=metadata_paths)
-    for key, value in cleaned_metadata.items():
-        if key.lower().endswith("updated at"):
-            value = datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M")
-        write_and_attach_jsonvalue(json_value=value, name=key, client=client)
-    return file_id, cleaned_metadata
-
-
 def write_and_attach_jsonvalue(
-    json_value: str, name: str, client: APIClient = None,
+    json_value: str, name: str, client: civis.APIClient = None,
 ) -> None:
     json_obj = client.json_values.post(json.dumps(json_value), name=name)
     client.scripts.post_containers_runs_outputs(
