@@ -3,13 +3,12 @@ An Import Socrata Template for Deployment on Civis Platform
 
 Author: @sherryshenker
 """
-
-from sodapy import Socrata
-import pandas as pd
 import logging
 import os
 from datetime import datetime
+
 import civis
+from sodapy import Socrata
 
 from socrata_helpers import (
     _read_paginated,
@@ -103,7 +102,7 @@ def main(
     )
 
     metadata_paths = {
-        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",
+        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",  # noqa: E501
         "Description": "description",
         "Data updated at": "rowsUpdatedAt",
         "Data provided by": "tableAuthor.screenName",

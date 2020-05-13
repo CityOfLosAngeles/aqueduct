@@ -1,16 +1,15 @@
 """
 Helpers functions for the socrata import
 """
-import pandas as pd
-import os
-import civis
-from typing import Tuple
-from datetime import datetime
-import logging
 import json
+import logging
+import os
+from datetime import datetime
 from functools import reduce
+from typing import Tuple
 
-
+import civis
+import pandas as pd
 from civis.io import dataframe_to_file, file_to_civis
 
 LOG = logging.getLogger(__name__)
