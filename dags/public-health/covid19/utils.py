@@ -3,6 +3,7 @@ Functions to create county or state-specific indicators.
 Use JHU county data.
 """
 import altair as alt
+import numpy as np
 import pandas as pd
 import state_abbrev_dict
 
@@ -293,7 +294,7 @@ def make_cases_deaths_chart(df, geog, name):
 def testing_lacity(start_date, daily_or_monthly, lower_bound, upper_bound):
     df = pd.read_csv(TESTING_URL)
     df = df.assign(
-        Date=pd.to_datetime(df.Date).dt.strftime("%-m/%d/%y"),
+        Date=pd.to_datetime(df.Date).dt.strftime("%-m/%-d/%y"),
         month=pd.to_datetime(df.Date).dt.month,
     )
     df = df[df.Date >= start_date]
@@ -309,7 +310,7 @@ def testing_lacity(start_date, daily_or_monthly, lower_bound, upper_bound):
         chart_width = 150
 
     if daily_or_monthly == "daily":
-        format_date = "%-m/%d"
+        format_date = "%-m/%-d"
         plot_col = "Performed:Q"
         chart_title = "Daily Tests Performed"
         chart_width = 500
@@ -321,7 +322,7 @@ def testing_lacity(start_date, daily_or_monthly, lower_bound, upper_bound):
     return df
 
 
-# Sub-function to make daily testing bar chart
+# Sub-function to make testing bar chart
 def make_testing_chart(
     df, plot_col, format_date, lower_bound, upper_bound, chart_title, chart_width
 ):
@@ -363,3 +364,124 @@ def make_testing_chart(
     )
 
     display(testing_chart)
+
+
+# Hospital Equipment Availability
+def hospital_capacity_lacity(start_date):
+    df = pd.read_csv(HOSPITAL_URL)
+
+    # Get a total count of equipment for each date-type
+    df = df.assign(
+        Date=pd.to_datetime(df.Date).dt.strftime("%-m/%-d/%y"),
+        type_total=df.groupby(["Date", "Type"])["Count"].transform("sum"),
+    )
+
+    # Calculate number and percent available
+    df = df.assign(
+        n_available=df.apply(
+            lambda row: row.Count if row.Status == "Available" else np.nan, axis=1
+        ),
+        pct_available=df.apply(
+            lambda row: row.Count / row.type_total
+            if row.Status == "Available"
+            else np.nan,
+            axis=1,
+        ),
+    )
+
+    keep_col = ["Date", "Type", "type_total", "n_available", "pct_available"]
+
+    df = df[(df.n_available.notna()) & (df.Date >= start_date)][
+        keep_col
+    ].drop_duplicates()
+
+    make_hospital_chart(df)
+
+    return df
+
+
+# Sub-function to make hospital equipment availability bar chart
+def make_hospital_chart(df):
+    acute_color = "#04E679"
+    icu_color = navy
+    ventilator_color = "#e76f51"
+    chart_width = 500
+
+    base = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "Date",
+                timeUnit=time_unit,
+                title="date",
+                axis=alt.Axis(format="%-m/%-d"),
+            ),
+            y=alt.Y("pct_available", title="proportion available"),
+            color=alt.Color(
+                "Type",
+                scale=alt.Scale(
+                    domain=["Acute Care Beds", "ICU Beds", "Ventilators"],
+                    range=[acute_color, icu_color, ventilator_color],
+                ),
+            ),
+        )
+    )
+
+    line1 = (
+        alt.Chart(pd.DataFrame({"y": [0.3]}))
+        .mark_rule(color=maroon, strokeDash=[5, 2])
+        .encode(y="y")
+    )
+
+    hospital_pct_chart = (
+        (base + line1)
+        .properties(
+            title="Proportion of Available Hospital Equipment by Type",
+            width=chart_width,
+        )
+        .configure_title(
+            fontSize=title_font_size, font=font_name, anchor="middle", color="black"
+        )
+        .configure_axis(
+            gridOpacity=grid_opacity, domainOpacity=domain_opacity, ticks=False
+        )
+        .configure_view(strokeOpacity=stroke_opacity)
+    )
+
+    base2 = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "Date",
+                timeUnit=time_unit,
+                title="date",
+                axis=alt.Axis(format="%-m/%-d"),
+            ),
+            y=alt.Y("n_available", title="number available"),
+            color=alt.Color(
+                "Type",
+                scale=alt.Scale(
+                    domain=["Acute Care Beds", "ICU Beds", "Ventilators"],
+                    range=[acute_color, icu_color, ventilator_color],
+                ),
+            ),
+        )
+    )
+
+    hospital_num_chart = (
+        base2.properties(
+            title="Number of Available Hospital Equipment by Type", width=chart_width
+        )
+        .configure_title(
+            fontSize=title_font_size, font=font_name, anchor="middle", color="black"
+        )
+        .configure_axis(
+            gridOpacity=grid_opacity, domainOpacity=domain_opacity, ticks=False
+        )
+        .configure_view(strokeOpacity=stroke_opacity)
+    )
+
+    display(hospital_pct_chart)
+    display(hospital_num_chart)
