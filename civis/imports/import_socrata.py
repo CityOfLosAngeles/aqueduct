@@ -3,13 +3,12 @@ An Import Socrata Template for Deployment on Civis Platform
 
 Author: @sherryshenker
 """
-
-from sodapy import Socrata
-import pandas as pd
 import logging
 import os
 from datetime import datetime
+
 import civis
+from sodapy import Socrata
 
 from socrata_helpers import (
     _read_paginated,
@@ -21,7 +20,15 @@ from socrata_helpers import (
 LOG = logging.getLogger(__name__)
 
 
-def main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause, existing_table_rows = 'drop'):
+def main(
+    dataset_id,
+    table_name,
+    database,
+    socrata_username,
+    socrata_password,
+    where_clause,
+    existing_table_rows="drop",
+):
     """
     Read in dataset from Socrata and write output to Platform
     Parameters
@@ -40,7 +47,7 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
         SoQL for filtering dataset
     existing_table_rows: str, optional
         options to pass to dataframe_to_civis command
-        
+
     Outputs
     ------
     Adds data as file output
@@ -50,12 +57,12 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
     socrata_client = Socrata(
         "data.lacity.org", None, username=socrata_username, password=socrata_password
     )
-    
+
     socrata_client.timeout = 50
 
     raw_metadata = socrata_client.get_metadata(dataset_id)
 
-    dataset = _read_paginated(socrata_client, dataset_id, where = where_clause)
+    dataset = _read_paginated(socrata_client, dataset_id, where=where_clause)
 
     civis_client = civis.APIClient()
 
@@ -81,7 +88,10 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
             dataset["civis_job_id"] = job_id
             dataset["civis_run_id"] = run_id
             table_upload = civis.io.dataframe_to_civis(
-                dataset, database=database, table=table_name, existing_table_rows=existing_table_rows
+                dataset,
+                database=database,
+                table=table_name,
+                existing_table_rows=existing_table_rows,
             ).result()
             LOG.info(f"using {table_upload}")
 
@@ -92,7 +102,7 @@ def main(dataset_id, table_name, database, socrata_username, socrata_password, w
     )
 
     metadata_paths = {
-        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",
+        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",  # noqa: E501
         "Description": "description",
         "Data updated at": "rowsUpdatedAt",
         "Data provided by": "tableAuthor.screenName",
@@ -133,4 +143,12 @@ if __name__ == "__main__":
         where_clause = os.environ["where_clause"]
     else:
         where_clause = None
-    main(dataset_id, table_name, database, socrata_username, socrata_password, where_clause, existing_table_rows)
+    main(
+        dataset_id,
+        table_name,
+        database,
+        socrata_username,
+        socrata_password,
+        where_clause,
+        existing_table_rows,
+    )
