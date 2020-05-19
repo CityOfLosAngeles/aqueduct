@@ -1,7 +1,7 @@
 # City of LA COVID-19 Dashboard README
 
 ## Contents
-We've documented all the data that feeds into the City of LA COVID-19 Dashboard and listed each source in [Section 1: Data Sources](#data-sources). We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation and avoid the need to "reinvent the wheel". For more technical information on our methodology and workflow, please read through Sections 2-6.
+We've documented all the data that feeds into the City of LA COVID-19 Dashboard and listed each source in [Section 1: Data Sources](#data-sources). We believe that open source data will allow policymakers and local authorities to monitor a rapidly changing situation and avoid the need to "reinvent the wheel". For more technical information on our methodology and workflow, please read through Sections 2-6. Our work on COVID-19 indicators / benchmarks prior to reopening are in [a separate GitHub repo](https://github.com/CityOfLosAngeles/covid19-indicators).
 
 1. [Data Sources](#data-sources)
 1. [COVID-19 Case Data](#covid-19-case-data)
@@ -83,7 +83,7 @@ JHU initially published US county-level data until 3/10/2020. On 3/10, JHU start
 
 Additionally, a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1Vk7aGL7O0ZVQRySwh6X2aKlbhYlAR_ppSyMdMPqz_aI/) is manually maintained for the number of cases that fall within the City of LA. Since the City of LA falls within LA County, the LA County Department of Public Health reports neighborhood breakdowns of case counts, with a subtotal for the City of LA. We sync the Google spreadsheet with our ESRI layer in the `sync-la-cases-data.py` DAG.
 
-Our ETLs check JHU data ***every hour***. Our  Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+Our ETLs check JHU data ***every hour***. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ### Disclaimer
