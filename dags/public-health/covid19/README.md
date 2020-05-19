@@ -17,6 +17,8 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [City of LA's COVID-19 GitHub repo](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We welcome collaboration and pull requests on our work!
 
+ * [City of LA's COVID-19 indicators GitHub repo](https://github.com/CityOfLosAngeles/covid19-indicators). We will use the JHU data and publish sample notebooks for how to make charts in Jupyter Notebooks on trends in cases and deaths.
+
 #### COVID-19 Cases
 * Global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
 
@@ -131,9 +133,10 @@ Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupi
 
 
 ## Helpful Hints
-Jupyter Notebooks can read in both the ESRI feature layer and the CSV. In our [Data Sources](#data-sources), we often provide links to the ESRI feature layer and CSV.
+Jupyter Notebooks can read in both the ESRI feature layer and the CSV. In our [Data Sources](#data-sources), we often provide links to the ESRI feature layer and CSV. More in our [COVID-19 indicators GitHub repo](https://github.com/CityOfLosAngeles/covid19-indicators).
 
 Ex: JHU global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
+
 
 **Import the CSV**
 
