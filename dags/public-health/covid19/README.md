@@ -17,12 +17,14 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 
 * [City of LA's COVID-19 GitHub repo](https://github.com/CityOfLosAngeles/aqueduct/tree/master/dags/public-health/covid19/). We use Aqueduct, our shared pipeline for building ETLs and scheduling batch jobs. We welcome collaboration and pull requests on our work!
 
+ * [City of LA's COVID-19 indicators GitHub repo](https://github.com/CityOfLosAngeles/covid19-indicators). We will use the JHU data and publish sample notebooks for how to make charts in Jupyter Notebooks on trends in cases and deaths.
+
 #### COVID-19 Cases
 * Global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
 
 * Global province-level current date's [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=191df200230642099002039816dc8c59) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=6f3f214220f443b2beed8d1374b02cf7)
 
-* US county-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=4e0dc873bd794c14b7bd186b4b5e74a2) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=8aba663239fc428f8bcdc48e213e3172)
+* US county-level time-series [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=8f13bb3abefe490f9edd47df89664b56) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=782ca660304a4bdda1cc9757a2504647)
 
 * Comparison of metropolitan infection rates [feature table](http://lahub.maps.arcgis.com/home/item.html?id=b37e229b71dc4c65a479e4b5912ded66) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=27efb06ce2954b90ae833dabb570b1cf). The [MSA to county crosswalk](https://github.com/CityOfLosAngeles/aqueduct/blob/master/dags/public-health/covid19/msa_county_pop_crosswalk.csv) was derived from the [National Bureau of Economic Research crosswalk](https://data.nber.org/data/cbsa-msa-fips-ssa-county-crosswalk.html) using `make-crosswalk.py`.
 
@@ -131,9 +133,10 @@ Note, the capacity numbers should be calculated by `sum(occupied beds + unoccupi
 
 
 ## Helpful Hints
-Jupyter Notebooks can read in both the ESRI feature layer and the CSV. In our [Data Sources](#data-sources), we often provide links to the ESRI feature layer and CSV.
+Jupyter Notebooks can read in both the ESRI feature layer and the CSV. In our [Data Sources](#data-sources), we often provide links to the ESRI feature layer and CSV. More in our [COVID-19 indicators GitHub repo](https://github.com/CityOfLosAngeles/covid19-indicators).
 
 Ex: JHU global province-level time-series [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=20271474d3c3404d9c79bed0dbd48580) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=daeef8efe43941748cb98d7c1f716122)
+
 
 **Import the CSV**
 

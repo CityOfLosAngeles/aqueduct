@@ -34,7 +34,7 @@ LOOKUP_TABLE_URL = (
 )
 
 # General function
-TIME_SERIES_FEATURE_ID = "4e0dc873bd794c14b7bd186b4b5e74a2"
+TIME_SERIES_FEATURE_ID = "8f13bb3abefe490f9edd47df89664b56"
 JHU_FEATURE_ID = "628578697fb24d8ea4c32fa0c5ae1843"
 MSA_FEATURE_ID = "b37e229b71dc4c65a479e4b5912ded66"
 max_record_count = 6_000_000
@@ -134,7 +134,6 @@ def load_jhu_us_time_series(branch="master"):
         "Country_Region",
         "Lat",
         "Long_",
-        "Combined_Key",
         "date",
     ]
     m1 = pd.merge(cases_df, deaths_df, on=merge_cols, how="left")
@@ -144,7 +143,6 @@ def load_jhu_us_time_series(branch="master"):
     keep_cols = [
         "Province_State",
         "Admin2",
-        "Combined_Key",
         "FIPS",
         "Lat",
         "Long_",
@@ -208,7 +206,7 @@ def load_jhu_us_current(**kwargs):
 # T1 Sub-functions
 # (2) Bring in current JHU feature layer and clean
 def clean_jhu_county(df):
-    # Only keep certain columns and rename them to match NYT schema
+    # Only keep certain columns and rename them to historical df
     keep_cols = [
         "Province_State",
         "Admin2",
@@ -219,7 +217,6 @@ def clean_jhu_county(df):
         "FIPS",
         "People_Tested",
         "date",
-        "Combined_Key",
     ]
 
     df = df[keep_cols].rename(
