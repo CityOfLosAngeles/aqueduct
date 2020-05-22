@@ -49,7 +49,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 #### COVID-19 Testing
 * LA County COVID-19 tests administered [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=158dab4a07b04ecb8d47fea1746303ac)
 
-* LA County and LA City COVID-19 tests administered [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=c33bb1acc0f4484ba7eaddd5f3e6c8e7) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=1eec9fe85f60447792644078d0a0d050)
+* LA County and LA City COVID-19 tests administered [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=996a863e59f04efdbe33206a6c717afb) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=3cfd003985b447c994a7252e8eb97b92).
 
 * The relevant script is to transform testing data is: `sync-covid-testing-data.py`.
 
@@ -105,6 +105,8 @@ LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/d
 
 ## Testing Data
 The City collects data on the number of tests performed and test kits available from its several COVID-19 testing sites. The DAG `sync-covid-testing-data.py` syncs the data from a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/edit?usp=sharing) with our ESRI feature layer. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+
+The City of LA tests are a subset of LA County tests. Tests done in other parts of LA County (excluding the City of LA) would be derived by taking the difference of `Performed` - `City_Performed`.
 
 
 ## Prior Updates to Workflow

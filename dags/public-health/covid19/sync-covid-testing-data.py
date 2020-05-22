@@ -13,7 +13,7 @@ from airflow.operators.python_operator import PythonOperator
 # County totals
 LA_COUNTY_TESTS_FEATURE_ID = "64b91665fef4471dafb6b2ff98daee6c"
 # City and county totals
-LA_CITY_TESTS_FEATURE_ID = "c33bb1acc0f4484ba7eaddd5f3e6c8e7"
+LA_CITY_TESTS_FEATURE_ID = "996a863e59f04efdbe33206a6c717afb"
 
 bucket_name = "public-health-dashboard"
 
@@ -77,18 +77,20 @@ def get_county_data(filename, workbook, sheet_name):
 
     df[city_sites] = df[city_sites].fillna(0).astype(int)
 
-    df = df.assign(city_performed=df[city_sites].astype(int).sum(axis=1),)
+    df = df.assign(City_performed=df[city_sites].astype(int).sum(axis=1),)
 
     # Calculate cumulative sums for whole county and city
-    keep_cols = ["Date", "Performed", "Cumulative", "City_Cumulative"]
+    keep_cols = ["Date", "Performed", "Cumulative", "City_Performed", "City_Cumulative"]
 
     df = df.assign(
         Performed=df.Performed.astype(int),
         Cumulative=df.sort_values("Date")["Performed"].cumsum().astype(int),
-        City_Cumulative=df.sort_values("Date")["city_performed"].cumsum().astype(int),
+        City_Cumulative=df.sort_values("Date")["City_performed"].cumsum().astype(int),
     )[keep_cols].sort_values("Date")
 
-    df.drop(columns="City_Cumulative").to_csv("/tmp/county_cumulative.csv", index=False)
+    df.drop(columns=["City_Performed", "City_Cumulative"]).to_csv(
+        "/tmp/county_cumulative.csv", index=False
+    )
 
     return df
 
