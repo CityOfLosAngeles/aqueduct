@@ -13,6 +13,8 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
+bucket_name = "public-health-dashboard"
+
 # URL to JHU confirmed cases US county time series.
 CASES_URL = (
     "https://github.com/CSSEGISandData/COVID-19/raw/{}/"
@@ -430,6 +432,7 @@ def append_county_time_series(**kwargs):
     # (7) Write to CSV and overwrite the old feature layer.
     time_series_filename = "/tmp/jhu-county-time-series.csv"
     final.to_csv(time_series_filename)
+    # final.to_parquet(f"s3://{bucket_name}/jhu_covid19/us-county-time-series.parquet")
     gis_item = gis.content.get(TIME_SERIES_FEATURE_ID)
     gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
     gis_layer_collection.manager.overwrite(time_series_filename)

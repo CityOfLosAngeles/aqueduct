@@ -13,6 +13,7 @@ from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 from arcgis.gis import GIS
 
+bucket_name = "public-health-dashboard"
 
 # URL to JHU confirmed cases time series.
 CASES_URL = (
@@ -258,6 +259,7 @@ def load_global_covid_data():
     # Output to CSV
     time_series_filename = "/tmp/jhu_covid19_time_series.csv"
     df.to_csv(time_series_filename, index=False)
+    df.to_parquet(f"s3://{bucket_name}/jhu_covid19/global-time-series.parquet")
 
     # Also output the most current date as a separate CSV for convenience
     most_recent_date_filename = "/tmp/jhu_covid19_current.csv"

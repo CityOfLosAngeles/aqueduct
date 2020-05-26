@@ -9,10 +9,13 @@ from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
 
+bucket_name = "public-health-dashboard"
+
 
 def get_data(filename, workbook):
     df = pd.read_csv(workbook)
     df.to_csv(filename, index=False)
+    # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/hospital-availability.parquet")
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
