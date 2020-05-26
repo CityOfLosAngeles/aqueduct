@@ -114,7 +114,7 @@ t2 - City and County Totals
 def get_city_data(filename, workbook, sheet_name):
     df = get_county_data(filename, workbook, sheet_name)
     df.to_csv("/tmp/city_county_cumulative.csv", index=False)
-    df.to_parquet(f"s3://{bucket_name}/jhu_covid19/la-city-county-testing.parquet")
+    # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/la-city-county-testing.parquet")
 
 
 def update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename):

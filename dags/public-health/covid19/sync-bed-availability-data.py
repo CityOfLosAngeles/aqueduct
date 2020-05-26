@@ -15,7 +15,7 @@ bucket_name = "public-health-dashboard"
 def get_data(filename, workbook):
     df = pd.read_csv(workbook)
     df.to_csv(filename, index=False)
-    df.to_parquet(f"s3://{bucket_name}/jhu_covid19/hospital-availability.parquet")
+    # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/hospital-availability.parquet")
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):

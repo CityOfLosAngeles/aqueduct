@@ -20,7 +20,7 @@ def get_data(filename, workbook, sheet_name):
     df["City of LA Cases"] = df["City of LA Cases"].astype(int)
     df["City of LA New Cases"] = df["City of LA New Cases"].astype(int)
     df.to_csv(filename, index=False)
-    df.to_parquet(f"s3://{bucket_name}/jhu_covid19/city-of-la-cases.parquet")
+    # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/city-of-la-cases.parquet")
 
 
 def update_arcgis(arcuser, arcpassword, arcfeatureid, filename):
