@@ -74,7 +74,7 @@ def get_county_data(filename, workbook, sheet_name):
 
     df[city_sites] = df[city_sites].fillna(0).astype(int)
 
-    df = df.assign(City_performed=df[city_sites].astype(int).sum(axis=1),)
+    df = df.assign(City_Performed=df[city_sites].astype(int).sum(axis=1),)
 
     # Calculate cumulative sums for whole county and city
     keep_cols = ["Date", "Performed", "Cumulative", "City_Performed", "City_Cumulative"]
@@ -82,7 +82,7 @@ def get_county_data(filename, workbook, sheet_name):
     df = df.assign(
         Performed=df.Performed.astype(int),
         Cumulative=df.sort_values("Date")["Performed"].cumsum().astype(int),
-        City_Cumulative=df.sort_values("Date")["City_performed"].cumsum().astype(int),
+        City_Cumulative=df.sort_values("Date")["City_Performed"].cumsum().astype(int),
     )[keep_cols].sort_values("Date")
 
     return df
