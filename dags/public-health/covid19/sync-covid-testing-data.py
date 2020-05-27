@@ -9,6 +9,7 @@ import pandas as pd
 from airflow import DAG
 from airflow.hooks.base_hook import BaseHook
 from airflow.operators.python_operator import PythonOperator
+from arcgis.gis import GIS
 
 # County totals
 LA_COUNTY_TESTS_FEATURE_ID = "64b91665fef4471dafb6b2ff98daee6c"
@@ -16,10 +17,6 @@ LA_COUNTY_TESTS_FEATURE_ID = "64b91665fef4471dafb6b2ff98daee6c"
 LA_CITY_TESTS_FEATURE_ID = "996a863e59f04efdbe33206a6c717afb"
 
 bucket_name = "public-health-dashboard"
-
-"""
-t1 - County totals
-"""
 
 
 def get_county_data(filename, workbook, sheet_name):
@@ -77,7 +74,7 @@ def get_county_data(filename, workbook, sheet_name):
 
     df[city_sites] = df[city_sites].fillna(0).astype(int)
 
-    df = df.assign(City_performed=df[city_sites].astype(int).sum(axis=1),)
+    df = df.assign(City_Performed=df[city_sites].astype(int).sum(axis=1),)
 
     # Calculate cumulative sums for whole county and city
     keep_cols = ["Date", "Performed", "Cumulative", "City_Performed", "City_Cumulative"]
@@ -85,47 +82,10 @@ def get_county_data(filename, workbook, sheet_name):
     df = df.assign(
         Performed=df.Performed.astype(int),
         Cumulative=df.sort_values("Date")["Performed"].cumsum().astype(int),
-        City_Cumulative=df.sort_values("Date")["City_performed"].cumsum().astype(int),
+        City_Cumulative=df.sort_values("Date")["City_Performed"].cumsum().astype(int),
     )[keep_cols].sort_values("Date")
 
-    df.drop(columns=["City_Performed", "City_Cumulative"]).to_csv(
-        "/tmp/county_cumulative.csv", index=False
-    )
-
     return df
-
-
-def update_county_arcgis(arcuser, arcpassword, arcfeatureid, filename):
-    county_filename = "/tmp/county_cumulative.csv"
-    gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
-    gis_item = gis.content.get(LA_COUNTY_TESTS_FEATURE_ID)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(county_filename)
-
-    # Clean up
-    os.remove(county_filename)
-
-
-"""
-t2 - City and County Totals
-"""
-
-
-def get_city_data(filename, workbook, sheet_name):
-    df = get_county_data(filename, workbook, sheet_name)
-    df.to_csv("/tmp/city_county_cumulative.csv", index=False)
-    # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/la-city-county-testing.parquet")
-
-
-def update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename):
-    city_filename = "/tmp/city_county_cumulative.csv"
-    gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
-    gis_item = gis.content.get(LA_CITY_TESTS_FEATURE_ID)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(city_filename)
-
-    # Clean up
-    os.remove(city_filename)
 
 
 default_args = {
@@ -158,14 +118,25 @@ def update_covid_testing_data(**kwargs):
     filename = kwargs.get("filename")
     workbook = kwargs.get("workbook")
     sheet_name = kwargs.get("sheet_name")
-    get_county_data(filename, workbook, sheet_name)
+
+    df = get_county_data(filename, workbook, sheet_name)
+    df.drop(columns=["City_Performed", "City_Cumulative"]).to_csv(
+        "/tmp/county_cumulative.csv", index=False
+    )
 
     # Updating ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
-    arcfeatureid = kwargs.get(LA_COUNTY_TESTS_FEATURE_ID)
-    update_county_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    filename = "/tmp/county_cumulative.csv"
+    gis_item = gis.content.get(LA_COUNTY_TESTS_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(filename)
+
+    # Clean up
+    os.remove(filename)
 
 
 def update_covid_testing_city_county_data(**kwargs):
@@ -176,14 +147,23 @@ def update_covid_testing_city_county_data(**kwargs):
     filename = kwargs.get("filename")
     workbook = kwargs.get("workbook")
     sheet_name = kwargs.get("sheet_name")
-    get_city_data(filename, workbook, sheet_name)
+
+    df = get_county_data(filename, workbook, sheet_name)
+    df.to_csv("/tmp/county_city_cumulative.csv", index=False)
 
     # Updating ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
-    arcfeatureid = kwargs.get(LA_CITY_TESTS_FEATURE_ID)
-    update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
+
+    filename = "/tmp/county_city_cumulative.csv"
+    gis_item = gis.content.get(LA_CITY_TESTS_FEATURE_ID)
+    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
+    gis_layer_collection.manager.overwrite(filename)
+
+    # Clean up
+    os.remove(filename)
 
 
 # Sync ServiceRequestData.csv
@@ -193,7 +173,6 @@ t1 = PythonOperator(
     python_callable=update_covid_testing_data,
     op_kwargs={
         "filename": "COVID_testing_data.csv",
-        "arcfeatureid": LA_COUNTY_TESTS_FEATURE_ID,
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/"
         "export?format=xlsx&#gid=0",
@@ -202,13 +181,13 @@ t1 = PythonOperator(
     dag=dag,
 )
 
+
 t2 = PythonOperator(
     task_id="update_COVID_Testing_City_County_Data",
     provide_context=True,
     python_callable=update_covid_testing_city_county_data,
     op_kwargs={
         "filename": "COVID_testing_data.csv",
-        "arcfeatureid": LA_CITY_TESTS_FEATURE_ID,
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/"
         "export?format=xlsx&#gid=0",
