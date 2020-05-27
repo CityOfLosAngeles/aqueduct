@@ -44,7 +44,7 @@ We've documented all the data that feeds into the City of LA COVID-19 Dashboard 
 * The relevant script to transform shelter data is: `get-help-to-esri.py`.
 
 #### Hospital Bed and Equipment Availability
-* Hospital bed and equipment availability [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=3da1eb3e13a14743973c96b945bd1117)
+* LA County hospital bed and equipment availability [feature layer](http://lahub.maps.arcgis.com/home/item.html?id=956e105f422a4c1ba9ce5d215b835951) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=3da1eb3e13a14743973c96b945bd1117)
 
 #### COVID-19 Testing
 * LA County COVID-19 tests administered [feature layer](https://lahub.maps.arcgis.com/home/item.html?id=64b91665fef4471dafb6b2ff98daee6c) and [CSV](https://lahub.maps.arcgis.com/home/item.html?id=158dab4a07b04ecb8d47fea1746303ac)
@@ -100,7 +100,7 @@ The City uses a shelter data management to a system run by [GetHelp](https://get
 
 
 ## Hospital Bed and Equipment Availability Data
-LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and updated via the `sync-bed-availability-data.py` DAG. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
+LA County issues a [daily HavBed pdf survey](http://file.lacounty.gov/SDSInter/dhs/1070069_HavBedSummary.pdf) on the number of beds and ventilators that are available, unavailable, or occupied by COVID-19 patients. The 70 largest hospitals in the county are included in the daily pdf. This survey is manually entered into a [Google spreadsheet](https://docs.google.com/spreadsheets/d/1rS0Vt-kuxwQKoqZBcaOYOOTc5bL1QZqAqqPSyCaMczQ/edit?usp=sharing) and updated via the `sync-bed-availability-data.py` DAG. Our ESRI map layers are public and listed in the [Data Sources section](#data-sources).
 
 
 ## Testing Data
