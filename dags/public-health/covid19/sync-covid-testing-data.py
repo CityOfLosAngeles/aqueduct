@@ -176,14 +176,14 @@ def update_covid_testing_city_county_data(**kwargs):
     filename = kwargs.get("filename")
     workbook = kwargs.get("workbook")
     sheet_name = kwargs.get("sheet_name")
-    get_county_data(filename, workbook, sheet_name)
+    get_city_data(filename, workbook, sheet_name)
 
     # Updating ArcGIS
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
     arcfeatureid = kwargs.get(LA_CITY_TESTS_FEATURE_ID)
-    update_county_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+    update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename)
 
 
 # Sync ServiceRequestData.csv
