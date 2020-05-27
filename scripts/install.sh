@@ -14,4 +14,5 @@ if command -v pyenv 1>/dev/null 2>&1; then
 
 export SLUGIFY_USES_TEXT_UNIDECODE=yes
 echo `which pip`
+/home/ec2-user/.pyenv/shims/pip install --user -r /home/ec2-user/aqueduct/airflow-requirements.txt
 /home/ec2-user/.pyenv/shims/pip install --user -r /home/ec2-user/aqueduct/requirements.txt
