@@ -91,9 +91,11 @@ RUN cat /tmp/custom.sh >> /etc/bash.bashrc
 
 # Civis-related
 ENV DEFAULT_KERNEL python3
-# civis-jupyter-notebook is a bit heavy handed with depenencies.
-RUN pip install --no-deps civis-jupyter-notebook civis-jupyter-extensions && \
-    civis-jupyter-notebooks-install
+# civis-jupyter-notebook is heavy handed with depenencies.
+# If we want a different version of pandas, we have to reinstall it afterwards.
+RUN pip install civis-jupyter-notebook && \
+     civis-jupyter-notebooks-install && \
+     pip install -U pandas
 
 ENV TINI_VERSION v0.16.1
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
