@@ -95,7 +95,7 @@ def get_county_data(filename, workbook, sheet_name):
     return df
 
 
-def update_county_arcgis(arcuser, arcpassword, arcfeatureid, filename):
+def update_county_arcgis(arcuser, arcpassword, filename):
     county_filename = "/tmp/county_cumulative.csv"
     gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
     gis_item = gis.content.get(LA_COUNTY_TESTS_FEATURE_ID)
@@ -117,7 +117,7 @@ def get_city_data(filename, workbook, sheet_name):
     # df.to_parquet(f"s3://{bucket_name}/jhu_covid19/la-city-county-testing.parquet")
 
 
-def update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename):
+def update_city_arcgis(arcuser, arcpassword, filename):
     city_filename = "/tmp/city_county_cumulative.csv"
     gis = arcgis.GIS("http://lahub.maps.arcgis.com", arcuser, arcpassword)
     gis_item = gis.content.get(LA_CITY_TESTS_FEATURE_ID)
@@ -164,8 +164,7 @@ def update_covid_testing_data(**kwargs):
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
-    arcfeatureid = kwargs.get(LA_COUNTY_TESTS_FEATURE_ID)
-    update_county_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+    update_county_arcgis(arcuser, arcpassword, filename)
 
 
 def update_covid_testing_city_county_data(**kwargs):
@@ -182,8 +181,7 @@ def update_covid_testing_city_county_data(**kwargs):
     arcconnection = BaseHook.get_connection("arcgis")
     arcuser = arcconnection.login
     arcpassword = arcconnection.password
-    arcfeatureid = kwargs.get(LA_CITY_TESTS_FEATURE_ID)
-    update_city_arcgis(arcuser, arcpassword, arcfeatureid, filename)
+    update_city_arcgis(arcuser, arcpassword, filename)
 
 
 # Sync ServiceRequestData.csv
@@ -193,7 +191,6 @@ t1 = PythonOperator(
     python_callable=update_covid_testing_data,
     op_kwargs={
         "filename": "COVID_testing_data.csv",
-        "arcfeatureid": LA_COUNTY_TESTS_FEATURE_ID,
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/"
         "export?format=xlsx&#gid=0",
@@ -202,13 +199,13 @@ t1 = PythonOperator(
     dag=dag,
 )
 
+
 t2 = PythonOperator(
     task_id="update_COVID_Testing_City_County_Data",
     provide_context=True,
     python_callable=update_covid_testing_city_county_data,
     op_kwargs={
         "filename": "COVID_testing_data.csv",
-        "arcfeatureid": LA_CITY_TESTS_FEATURE_ID,
         "workbook": "https://docs.google.com/spreadsheets/d/"
         "1agPpAJ5VNqpY50u9RhcPOu7P54AS0NUZhvA2Elmp2m4/"
         "export?format=xlsx&#gid=0",
