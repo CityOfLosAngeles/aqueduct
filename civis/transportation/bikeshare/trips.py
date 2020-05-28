@@ -4,14 +4,73 @@ upload to Postgres and S3.
 """
 import io
 import os
+from urllib.parse import urlparse, quote_plus
 
+import civis
 import pandas
 import sqlalchemy
 import tableauserverclient
 
-POSTGRES_URI = os.environ.get("POSTGRES_URI")
 SCHEMA = "transportation"
 TABLE = "bike_trips"
+
+
+def get_db_uri(kind, api_key=None):
+    """
+    Get a sqlalchemy-compatible database URI from the civis API client.
+
+    Parameters
+    ----------
+    kind: str
+        "RemoteHostType::Redshift" or "RemoteHostType::Postgres"
+
+    Returns
+    -------
+    A SQLAlchemy-compatible database URI.
+    """
+    # List all the remote hosts, which include the DB instances
+    client = civis.APIClient(api_key)
+    hosts = client.remote_hosts.list()
+
+    # Find the right DB
+    db = next(h for h in hosts if h["type"] == kind)
+    parsed = urlparse(db["url"].lstrip("jdbc:"))
+
+    # Get the credentials from the environment
+    credential = client.credentials.get(client.default_credential)
+    user = os.environ.get(f"{credential['name'].upper()}_USERNAME")
+    password = os.environ.get(f"{credential['name'].upper()}_PASSWORD")
+    if not user or not password:
+        raise Exception("Unable to get credentials -- might they not be attached?")
+
+    user = quote_plus(user)
+    password = quote_plus(password)
+
+    # Parse the URL and construct the SQLAlchemy URL.
+    if "redshift" in parsed.scheme:
+        scheme = "redshift+psycopg2"
+    elif "postgres" in parsed.scheme:
+        scheme = "postgres"
+
+    uri = f"{scheme}://{user}:{password}@{parsed.netloc}{parsed.path}"
+    return uri
+
+
+def get_postgres_engine(api_key=None):
+    uri = get_db_uri("RemoteHostTypes::Postgres")
+    return sqlalchemy.create_engine(uri)
+
+
+def get_redshift_engine(api_key=None):
+    uri = get_db_uri("RemoteHostTypes::Redshift")
+    return sqlalchemy.create_engine(uri, connect_args={"sslmode": "require"})
+
+
+if os.environ.get("DEV"):
+    POSTGRES_URI = os.environ.get("POSTGRES_URI")
+    engine = sqlalchemy.create_engine(POSTGRES_URI)
+else:
+    engine = get_postgres_engine()
 
 
 # Define the PostgreSQL Table using SQLAlchemy
@@ -63,7 +122,6 @@ def create_table(**kwargs):
     Create the schema/tables to hold the bikeshare data.
     """
     print("Creating tables")
-    engine = sqlalchemy.create_engine(POSTGRES_URI)
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
@@ -129,7 +187,6 @@ def load_pg_data(**kwargs):
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
     # datetime interface, psycopg can correctly handle the timestamps upon insert.
     print("Uploading to PG")
-    engine = sqlalchemy.create_engine(POSTGRES_URI)
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
