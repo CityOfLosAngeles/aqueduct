@@ -150,10 +150,16 @@ def load_pg_data(**kwargs):
 def migrate_data():
     """
     Migrate data *from* S3 into the data warehouse.
+
+    This will delete all existing data in the table before migrating.
     """
+    # Clear the table of all existing data
+    engine.execute(f'TRUNCATE TABLE "{SCHEMA}"."{TABLE}"')
+    # Read the data from s3.
     df = pandas.read_parquet(S3_DATA_PATH)
     check_columns(bike_trips, df)
-    insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_update()
+    # Upload the new data
+    insert = sqlalchemy.dialects.postgresql.insert(bike_trips)
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
 
@@ -167,5 +173,11 @@ def load_to_s3():
 
 
 if __name__ == "__main__":
+    import sys
+
     create_table()
-    load_pg_data()
+    if len(sys.argv) >= 2 and sys.argv[1] == "migrate":
+        migrate_data()
+    else:
+        load_pg_data()
+        load_to_s3()
