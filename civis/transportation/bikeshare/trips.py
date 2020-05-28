@@ -12,6 +12,7 @@ import tableauserverclient
 
 SCHEMA = "transportation"
 TABLE = "bike_trips"
+S3_DATA_PATH = "s3://tmf-data/bikeshare_trips.parquet"
 
 
 if os.environ.get("DEV"):
@@ -144,6 +145,25 @@ def load_pg_data(**kwargs):
     insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
+
+
+def migrate_data():
+    """
+    Migrate data *from* S3 into the data warehouse.
+    """
+    df = pandas.read_parquet(S3_DATA_PATH)
+    check_columns(bike_trips, df)
+    insert = sqlalchemy.dialects.postgresql.insert(bike_trips).on_conflict_do_update()
+    conn = engine.connect()
+    conn.execute(insert, *df.to_dict(orient="record"))
+
+
+def load_to_s3():
+    """
+    Copy data from the data warehouse *to* S3.
+    """
+    df = pandas.read_sql_table(TABLE, engine, schema=SCHEMA)
+    df.to_parquet(S3_DATA_PATH)
 
 
 if __name__ == "__main__":
