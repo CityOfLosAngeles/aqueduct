@@ -91,9 +91,14 @@ RUN pip install \
   sqlalchemy-redshift \
   tableauserverclient \
   usaddress \
+  voila \
   xlrd \
   xlsxwriter
 
+RUN jupyter labextension install --no-build @jupyter-voila/jupyterlab-preview
+RUN jupyter labextension install --no-build @jupyter-widgets/jupyterlab-manager
+RUN jupyter labextension install --no-build @jupyterlab/geojson-extension
+RUN jupyter lab build --dev-build=False --debug && jupyter lab clean
 
 # Civis-related
 ENV DEFAULT_KERNEL python3
