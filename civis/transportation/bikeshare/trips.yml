@@ -7,6 +7,6 @@ services:
       - BIKESHARE_PASSWORD=${BIKESHARE_PASSWORD:?Missing bikeshare password}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?Missing AWS access key id}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?Missing AWS secret access key}
-    command: python transportation/bikeshare/trips.py
+    command: python /app/civis/transportation/bikeshare/trips.py
     depends_on:
       - postgres
