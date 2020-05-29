@@ -180,4 +180,5 @@ if __name__ == "__main__":
         migrate_data()
     else:
         load_pg_data()
-        load_to_s3()
+        if not os.environ.get("DEV"):
+            load_to_s3()

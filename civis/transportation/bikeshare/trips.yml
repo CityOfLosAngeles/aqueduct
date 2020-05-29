@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  lab:
+  civis-lab:
     environment:
       - BIKESHARE_USERNAME=${BIKESHARE_USERNAME:?Missing bikeshare username}
       - BIKESHARE_PASSWORD=${BIKESHARE_PASSWORD:?Missing bikeshare password}

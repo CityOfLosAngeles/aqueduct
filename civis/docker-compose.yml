@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  lab:
+  civis-lab:
     build: ./
     image: civis-lab
     container_name: civis-lab

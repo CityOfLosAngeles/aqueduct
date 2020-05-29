@@ -1,13 +1,18 @@
 FROM continuumio/miniconda3:4.8.2
 
-# Having a CLI text editor is nice.
+# Install inkscape and xelatex for notebook conversion to PDF,
+# graphviz for ibis visualizations.
 RUN apt-get update && apt-get install -y \
-  unzip \
-  vim \
-  graphviz \
-  openssh-client \
   bash-completion \
-  gcc
+  gcc \
+  graphviz \
+  inkscape \
+  openssh-client \
+  texlive-fonts-recommended \
+  texlive-generic-recommended \
+  texlive-xetex \
+  unzip \
+  vim
 
 
 # Install conda dependencies early, as it takes a long time.
@@ -22,6 +27,7 @@ RUN conda install -c conda-forge \
   intake-parquet \
   matplotlib \
   nltk \
+  nodejs \
   numpy \
   osmnx \
   pandas \
@@ -38,9 +44,13 @@ RUN unzip instant_client.zip && mkdir -p /opt/oracle && mv instantclient_19_6 /o
 RUN echo /opt/oracle/instantclient_19_6 > /etc/ld.so.conf.d/oracle-instantclient.conf && ldconfig
 RUN rm instant_client.zip
 
+# Dependencies for altiar_saver, conda packages are currently broken.
+RUN npm install -g --unsafe vega vega-cli vega-lite canvas
+
 # Install some python-only packages using pip
 RUN pip install \
   altair \
+  altair_saver \
   arcgis \
   awscli \
   black \
@@ -76,7 +86,6 @@ RUN pip install \
   polyline \
   psycopg2 \
   requests \
-  selenium \
   sodapy \
   sqlalchemy \
   sqlalchemy-redshift \
@@ -101,6 +110,7 @@ RUN cat /tmp/custom.sh >> /root/.bashrc
 ENV TINI_VERSION v0.16.1
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
+RUN echo `which jupyter-lab`
 
 EXPOSE 8888
 WORKDIR /root/work
