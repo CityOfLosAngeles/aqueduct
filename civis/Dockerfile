@@ -85,9 +85,6 @@ RUN pip install \
   xlrd \
   xlsxwriter
 
-# Environment-related
-COPY custom.sh /tmp/custom.sh
-RUN cat /tmp/custom.sh >> /etc/bash.bashrc
 
 # Civis-related
 ENV DEFAULT_KERNEL python3
@@ -96,6 +93,10 @@ ENV DEFAULT_KERNEL python3
 RUN pip install civis-jupyter-notebook && \
      civis-jupyter-notebooks-install && \
      pip install -U pandas
+
+# Environment-related
+COPY custom.sh /tmp/custom.sh
+RUN cat /tmp/custom.sh >> /root/.bashrc
 
 ENV TINI_VERSION v0.16.1
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
