@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  civis-lab:
+    build: ./
+    image: civis-lab
+    container_name: civis-lab
+    volumes:
+     - ../:/app
+    ports:
+      - "8888:8888"
+    environment:
+      - DEV=1
+      - POSTGRES_URI=postgres://ita:secret@postgres:5432/ita
+      - REDSHIFT_URI=postgres://ita:secret@redshift:5432/ita
+    command: "jupyter-lab --no-browser --ip=\"*\" --allow-root --port=8888 --NotebookApp.notebook_dir=/app --NotebookApp.terminado_settings='{\"shell_command\": [\"bash\"]}' --LabApp.token=\"\" --LabApp.password=\"\""
+  # Use the official postgis image for postgres
+  postgres:
+    image: mdillon/postgis:9.6
+    environment:
+      - POSTGRES_USER=ita
+      - POSTGRES_PASSWORD=secret
+  # Simulate redshift with postgis image as well
+  redshift:
+    image: mdillon/postgis:9.6
+    environment:
+      - POSTGRES_USER=ita
+      - POSTGRES_PASSWORD=secret
