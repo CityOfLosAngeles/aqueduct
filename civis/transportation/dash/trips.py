@@ -208,4 +208,4 @@ if __name__ == "__main__":
     else:
         load_pg_data()
         if not os.environ.get("DEV"):
-            load_to_s3()
+            load_to_s3(yesterday)
