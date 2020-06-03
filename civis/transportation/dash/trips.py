@@ -194,7 +194,7 @@ def migrate_data():
     # Read the data from s3.
     df = pandas.read_parquet("s3://tmf-data/dash-trips.parquet", engine="pyarrow")
     # Upload the new data
-    insert = sqlalchemy.dialects.postgresql.insert(dash_trips)
+    insert = sqlalchemy.dialects.postgresql.insert(dash_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
 
