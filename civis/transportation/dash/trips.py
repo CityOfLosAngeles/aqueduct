@@ -1,7 +1,6 @@
 """
 Download LADOT Downtown DASH data, and upload it to Postgres and S3.
 """
-import logging
 import os
 from base64 import b64encode
 from urllib.parse import quote_plus
@@ -107,7 +106,7 @@ def create_table():
     """
     Create the schema/tables to hold the hare data.
     """
-    logging.info("Creating tables")
+    print("Creating tables")
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
@@ -120,7 +119,7 @@ def load_pg_data():
     # Fetch the data from the rest API for the previous day.
     DOWNTOWN_DASH_ID = "LADOTDT"
     token = get_bearer_token()
-    logging.info(f"Fetching DASH data for {yesterday}")
+    print(f"Fetching DASH data for {yesterday}")
     r = requests.get(
         f"https://track-api.syncromatics.com/1/{DOWNTOWN_DASH_ID}"
         f"/exports/stop_times.json?start={yesterday}&end={yesterday}",
@@ -139,7 +138,7 @@ def load_pg_data():
     )
     # The trips may be zero due to holidays or missing data.
     if len(df) == 0:
-        logging.info("No trips found -- is this a holiday?")
+        print("No trips found -- is this a holiday?")
         return
 
     # Drop unnecesary driver info.
@@ -157,7 +156,7 @@ def load_pg_data():
 
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
     # datetime interface, psycopg can correctly handle the timestamps upon insert.
-    logging.info("Uploading to PG")
+    print("Uploading to PG")
     insert = sqlalchemy.dialects.postgresql.insert(dash_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
