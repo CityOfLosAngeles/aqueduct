@@ -169,7 +169,7 @@ def load_s3_data(ds, **kwargs):
         sql = f"""
         SELECT *
         FROM "{SCHEMA}"."{TABLE}"
-        WHERE DATE(scheduled_depart) = '{str(yesterday.date())}'
+        WHERE DATE(scheduled_depart AT TIME ZONE 'PST') = '{str(yesterday.date())}'
         """
         engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
         df = pandas.read_sql_query(sql, engine)

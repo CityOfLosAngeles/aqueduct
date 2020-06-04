@@ -63,6 +63,7 @@ RUN pip install \
   altair_saver \
   arcgis \
   awscli \
+  beautifulsoup4 \
   black \
   census-data-downloader \
   CensusData \
