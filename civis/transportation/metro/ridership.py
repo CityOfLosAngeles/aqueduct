@@ -3,10 +3,12 @@ Scrape Los Angeles Metro ridership data
 """
 import datetime
 import os
+from urllib.parse import quote_plus
 
 import bs4
 import pandas as pd
 import requests
+import sqlalchemy
 
 # The URL for the ridership form
 RIDERSHIP_URL = "http://isotp.metro.net/MetroRidership/IndexSys.aspx"
@@ -180,8 +182,32 @@ if __name__ == "__main__":
     """
     The entrypoint for the job.
     """
+    # Load the data
     today = datetime.date.today()
     name = "metro-ridership-{}.parquet".format(today)
-    ridership = get_all_ridership_data(3)
+    ridership = get_all_ridership_data(2)
+
+    # Load into the data warehouse
+    if os.environ.get("DEV"):
+        POSTGRES_URI = os.environ.get("POSTGRES_URI")
+    else:
+        POSTGRES_URI = (
+            f"postgres://"
+            f"{quote_plus(os.environ['POSTGRES_CREDENTIAL_USERNAME'])}:"
+            f"{quote_plus(os.environ['POSTGRES_CREDENTIAL_PASSWORD'])}@"
+            f"{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}"
+            f"/{os.environ['POSTGRES_DATABASE']}"
+        )
+    engine = sqlalchemy.create_engine(POSTGRES_URI)
+    ridership.to_sql(
+        "metro_ridership",
+        engine,
+        schema="transportation",
+        if_exists="replace",
+        index=False,
+        method="multi",
+    )
+
+    # Load to s3
     if not os.environ.get("DEV"):
         ridership.to_parquet(f"{S3_BUCKET}/{name}")
