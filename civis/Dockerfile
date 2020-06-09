@@ -42,8 +42,8 @@ RUN conda install -c conda-forge \
   scikit-learn \
   scipy \
   statsmodels \
-  xlrd
-
+  xlrd \
+  ipdb
 # Install Oracle Instant Client drivers.
 RUN wget https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basic-linux.x64-19.6.0.0.0dbru.zip -O instant_client.zip
 RUN unzip instant_client.zip && mkdir -p /opt/oracle && mv instantclient_19_6 /opt/oracle/

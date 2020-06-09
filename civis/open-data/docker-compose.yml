@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  civis-lab:
+    environment:
+      - LAHUB_ACC_USERNAME=${LAHUB_ACC_USERNAME:?Missing lahub username}
+      - LAHUB_ACC_PASSWORD=${LAHUB_ACC_PASSWORD:?Missing lahub password}
+      - SOCRATA_ACC_USERNAME=${SOCRATA_ACC_USERNAME:?Missing socrata username}
+      - SOCRATA_ACC_PASSWORD=${SOCRATA_ACC_PASSWORD:?Missing socrata password}
+      - CIVIS_API_KEY=${CIVIS_API_KEY:?Missing Civis API Key}
+    command: python /app/civis/open-data/data-freshness.py
