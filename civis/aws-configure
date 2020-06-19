@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+
+if not os.environ.get("AWS_ACCESS_KEY_ID") and not os.environ.get(
+    "AWS_SECRET_ACCESS_KEY"
+):
+    for key, value in os.environ.items():
+        if "AWS" in key and key.endswith("_USERNAME"):
+            subprocess.run(["aws", "configure", "set", "aws_access_key_id", value])
+        if "AWS" in key and key.endswith("_PASSWORD"):
+            subprocess.run(["aws", "configure", "set", "aws_secret_access_key", value])

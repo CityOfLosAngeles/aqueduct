@@ -132,6 +132,11 @@ EXPOSE 8888
 WORKDIR /root/work
 ENTRYPOINT ["/tini", "--"]
 
+# Copy the aws-configure script
+COPY aws-configure /usr/local/bin/
+RUN chmod +x /usr/local/bin/aws-configure
+
+# Copy the start script
 COPY start.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/start.sh
 
