@@ -27,6 +27,7 @@ services:
       - CIVIS_SERVICE_ID=1
       - MY_AWS_USERNAME=${AWS_ACCESS_KEY_ID}
       - MY_AWS_PASSWORD=${AWS_SECRET_ACCESS_KEY}
+      - REPO_PATH_DIR=${REPO_PATH_DIR}
   # Use the official postgis image for postgres
   postgres:
     image: mdillon/postgis:9.6
