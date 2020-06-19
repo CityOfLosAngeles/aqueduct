@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+
+import civis
+
+# Only try to configure if the AWS env variables are not otherwise set.
+if not os.environ.get("AWS_ACCESS_KEY_ID") and not os.environ.get(
+    "AWS_SECRET_ACCESS_KEY"
+):
+    if os.environ.get("CIVIS_API_KEY"):
+        # If a CIVIS_API_KEY is present, we can check for credentials
+        # that actually are marked as having an AWS type.
+        client = civis.APIClient()
+        credentials = client.credentials.list()
+        for credential in credentials:
+            if "Amazon Web Services" in credential["type"]:
+                prefix = credential["name"].upper()
+                username = os.environ.get(f"{prefix}_USERNAME", "")
+                password = os.environ.get(f"{prefix}_PASSWORD", "")
+                if username and password:
+                    print(f"Configuring AWS with credential {prefix}")
+                    subprocess.run(
+                        ["aws", "configure", "set", "aws_access_key_id", username]
+                    )
+                    subprocess.run(
+                        ["aws", "configure", "set", "aws_secret_access_key", password]
+                    )
+                    break
+        else:
+            print("Unable to find AWS credentials in environment")
+    else:
+        # If no CIVIS_API_KEY is present, look for credentials that have AWS in the
+        # name. This is less reliable, but and should be considered a hack.
+        for key, value in os.environ.items():
+            if "AWS" in key and key.endswith("_USERNAME"):
+                print(f"Configuring AWS with credential {key}")
+                subprocess.run(["aws", "configure", "set", "aws_access_key_id", value])
+            if "AWS" in key and key.endswith("_PASSWORD"):
+                subprocess.run(
+                    ["aws", "configure", "set", "aws_secret_access_key", value]
+                )
