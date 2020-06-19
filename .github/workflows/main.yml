@@ -14,5 +14,5 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: hunterowens/citywide-civis-lab
           tag_with_sha: true
-          # path: "civis/Dockerfile"
+          path: "civis"
           tags: latest
