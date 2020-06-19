@@ -1,13 +1,11 @@
 name: Build and push Docker images
 uses: docker/build-push-action@v1.1.0
 on: [push, pull_request]
-jobs:
-  build:
-    with:
-      username: ${{ secrets.DOCKER_USERNAME }}
-      password: ${{ secrets.DOCKER_PASSWORD }}
-      repository: hunterowens/citywide-civis-lab
-      tag_with_ref: true
-      tag_with_sha: true
-      path: "civis/Dockerfile"
-      tags: latest
+with:
+  username: ${{ secrets.DOCKER_USERNAME }}
+  password: ${{ secrets.DOCKER_PASSWORD }}
+  repository: hunterowens/citywide-civis-lab
+  tag_with_ref: true
+  tag_with_sha: true
+  path: "civis/Dockerfile"
+  tags: latest
