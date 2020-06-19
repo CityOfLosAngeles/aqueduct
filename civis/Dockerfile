@@ -131,4 +131,6 @@ RUN echo `which jupyter-lab`
 EXPOSE 8888
 WORKDIR /root/work
 ENTRYPOINT ["/tini", "--"]
-CMD ["civis-jupyter-notebooks-start"]
+
+# CMD ["civis-jupyter-notebooks-start"]
+CMD ["voila", "--port=3838", "--Voila.ip='*'", "--no-browser", "--Voila.tornado_settings={\"headers\":{\"Content-Security-Policy\":\"frame-ancestors platform.civisanalytics.com localhost:*; report-uri /api/security/csp-report\" }}","/app"]
