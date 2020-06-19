@@ -63,6 +63,7 @@ RUN pip install \
   altair_saver \
   arcgis \
   awscli \
+  beautifulsoup4 \
   black \
   census-data-downloader \
   CensusData \
@@ -77,7 +78,7 @@ RUN pip install \
   geopy \
   html5lib \
   ibis-framework==1.3 \
-  intake-civis \
+  intake-civis[ibis,geospatial] \
   intake-dcat \
   intake_geopandas \
   git+https://github.com/intake/intake-sql.git@7709beb#egg=intake_sql \

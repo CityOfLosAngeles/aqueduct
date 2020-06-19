@@ -1,26 +1,34 @@
 """
 Download LADOT Downtown DASH data, and upload it to Postgres and S3.
 """
-import logging
 import os
 from base64 import b64encode
-from datetime import datetime, timedelta
+from urllib.parse import quote_plus
 
 import pandas
 import requests
 import sqlalchemy
-from airflow import DAG
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.hooks.S3_hook import S3Hook
-from airflow.models import Variable
-from airflow.operators.python_operator import PythonOperator
 
-S3_ID = "s3_conn"
-POSTGRES_ID = "postgres_default"
+S3_BUCKET = "s3://tmf-data/dash"
 SCHEMA = "transportation"
 TABLE = "dash_trips"
 LOCAL_TIMEZONE = "US/Pacific"
 
+
+if os.environ.get("DEV"):
+    POSTGRES_URI = os.environ.get("POSTGRES_URI")
+else:
+    POSTGRES_URI = (
+        f"postgres://"
+        f"{quote_plus(os.environ['POSTGRES_CREDENTIAL_USERNAME'])}:"
+        f"{quote_plus(os.environ['POSTGRES_CREDENTIAL_PASSWORD'])}@"
+        f"{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}"
+        f"/{os.environ['POSTGRES_DATABASE']}"
+    )
+engine = sqlalchemy.create_engine(POSTGRES_URI)
+
+# Get data from the previous day
+yesterday = (pandas.Timestamp.now() - pandas.Timedelta(days=1)).date()
 
 # Define the PostgreSQL Table using SQLAlchemy
 metadata = sqlalchemy.MetaData(schema=SCHEMA)
@@ -61,8 +69,8 @@ dash_trips = sqlalchemy.Table(
 
 
 def get_bearer_token():
-    user = Variable.get("SYNCROMATICS_USER")
-    password = Variable.get("SYNCROMATICS_PASSWORD")
+    user = os.environ.get("SYNCROMATICS_USERNAME")
+    password = os.environ.get("SYNCROMATICS_PASSWORD")
     login = b64encode(f"{user}:{password}".encode()).decode()
 
     r = requests.post(
@@ -87,34 +95,31 @@ def check_columns(table, df):
     }
     for column in table.columns:
         assert column.name in df.columns
-        logging.info(
+        print(
             f"Checking that {column.name}'s type {column.type} "
             f"is consistent with {df.dtypes[column.name]}"
         )
         assert type_map[str(column.type)] == str(df.dtypes[column.name])
 
 
-def create_table(**kwargs):
+def create_table():
     """
     Create the schema/tables to hold the hare data.
     """
-    logging.info("Creating tables")
-    engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
+    print("Creating tables")
     if not engine.dialect.has_schema(engine, SCHEMA):
         engine.execute(sqlalchemy.schema.CreateSchema(SCHEMA))
     metadata.create_all(engine)
 
 
-def load_pg_data(ds, **kwargs):
+def load_pg_data():
     """
     Query trips data from the Syncromatics REST API and upload it to Postgres.
     """
-
     # Fetch the data from the rest API for the previous day.
     DOWNTOWN_DASH_ID = "LADOTDT"
     token = get_bearer_token()
-    yesterday = str(pandas.to_datetime(ds) - timedelta(1))
-    logging.info(f"Fetching DASH data for {yesterday}")
+    print(f"Fetching DASH data for {yesterday}")
     r = requests.get(
         f"https://track-api.syncromatics.com/1/{DOWNTOWN_DASH_ID}"
         f"/exports/stop_times.json?start={yesterday}&end={yesterday}",
@@ -133,7 +138,7 @@ def load_pg_data(ds, **kwargs):
     )
     # The trips may be zero due to holidays or missing data.
     if len(df) == 0:
-        logging.info("No trips found -- is this a holiday?")
+        print("No trips found -- is this a holiday?")
         return
 
     # Drop unnecesary driver info.
@@ -145,84 +150,62 @@ def load_pg_data(ds, **kwargs):
 
     # Set the timezone to local time with TZ info
     for col in time_cols:
-        df[col] = df[col].dt.tz_localize("UTC").dt.tz_convert(LOCAL_TIMEZONE)
+        df[col] = df[col].dt.tz_convert(LOCAL_TIMEZONE)
 
     check_columns(dash_trips, df)
 
     # Upload the final dataframe to Postgres. Since pandas timestamps conform to the
     # datetime interface, psycopg can correctly handle the timestamps upon insert.
-    logging.info("Uploading to PG")
-    engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
+    print("Uploading to PG")
     insert = sqlalchemy.dialects.postgresql.insert(dash_trips).on_conflict_do_nothing()
     conn = engine.connect()
     conn.execute(insert, *df.to_dict(orient="record"))
 
 
-def load_s3_data(ds, **kwargs):
+def load_to_s3(date):
     """
     Load the table from PG and upload it as a parquet to S3.
     """
-    bucket = kwargs.get("bucket")
-    if bucket:
-        logging.info("Uploading data to s3")
-        yesterday = pandas.to_datetime(ds) - pandas.Timedelta(days=1)
-        sql = f"""
-        SELECT *
-        FROM "{SCHEMA}"."{TABLE}"
-        WHERE DATE(scheduled_depart AT TIME ZONE 'PST') = '{str(yesterday.date())}'
-        """
-        engine = PostgresHook.get_hook(POSTGRES_ID).get_sqlalchemy_engine()
-        df = pandas.read_sql_query(sql, engine)
-        if len(df) == 0:
-            logging.info(f"Got no trips for {yesterday.date()}. Exiting early")
-            return
+    print("Uploading data to s3")
+    sql = f"""
+    SELECT *
+    FROM "{SCHEMA}"."{TABLE}"
+    WHERE DATE(scheduled_depart AT TIME ZONE 'PST') = '{date}'
+    """
+    df = pandas.read_sql_query(sql, engine)
+    if len(df) == 0:
+        print(f"Got no trips for {date}. Exiting early")
+        return
 
-        name = kwargs.get("name", "dash-trips-{}.parquet".format(yesterday.date()))
-        path = os.path.join("/tmp", name)
-        # Write to parquet, allowing timestamps to be truncated to millisecond.
-        # This is much more precision than we will ever need or get.
-        df.to_parquet(path, allow_truncated_timestamps=True)
-        s3con = S3Hook(S3_ID)
-        s3con.load_file(path, f"dash/{name}", bucket, replace=True)
-        os.remove(path)
+    path = f"{S3_BUCKET}/dash-trips-{date}.parquet"
+    # Write to parquet, allowing timestamps to be truncated to millisecond.
+    # This is much more precision than we will ever need or get.
+    df.to_parquet(path, allow_truncated_timestamps=True)
 
 
-default_args = {
-    "owner": "ianrose",
-    "depends_on_past": False,
-    "start_date": datetime(2019, 10, 1),
-    "email": ["ITAData@lacity.org"],
-    "email_on_failure": True,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(hours=1),
-}
+def migrate_data():
+    """
+    Migrate data *from* S3 into the data warehouse.
 
-# TODO: we may want to customize more precisely when this runs.
-dag = DAG("dash-trips", default_args=default_args, schedule_interval="@daily")
+    This will delete all existing data in the table before migrating.
+    """
+    # Clear the table of all existing data
+    engine.execute(f'TRUNCATE TABLE "{SCHEMA}"."{TABLE}"')
+    # Read the data from s3.
+    df = pandas.read_parquet("s3://tmf-data/dash-trips.parquet", engine="pyarrow")
+    # Upload the new data
+    insert = sqlalchemy.dialects.postgresql.insert(dash_trips).on_conflict_do_nothing()
+    conn = engine.connect()
+    conn.execute(insert, *df.to_dict(orient="record"))
 
-t1 = PythonOperator(
-    task_id="create_table",
-    provide_context=False,
-    python_callable=create_table,
-    op_kwargs={},
-    dag=dag,
-)
 
-t2 = PythonOperator(
-    task_id="load_pg_data",
-    provide_context=True,
-    python_callable=load_pg_data,
-    op_kwargs={},
-    dag=dag,
-)
+if __name__ == "__main__":
+    import sys
 
-t3 = PythonOperator(
-    task_id="load_s3_data",
-    provide_context=True,
-    python_callable=load_s3_data,
-    op_kwargs={"bucket": "tmf-data"},
-    dag=dag,
-)
-
-t1 >> t2 >> t3
+    create_table()
+    if len(sys.argv) >= 2 and sys.argv[1] == "migrate":
+        migrate_data()
+    else:
+        load_pg_data()
+        if not os.environ.get("DEV"):
+            load_to_s3(yesterday)

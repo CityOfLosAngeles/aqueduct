@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  civis-lab:
+    environment:
+      - SYNCROMATICS_USERNAME=${SYNCROMATICS_USERNAME:?Missing syncromatics username}
+      - SYNCROMATICS_PASSWORD=${SYNCROMATICS_PASSWORD:?Missing syncromatics password}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?Missing AWS access key id}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?Missing AWS secret access key}
+    command: python /app/transportation/dash/trips.py
+    depends_on:
+      - postgres
