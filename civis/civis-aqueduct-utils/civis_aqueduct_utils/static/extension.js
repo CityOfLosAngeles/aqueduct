@@ -10,8 +10,8 @@ define(['jquery', 'base/js/namespace'], function($, Jupyter) {
     "use strict";
     var open_lab = function() {
         Jupyter.notebook.save_notebook().then(function () {
-            let voila_url = Jupyter.notebook.base_url + "lab/tree/" + Jupyter.notebook.notebook_path;
-            window.open(voila_url)
+            let lab_url = Jupyter.notebook.base_url + "lab/tree/" + Jupyter.notebook.notebook_path;
+            window.location.href = lab_url
         });
     }
     var load_ipython_extension = function() {
