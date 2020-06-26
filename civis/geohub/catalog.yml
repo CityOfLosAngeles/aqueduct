@@ -1,0 +1,15 @@
+metadata:
+  version: 1
+sources:
+  geohub:
+    driver: dcat
+    args:
+      url: http://geohub.lacity.org/data.json
+      priority:
+        - shapefile
+        - geojson
+        - csv
+      items:
+        bikeways: http://geohub.lacity.org/datasets/2602345a7a8549518e8e3c873368c1d9_0
+        city_boundary: http://geohub.lacity.org/datasets/09f503229d37414a8e67a7b6ceb9ec43_7
+        bike_racks: http://geohub.lacity.org/datasets/3b022cced9704108af157d3d5eedb268_2
