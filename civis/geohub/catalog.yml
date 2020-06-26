@@ -5,10 +5,12 @@ sources:
     driver: dcat
     args:
       url: http://geohub.lacity.org/data.json
+      # Set priority so we prefer shapefiles, which are smaller zipped than GeoJSON.
       priority:
         - shapefile
         - geojson
         - csv
+      # A mapping from table name to dataset ID. New imports can be added here.
       items:
         bikeways: http://geohub.lacity.org/datasets/2602345a7a8549518e8e3c873368c1d9_0
         census_tracts_2010: http://geohub.lacity.org/datasets/1cdac8ba72ef4b84a468ac295629a2e0_1
