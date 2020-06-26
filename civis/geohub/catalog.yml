@@ -11,7 +11,7 @@ sources:
         - csv
       items:
         bikeways: http://geohub.lacity.org/datasets/2602345a7a8549518e8e3c873368c1d9_0
-        census_tracts_2010: http://geohub.lacity.org/datasets/31cdec26998349609e6ef65124065967_1
+        census_tracts_2010: http://geohub.lacity.org/datasets/1cdac8ba72ef4b84a468ac295629a2e0_1
         city_boundary: http://geohub.lacity.org/datasets/09f503229d37414a8e67a7b6ceb9ec43_7
         city_council_districts: http://geohub.lacity.org/datasets/76104f230e384f38871eb3c4782f903d_13
         lapd_divisions: http://geohub.lacity.org/datasets/031d488e158144d0b3aecaa9c888b7b3_0
