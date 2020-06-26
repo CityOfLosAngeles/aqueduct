@@ -1,0 +1,7 @@
+version: '3'
+
+services:
+  civis-lab:
+    command: python /app/civis/geohub/geohub.py
+    depends_on:
+      - postgres
