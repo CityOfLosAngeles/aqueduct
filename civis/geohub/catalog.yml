@@ -11,5 +11,12 @@ sources:
         - csv
       items:
         bikeways: http://geohub.lacity.org/datasets/2602345a7a8549518e8e3c873368c1d9_0
+        census_tracts_2010: http://geohub.lacity.org/datasets/31cdec26998349609e6ef65124065967_1
         city_boundary: http://geohub.lacity.org/datasets/09f503229d37414a8e67a7b6ceb9ec43_7
-        bike_racks: http://geohub.lacity.org/datasets/3b022cced9704108af157d3d5eedb268_2
+        city_council_districts: http://geohub.lacity.org/datasets/76104f230e384f38871eb3c4782f903d_13
+        lapd_divisions: http://geohub.lacity.org/datasets/031d488e158144d0b3aecaa9c888b7b3_0
+        neighborhood_councils: http://geohub.lacity.org/datasets/674f80b8edee4bf48551512896a1821d_0
+        parcels: http://geohub.lacity.org/datasets/3b9f7696cd444b168ca6cf1726ae8420_5
+        street_centerlines: http://geohub.lacity.org/datasets/d3cd48afaacd4913b923fd98c6591276_36
+        supervisorial_districts: http://geohub.lacity.org/datasets/8676400343de40f899a276ccb7501be5_1
+        zoning: http://geohub.lacity.org/datasets/49ad06a6b8c945debbbea865b1832ee2_0
