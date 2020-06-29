@@ -522,10 +522,10 @@ def format_table(row):
     )
 
     # Isolation stats
-    isolation_occ = row["isolation_occupied"]
+    isolation_occ = row.get("isolation_occupied", 0)
     isolation_updated = (
-        row["isolation_last_updated"]
-        if not pandas.isna(row["isolation_last_updated"])
+        row.get("isolation_last_updated", None)
+        if not pandas.isna(row.get("isolation_last_updated", None))
         else old_ts
     )
 
