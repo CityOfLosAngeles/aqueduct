@@ -26,9 +26,9 @@ def load_dataset(name: str, source: intake.Source, schema: str = "geohub") -> No
     """
     df = source.read()
     if isinstance(df, geopandas.GeoDataFrame):
-        df.to_postgis(name, engine, schema=SCHEMA, if_exists="replace")
+        df.to_postgis(name, engine, schema=schema, if_exists="replace")
     else:
-        df.to_sql(name, engine, schema=SCHEMA, if_exists="replace")
+        df.to_sql(name, engine, schema=schema, if_exists="replace")
 
 
 if __name__ == "__main__":
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         for name, entry in catalog.items():
             print(f"Loading {name}...", end="", flush=True)
             try:
-                load_dataset(name, entry.get())
+                load_dataset(name, entry.get(), SCHEMA)
                 print("done", flush=True)
             except Exception as e:
                 exceptions.append((name, e))
