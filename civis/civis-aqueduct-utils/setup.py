@@ -13,4 +13,7 @@ setup(
             ["civis_aqueduct_utils/static/extension.js"],
         ),
     ],
+    entry_points={
+        "console_scripts": ["civis-service = civis_aqueduct_utils.share:main"]
+    },
 )

@@ -155,6 +155,13 @@ You can do this with the following steps:
 1. Specify the credentials needed by setting parameters for the script. For instance, you might need to add "Database" and "AWS" credentials. Once the parameters have been set up, you can populate them with specific values.
 1. Optionally schedule the job by clicking the "Automate" button.
 
+## Sharing a service
+
+Civis allows you to run a Docker image as a service, which could be a dashboard,
+a report, or a deployed app/model. You may want to share a link to that service
+with an external stakeholder. In order to do this, you can follow the directions
+given [here](./civis-aqueduct-utils/README.md).
+
 ## Publishing the image
 
 The [Dockerfile](./Dockerfile) in this repository is intended to be a convenient
