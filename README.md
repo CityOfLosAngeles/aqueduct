@@ -183,3 +183,32 @@ proxy_servers:
 1b. Set pip and python proxies by setting the http_proxy and https_proxy system variables to your proxy server.
 
 1c. Anaconda may call pip to install some modules, but it may not work with the pip proxies you setup. One way around this is to run pip install with proxy options from the command line. After conda failed to pip install flask, run this command line: `pip install --proxy=http://proxy:port flask` and then run the conda line again.
+
+## Setting up the pre-commit hooks
+
+Pull requests in this repository are checked for syntax errors, linter warnings,
+and code style. This helps catch mistakes before they are deployed to production,
+and enforces a common code style.
+
+The installed checks include:
+* 'flake8' for Python code linting
+* trailing whitespace trimming
+* checking YAML files for errors
+* checking for overly large files
+* `black` for Python code formatting.
+
+You can install the checks as git hooks `pre-commit`, which runs them upon every commit,
+and complains if a commit does not satisfy them.
+
+To install the git hooks, run the following in your terminal from the `aqueduct` root:
+```bash
+pip install pre-commit  # install pre-commit
+pre-commit install  # install the git hooks
+```
+Upon the first commit you make after installing the hooks,
+`pre-commit` will install and configure the checkers.
+
+If you must make a commit without running the hooks, you can run
+```bash
+git commit --no-verify
+```
