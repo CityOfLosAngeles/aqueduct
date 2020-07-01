@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  bavn-job:
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:?Missing AWS access key id}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:?Missing AWS secret access key}
+      - ORACLE_PORT=${ORACLE_PORT:?Missing Oracle Port}
+      - ORACLE_HOST=${ORACLE_HOST:?Missing Oracle Host}
+      - ORACLE_DBNAME=${ORACLE_DBNAME:?Missing Oracle DBName}
+      - ORACLE_BAVN_USERNAME=${ORACLE_BAVN_USERNAME:?Missing Oracle BAVN UUSERNMAE}
+      - ORACLE_BAVN_PASSWORD=${ORACLE_BAVN_PASSWORD:?Missing Oracle BAVN Password}
+    command: python /app/civis/bavn/bavn_to_s3.py
