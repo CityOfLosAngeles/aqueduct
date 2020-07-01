@@ -58,7 +58,7 @@ def save_to_tsv(cursor, table_name, batch_size=100000):
 def main():
     connection = cx_Oracle.connect(
         user=os.environ.get("ORACLE_BAVN_USERNAME"),
-        password=os.environ.get["ORACLE_BAVN_PASSWORD"],
+        password=os.environ.get("ORACLE_BAVN_PASSWORD"),
         dsn=dsn,
     )
     cursor = connection.cursor()
