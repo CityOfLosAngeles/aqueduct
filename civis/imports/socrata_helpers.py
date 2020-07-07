@@ -1,10 +1,10 @@
 """
-Helpers functions for the socrata import
+Helpers functions for the socrata import.
 """
 import pandas as pd
 import os
 import civis
-from typing import Optional, Tuple
+from typing import Tuple
 from datetime import datetime
 from civis import APIClient
 import logging
@@ -13,7 +13,7 @@ from functools import reduce
 import numpy as np
 from collections import OrderedDict
 
-from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, query_civis
+from civis.io import file_to_civis
 
 LOG = logging.getLogger(__name__)
 
@@ -24,9 +24,10 @@ def _parse_metadata(metadata: dict, paths: dict):
         out[name] = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             path.split("."),
-            metadata
+            metadata,
         )
     return out
+
 
 def write_and_attach_jsonvalue(
     json_value: str, name: str, client: APIClient = None,
@@ -36,7 +37,7 @@ def write_and_attach_jsonvalue(
         id=os.environ["CIVIS_JOB_ID"],
         run_id=os.environ["CIVIS_RUN_ID"],
         object_type="JSONValue",
-        object_id=json_obj.id
+        object_id=json_obj.id,
     )
 
 
@@ -67,7 +68,7 @@ def _store_and_attach_dataset_csv(
         id=os.environ["CIVIS_JOB_ID"],
         run_id=os.environ["CIVIS_RUN_ID"],
         object_type="File",
-        object_id=file_id
+        object_id=file_id,
     )
     return file_id
 
@@ -114,7 +115,7 @@ def _store_and_attach_metadata(
         id=os.environ["CIVIS_JOB_ID"],
         run_id=os.environ["CIVIS_RUN_ID"],
         object_type="File",
-        object_id=file_id
+        object_id=file_id,
     )
 
     cleaned_metadata = _parse_metadata(metadata=metadata, paths=metadata_paths)
@@ -124,8 +125,13 @@ def _store_and_attach_metadata(
         write_and_attach_jsonvalue(json_value=value, name=key, client=client)
     return file_id, cleaned_metadata
 
+
 def _read_paginated(
-    client, dataset_id: int, point_columns, page_limit: int = 90000, size_limit: int = None
+    client,
+    dataset_id: int,
+    point_columns,
+    page_limit: int = 90000,
+    size_limit: int = None,
 ):
     """
     Pulls in Socrata data using API Client
@@ -134,7 +140,8 @@ def _read_paginated(
             (a) if the import is to PostGres database, pandas string comands will
                 convert socrata defined point datatype to format required by PostGres
             (b) For chunk of data, writes pandas df to .csv and notes csv name in array
-        (3) Adjusts offset by page_limit and repeats until either size_limit or end of dataset reached
+        (3) Adjusts offset by page_limit and repeats until either size_limit
+            or end of dataset reached
         (4) Appends all .csvs using python functions
         (5) Outputs path to appended .csv
     Parameters
@@ -165,7 +172,7 @@ def _read_paginated(
             limit=page_limit,
             content_type="csv",
             exclude_system_fields=False,
-            offset=offset
+            offset=offset,
         )
 
         if not results[1:]:
@@ -176,22 +183,18 @@ def _read_paginated(
         paths = np.append(path, paths)
         df = pd.DataFrame(results[1:], columns=results[0])
 
-        if len(point_columns) == 0 :
-            df.to_csv(path,
-                    header=False,
-                    index=False)
+        if len(point_columns) == 0:
+            df.to_csv(path, header=False, index=False)
 
         else:
             for column in point_columns:
-                df[column] = df[column].str.replace('POINT ','')
-                df[column] = df[column].str.replace(' ',', ')
+                df[column] = df[column].str.replace("POINT ", "")
+                df[column] = df[column].str.replace(" ", ", ")
                 df.to_csv(path, header=False, index=False)
 
-
         df.columns = map(
-                    str.lower,
-                    df.columns
-                    )  ##converting headers to lower and pulling
+            str.lower, df.columns
+        )  # converting headers to lower and pulling
         headers = df.columns.str.cat(sep=",")
 
         if len(results) - 1 < page_limit:
@@ -217,10 +220,12 @@ def _read_paginated(
 
 
 def write_csv(paths, headers):
-    '''
-    Takes in an array of .csv paths and appends them all together using python fucntions.
-    This allows us to pull in a large dataset, relying  on disk space, while preserving limited system memory.
-    '''
+    """
+    Takes in an array of .csv paths and appends them all together
+     using python fucntions.
+    This allows us to pull in a large dataset, relying  on disk space,
+    while preserving limited system memory.
+    """
     csv_out = "consolidated.csv"
     csv_merge = open(csv_out, "w")
     csv_merge.write(headers)
@@ -232,6 +237,7 @@ def write_csv(paths, headers):
         csv_merge.write(csv)
     return csv_out
 
+
 def Merge(dict1, dict2):
     """
     Appends two dicts and returns a dict.
@@ -239,13 +245,17 @@ def Merge(dict1, dict2):
     res = {**dict1, **dict2}
     return res
 
+
 def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
     """
     Uses socrata metadata to set SQL datatypes
-        (1) creates two dictionaries, one that maps socrata data type to database
-            sql_type and another that maps socrata system_feilds to database sql_type
-        (2) runs through metadata and creates dictonary of current socrata column names and datatypes.
-            Then transfomrs dict to map socrata datatypes to specified database datatypes.
+        (1) creates two dictionaries, one that maps socrata data type
+            to database sql_type and another that maps socrata system_feilds
+            to database sql_type
+        (2) runs through metadata and creates dictonary of current socrata column
+            names and datatypes.
+            Then transfomrs dict to map socrata datatypes to specified
+            database datatypes.
                 (a) For Redshift, points are mapped to varchar
                 (b) For PostGres, points are mapped to points
                 (c) All varchar data types are set to 256, but can be changed when
@@ -265,66 +275,68 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
         If PostGres import an index of columns that are point types
     """
 
-    if database.lower() == 'redshift':
-        if varchar_len is None :
+    if database.lower() == "redshift":
+        if varchar_len is None:
             sql_type = {
-                    'number': 'DOUBLE PRECISION',
-                    'text': 'VARCHAR(256)',
-                    'calendar_date' : 'TIMESTAMP',
-                    'point': 'VARCHAR(256)' }
+                "number": "DOUBLE PRECISION",
+                "text": "VARCHAR(256)",
+                "calendar_date": "TIMESTAMP",
+                "point": "VARCHAR(256)",
+            }
         else:
             sql_type = {
-                    'number': 'DOUBLE PRECISION',
-                    'text': 'VARCHAR(256)',
-                    'calendar_date' : 'TIMESTAMP',
-                    'point': 'VARCHAR(256)' }
+                "number": "DOUBLE PRECISION",
+                "text": "VARCHAR(256)",
+                "calendar_date": "TIMESTAMP",
+                "point": "VARCHAR(256)",
+            }
 
-            varchar_len = 'VARCHAR(' + varchar_len + ')'
+            varchar_len = "VARCHAR(" + varchar_len + ")"
 
-            sql_type['point'] = varchar_len
-            sql_type['text'] = varchar_len
+            sql_type["point"] = varchar_len
+            sql_type["text"] = varchar_len
 
-    elif database.lower() == 'postgres':
-        if varchar_len is None :
+    elif database.lower() == "postgres":
+        if varchar_len is None:
             sql_type = {
-                    'number': 'DOUBLE PRECISION',
-                    'text': 'VARCHAR(256)',
-                    'calendar_date' : 'TIMESTAMP',
-                    'point': 'POINT' }
+                "number": "DOUBLE PRECISION",
+                "text": "VARCHAR(256)",
+                "calendar_date": "TIMESTAMP",
+                "point": "POINT",
+            }
         else:
             sql_type = {
-                    'number': 'DOUBLE PRECISION',
-                    'text': 'VARCHAR(256)',
-                    'calendar_date' : 'TIMESTAMP',
-                    'point': 'POINT' }
+                "number": "DOUBLE PRECISION",
+                "text": "VARCHAR(256)",
+                "calendar_date": "TIMESTAMP",
+                "point": "POINT",
+            }
 
-            varchar_len = 'VARCHAR(' + varchar_len + ')'
+            varchar_len = "VARCHAR(" + varchar_len + ")"
 
-            sql_type['point'] = varchar_len
-            sql_type['text'] = varchar_len
+            sql_type["point"] = varchar_len
+            sql_type["text"] = varchar_len
 
-    system_fields = OrderedDict({
-                    ':id': 'VARCHAR(2048)',
-                    ':created_at': 'TIMESTAMP',
-                    ':updated_at' : 'TIMESTAMP'
-                    })
+    system_fields = OrderedDict(
+        {":id": "VARCHAR(2048)", ":created_at": "TIMESTAMP", ":updated_at": "TIMESTAMP"}
+    )
 
     cols = []
     datatypes = []
 
-    for i in np.arange(len(raw_metadata['columns'])):
-        cols.append(raw_metadata['columns'][i]['fieldName'])
-        datatypes.append(raw_metadata['columns'][i]['dataTypeName'])
+    for i in np.arange(len(raw_metadata["columns"])):
+        cols.append(raw_metadata["columns"][i]["fieldName"])
+        datatypes.append(raw_metadata["columns"][i]["dataTypeName"])
 
     socdict = OrderedDict(zip(cols, datatypes))
 
-    soct_type_map = OrderedDict({
-           k: sql_type[v]
-           for k, v in socdict.items()})
+    soct_type_map = OrderedDict({k: sql_type[v] for k, v in socdict.items()})
 
-    soct_type_map = (Merge(soct_type_map, system_fields))
+    soct_type_map = Merge(soct_type_map, system_fields)
 
     table_columns = [{"name": n, "sql_type": t} for n, t in soct_type_map.items()]
-    point_columns = [col for col, col_type in soct_type_map.items() if col_type == 'POINT']
+    point_columns = [
+        col for col, col_type in soct_type_map.items() if col_type == "POINT"
+    ]
 
     return table_columns, point_columns
