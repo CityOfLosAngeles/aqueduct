@@ -11,6 +11,7 @@ import logging
 import json
 from functools import reduce
 import numpy as np
+from collections import OrderedDict
 
 from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, query_civis
 
@@ -26,60 +27,6 @@ def _parse_metadata(metadata: dict, paths: dict):
             metadata
         )
     return out
-
-
-def _store_and_attach_metadata(
-    client: APIClient, metadata: dict, metadata_paths: dict, filename: str,
-) -> Tuple[int, dict]:
-    """
-    Given an APIClient object, metadata read from DDL, a collection of keys
-    and paths within the DDL metadata, and a filename, this function:
-        (1) writes the cleaned metadata fields to a JSONValue object,
-        (2) writes the raw metadata fields to a file object,
-        (3) attaches both to the current script as outputs, and
-        (4) returns the file_id of the raw metadata and the cleaned metadata
-        as a dictionary.
-    Parameters
-    ---------
-    client: APIClient
-        An instance of civis.APIClient.
-    metadata: dict
-        The raw metadata read from DDL.
-    metadata_paths: dict
-        A dictionary of the paths used to clean the metadata read from DDL.
-        This should be the value of ddl_metadata_paths in configs.constants.
-    filename: str
-        The name of the file to which raw metadata should be written.
-    Returns
-    -------
-    Tuple[int, dict]:
-        file_id (int) of the raw metadata stored in S3, and
-        cleaned_metadata (dict)
-    Side Effects
-    ------------
-    - Stores object passed to metadata argument as a .json file in S3
-    - Attaches this .json file as a script output
-    - Stores cleaned metadata object as a JSONValues object
-    - Attaches this JSONValues object as a script output
-    """
-
-    with open(filename, "w") as f:
-        json.dump(metadata, f)
-    file_id = file_to_civis(buf=filename, name=filename, expires_at=None,)
-    client.scripts.post_containers_runs_outputs(
-        id=os.environ["CIVIS_JOB_ID"],
-        run_id=os.environ["CIVIS_RUN_ID"],
-        object_type="File",
-        object_id=file_id
-    )
-
-    cleaned_metadata = _parse_metadata(metadata=metadata, paths=metadata_paths)
-    for key, value in cleaned_metadata.items():
-        if key.lower().endswith("updated at"):
-            value = datetime.fromtimestamp(value).strftime("%Y-%m-%d %H:%M")
-        write_and_attach_jsonvalue(json_value=value, name=key, client=client)
-    return file_id, cleaned_metadata
-
 
 def write_and_attach_jsonvalue(
     json_value: str, name: str, client: APIClient = None,
@@ -100,7 +47,7 @@ def _store_and_attach_dataset_csv(
     Given an APIClient object, a csv path, and a filename, write the csv
     to a file, attach the file as a script output, and return the file_id.
     Parameters
-    ---------
+    ----------
     client: APIClient
         An instance of civis.APIClient.
     csv_path: str
@@ -137,7 +84,7 @@ def _store_and_attach_metadata(
         (4) returns the file_id of the raw metadata and the cleaned metadata
         as a dictionary.
     Parameters
-    ---------
+    ----------
     client: APIClient
         An instance of civis.APIClient.
     metadata: dict
@@ -177,25 +124,36 @@ def _store_and_attach_metadata(
         write_and_attach_jsonvalue(json_value=value, name=key, client=client)
     return file_id, cleaned_metadata
 
-
 def _read_paginated(
-    client, dataset_id: int, page_limit: int = 90000, size_limit: int = None
+    client, dataset_id: int, point_columns, page_limit: int = 90000, size_limit: int = None
 ):
     """
-    Uses socrata API get call to pull i.
-    Pulls in Socrata data in a while loop using pandas dataframes (in 80000 row
-    chunks) that get written to .csv(s). .csv(s) and then appened together and
-    a path to final csv is outputted.
-    Inputs
-    _____________
+    Pulls in Socrata data using API Client
+        (1) Creates while loop that runs for records retrieved <= size_limitwith
+        (2) Starting at offset=0, pulls in number of rows specified by page_limit
+            (a) if the import is to PostGres database, pandas string comands will
+                convert socrata defined point datatype to format required by PostGres
+            (b) For chunk of data, writes pandas df to .csv and notes csv name in array
+        (3) Adjusts offset by page_limit and repeats until either size_limit or end of dataset reached
+        (4) Appends all .csvs using python functions
+        (5) Outputs path to appended .csv
+    Parameters
+    ----------
+    client:
+        An instance of socrata.APIClient.
     dataset_id: str
         Socrata dataset identifier
+    point_columns
+        An index of columns that are point types, this is used to edit the string
+        of columns to be compatible with PostGres import
     page_limit: int
-        number of records that can be pulled in chunk
-    date_column: 'str'
-    Outputs
-    _____________
-    path of appened csv
+        Number of records that can be pulled in chunk
+    size_limit: int
+        Desired max number of records
+    Returns
+    -------
+    str:
+        Path of appended .csv
     """
     df = pd.DataFrame()
     offset = 0
@@ -218,11 +176,22 @@ def _read_paginated(
         paths = np.append(path, paths)
         df = pd.DataFrame(results[1:], columns=results[0])
 
-        df.to_csv(path, header=False, index=False)
+        if len(point_columns) == 0 :
+            df.to_csv(path,
+                    header=False,
+                    index=False)
+
+        else:
+            for column in point_columns:
+                df[column] = df[column].str.replace('POINT ','')
+                df[column] = df[column].str.replace(' ',', ')
+                df.to_csv(path, header=False, index=False)
+
 
         df.columns = map(
-            str.lower, df.columns
-        )  ##converting headers to lower and pulling
+                    str.lower,
+                    df.columns
+                    )  ##converting headers to lower and pulling
         headers = df.columns.str.cat(sep=",")
 
         if len(results) - 1 < page_limit:
@@ -248,6 +217,10 @@ def _read_paginated(
 
 
 def write_csv(paths, headers):
+    '''
+    Takes in an array of .csv paths and appends them all together using python fucntions.
+    This allows us to pull in a large dataset, relying  on disk space, while preserving limited system memory.
+    '''
     csv_out = "consolidated.csv"
     csv_merge = open(csv_out, "w")
     csv_merge.write(headers)
@@ -259,136 +232,99 @@ def write_csv(paths, headers):
         csv_merge.write(csv)
     return csv_out
 
-
-def _read_paginated_chunks_bydate(
-    client,
-    dataset_id,
-    page_limit: int = 500000,
-    size_limit: int = None,
-    date_column: str = "createddate",
-    splits: int = 15
-):
-
+def Merge(dict1, dict2):
     """
-    Uses socrata get calls to query data in evenly spaced chunks (by date)
-    writes to pd.df then to csv. All csvs then appended into one large csv.
-    only one chunk in memory at time, as csv is on disk.
-    Inputs
-    _____________
-    dataset_id: str
-        Socrata dataset identifier
-    page_limit: int
-        number of records that can be pulled in chunk
-    date_column: 'str'
-        specifies the date column that we want to split on
-    splits: int
-        number of even splits that are made on date range.
-    Outputs
-    _____________
-    path of appened csv
+    Appends two dicts and returns a dict.
     """
-    print(dataset_id)
-    offset = 0
-    paths = []
-    min_date, max_date, date_splits = get_dates(
-        client, dataset_id, date_column="createddate", splits=splits
-    )
+    res = {**dict1, **dict2}
+    return res
 
-    ### here we bring in the data, use pandas to put into dataframe and then
-    ### strip header when writing to CSV
-    ### We also build out paths for the csvs to be stored in and store the path names
-    for i in np.arange(len(date_splits)):
-        if i == len(date_splits) - 1:
-            break
-
-        where = (
-            date_column
-            + " <= '"
-            + date_splits[i]
-            + "' AND "
-            + date_column
-            + " > '"
-            + date_splits[i + 1]
-            + "'"
-        )
-
-        df = pd.DataFrame()
-
-        results = socrata_client.get(
-            dataset_id,
-            limit=page_limit,
-            content_type="csv",
-            exclude_system_fields=False,
-            offset=offset,
-            where=where
-        )
-
-        df = pd.concat([df, pd.DataFrame(results[1:], columns=results[0])])
-        print(where)
-        print(len(df))
-
-        path = "df" + str(i) + ".csv"
-        paths = np.append(path, paths)
-
-        df.to_csv(path, header=False, index=False)
-
-        df.columns = map(
-            str.lower, df.columns
-        )  ##converting headers to lower and pulling
-        headers = df.columns.str.cat(
-            sep=","
-        )  ##out headers as string to use when building big csv
-
-    csv_out = write_csv(paths, headers)
-
-    return csv_out
-
-
-def get_dates(
-    client, dataset_id: str, date_column: str = "createddate", splits: int = 70
-):
+def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
     """
-    Uses socrata get calls to query for most recent and oldest dates
-    within the dataset, outputs those values, and creates a date range
-    based on number of splits. Can be used for date parsing.
-    Inputs
-    _____________
-    dataset_id: str
-        Socrata dataset identifier
-    splits: int
-        number of even splits that are made on date range.
-    date_column: 'str'
-        specifies the date column that we want to split on
-    Outputs
-    _____________
-    min_date: str
-        Oldest date in dataset
-    max_date: str
-        most recent date in dataset
-    date_splits: array
-        array of n dates set by splits param.
+    Uses socrata metadata to set SQL datatypes
+        (1) creates two dictionaries, one that maps socrata data type to database
+            sql_type and another that maps socrata system_feilds to database sql_type
+        (2) runs through metadata and creates dictonary of current socrata column names and datatypes.
+            Then transfomrs dict to map socrata datatypes to specified database datatypes.
+                (a) For Redshift, points are mapped to varchar
+                (b) For PostGres, points are mapped to points
+                (c) All varchar data types are set to 256, but can be changed when
+                    varchar_len is passed in.
+        (3) If destination is PostGres, notes all columns that are points in an index.
+        (4) converts dict to array of dicts to be readable by civis API
+    Parameters
+    ----------
+    raw_metadata : Dict
+    varchar_len: str
+        Length of varchar to be passed in - defualts to 256
+    returns
+    -------
+    table_columns
+        Array of dicts to be passed to civis.io.civis_file_to_table()
+    point_columns
+        If PostGres import an index of columns that are point types
     """
-    min_date_query = (
-        "SELECT " + date_column + " Order by " + date_column + " ASC limit 1"
-    )
 
-    min_date = client.get(dataset_id, content_type="csv", query=min_date_query)
+    if database.lower() == 'redshift':
+        if varchar_len is None :
+            sql_type = {
+                    'number': 'DOUBLE PRECISION',
+                    'text': 'VARCHAR(256)',
+                    'calendar_date' : 'TIMESTAMP',
+                    'point': 'VARCHAR(256)' }
+        else:
+            sql_type = {
+                    'number': 'DOUBLE PRECISION',
+                    'text': 'VARCHAR(256)',
+                    'calendar_date' : 'TIMESTAMP',
+                    'point': 'VARCHAR(256)' }
 
-    max_date_query = (
-        "SELECT " + date_column + " Order by " + date_column + " DESC limit 1"
-    )
+            varchar_len = 'VARCHAR(' + varchar_len + ')'
 
-    max_date = client.get(dataset_id, content_type="csv", query=max_date_query)
+            sql_type['point'] = varchar_len
+            sql_type['text'] = varchar_len
 
-    max_date = pd.to_datetime(max_date[1][0])
-    min_date = pd.to_datetime(min_date[1][0])
+    elif database.lower() == 'postgres':
+        if varchar_len is None :
+            sql_type = {
+                    'number': 'DOUBLE PRECISION',
+                    'text': 'VARCHAR(256)',
+                    'calendar_date' : 'TIMESTAMP',
+                    'point': 'POINT' }
+        else:
+            sql_type = {
+                    'number': 'DOUBLE PRECISION',
+                    'text': 'VARCHAR(256)',
+                    'calendar_date' : 'TIMESTAMP',
+                    'point': 'POINT' }
 
-    date_splits_raw = pd.date_range(start=min_date, end=max_date, periods=int(splits))
+            varchar_len = 'VARCHAR(' + varchar_len + ')'
 
-    date_splits = np.array([])
+            sql_type['point'] = varchar_len
+            sql_type['text'] = varchar_len
 
-    for date in date_splits_raw:
-        date = str(date)[:10]
-        date_splits = np.append(date, date_splits)
+    system_fields = OrderedDict({
+                    ':id': 'VARCHAR(2048)',
+                    ':created_at': 'TIMESTAMP',
+                    ':updated_at' : 'TIMESTAMP'
+                    })
 
-    return min_date, max_date, date_splits
+    cols = []
+    datatypes = []
+
+    for i in np.arange(len(raw_metadata['columns'])):
+        cols.append(raw_metadata['columns'][i]['fieldName'])
+        datatypes.append(raw_metadata['columns'][i]['dataTypeName'])
+
+    socdict = OrderedDict(zip(cols, datatypes))
+
+    soct_type_map = OrderedDict({
+           k: sql_type[v]
+           for k, v in socdict.items()})
+
+    soct_type_map = (Merge(soct_type_map, system_fields))
+
+    table_columns = [{"name": n, "sql_type": t} for n, t in soct_type_map.items()]
+    point_columns = [col for col, col_type in soct_type_map.items() if col_type == 'POINT']
+
+    return table_columns, point_columns
