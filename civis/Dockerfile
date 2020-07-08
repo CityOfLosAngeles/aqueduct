@@ -28,7 +28,7 @@ RUN conda install -c conda-forge \
   dask \
   distributed \
   fsspec \
-  geopandas \
+  geopandas>=0.8 \
   intake \
   intake-parquet \
   matplotlib \
