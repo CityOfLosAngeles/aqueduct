@@ -21,7 +21,7 @@ def prep_311_data(file):
     catalog = intake_civis.open_redshift_catalog()
     expr = catalog.public.import311.to_ibis()
     recent_srs = expr[
-        (expr.createddate.cast("date") > (ibis.now() - ibis.interval(months=6)))
+        (expr.createddate > (ibis.now() - ibis.interval(months=6)))
         & (expr.requesttype != "Homeless Encampment")
     ]
     df = recent_srs.execute()
