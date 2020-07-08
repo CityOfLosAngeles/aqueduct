@@ -113,15 +113,12 @@ RUN jupyter lab build --dev-build=False --debug && jupyter lab clean
 
 # Civis-related
 ENV DEFAULT_KERNEL python3
-# civis-jupyter-notebook is heavy handed with depenencies.
+# civis-jupyter-notebook is heavy handed with dependencies.
 # If we want a different version of pandas, we have to reinstall it afterwards.
 RUN pip install civis-jupyter-notebook && \
      civis-jupyter-notebooks-install && \
      pip install -U pandas
 
-# Environment-related
-COPY custom.sh /tmp/custom.sh
-RUN cat /tmp/custom.sh >> /root/.bashrc
 
 ENV TINI_VERSION v0.16.1
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
@@ -131,6 +128,17 @@ RUN echo `which jupyter-lab`
 EXPOSE 8888
 WORKDIR /root/work
 ENTRYPOINT ["/tini", "--"]
+
+# Install the local utils package
+COPY civis-aqueduct-utils /tmp/civis-aqueduct-utils
+RUN pip install /tmp/civis-aqueduct-utils && \
+      jupyter nbextension install --sys-prefix --py civis_aqueduct_utils && \
+      jupyter nbextension enable --sys-prefix --py civis_aqueduct_utils && \
+      rm -r /tmp/civis-aqueduct-utils
+
+# Environment-related
+COPY custom.sh /tmp/custom.sh
+RUN cat /tmp/custom.sh >> /root/.bashrc
 
 # Copy the aws-configure script
 COPY aws-configure /usr/local/bin/
