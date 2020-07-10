@@ -18,6 +18,28 @@ def upload_file_to_github(
     commit_message,
     committer=DEFAULT_COMMITTER,
 ):
+    """
+    Parameters
+    ----------
+    token: str
+        GitHub personal access token and corresponds to GITHUB_TOKEN
+        in Civis credentials.
+    repo: str
+        Repo name, such as 'CityofLosAngeles/covid19-indicators`
+    branch: str
+        Branch name, such as 'master'
+    path: str
+        Path to the file within the repo.
+    local_file_path: str
+        Path to the local file to be uploaded to the repo, which can differ
+        from the path within the GitHub repo.
+    commit_message: str
+        Commit message used when making the git commit.
+    commiter: dict
+        name and email associated with the committer.
+        Defaults to ITA robot user, if another committer is not provided..
+    """
+
     BASE = "https://api.github.com"
 
     # Get the sha of the previous version
@@ -38,7 +60,7 @@ def upload_file_to_github(
         headers={"Authorization": f"token {token}"},
         json={
             "message": commit_message,
-            "committer": DEFAULT_COMMITTER,
+            "committer": committer,
             "branch": branch,
             "sha": sha,
             "content": base64.b64encode(contents).decode("utf-8"),
