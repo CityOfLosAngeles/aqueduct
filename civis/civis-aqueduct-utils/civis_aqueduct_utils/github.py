@@ -1,4 +1,6 @@
 import base64
+import os
+
 import fsspec
 import requests
 
@@ -42,14 +44,17 @@ def upload_file_to_github(
 
     BASE = "https://api.github.com"
 
-    # Get the sha of the previous version
+    # Get the sha of the previous version.
+    # Operate on the dirname rather than the path itself so we
+    # don't run into file size limitations.
     r = requests.get(
-        f"{BASE}/repos/{repo}/contents/{path}",
+        f"{BASE}/repos/{repo}/contents/{os.path.dirname(path)}",
         params={"ref": branch},
         headers={"Authorization": f"token {token}"},
     )
     r.raise_for_status()
-    sha = r.json()["sha"]
+    item = next(i for i in r.json() if i["path"] == path)
+    sha = item["sha"]
 
     # Upload the new version
     with fsspec.open(local_file_path, "rb") as f:
