@@ -2,8 +2,11 @@
 Small utility for creating shareable links to Civis services.
 """
 import argparse
-
+import base64
 import civis
+import fsspec
+import os
+import requests
 
 
 def list_services(args):
@@ -67,3 +70,41 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Function to load file onto GitHub
+# Works with CSVs, HTML, but not parquet?
+def upload_file_to_github(TOKEN, REPO, BRANCH, PATH, local_file_path, commit_message):
+    TOKEN = os.environ["GITHUB_TOKEN_PASSWORD"]
+    BASE = "https://api.github.com"
+    # REPO = "CityOfLosAngeles/covid19-indicators"
+    # BRANCH = "master"
+
+    # Get the sha of the previous version
+    r = requests.get(
+        f"{BASE}/repos/{REPO}/contents/{PATH}",
+        params={"ref": BRANCH},
+        headers={"Authorization": f"token {TOKEN}"},
+    )
+    r.raise_for_status()
+    sha = r.json()["sha"]
+
+    # Upload the new version
+    with fsspec.open(local_file_path, "rb") as f:
+        contents = f.read()
+
+    r = requests.put(
+        f"{BASE}/repos/{REPO}/contents/{PATH}",
+        headers={"Authorization": f"token {TOKEN}"},
+        json={
+            "message": commit_message,
+            "committer": {
+                "name": "Los Angeles ITA data team",
+                "email": "ITAData@lacity.org",
+            },
+            "branch": BRANCH,
+            "sha": sha,
+            "content": base64.b64encode(contents).decode("utf-8"),
+        },
+    )
+    r.raise_for_status()
