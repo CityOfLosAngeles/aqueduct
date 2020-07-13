@@ -282,6 +282,7 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
                 "text": "VARCHAR(256)",
                 "calendar_date": "TIMESTAMP",
                 "point": "VARCHAR(256)",
+                "location": "VARCHAR(256)",
             }
         else:
             sql_type = {
