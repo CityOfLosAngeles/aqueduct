@@ -290,12 +290,14 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
                 "text": "VARCHAR(256)",
                 "calendar_date": "TIMESTAMP",
                 "point": "VARCHAR(256)",
+                "location": "VARCHAR(256)",
             }
 
             varchar_len = "VARCHAR(" + varchar_len + ")"
 
             sql_type["point"] = varchar_len
             sql_type["text"] = varchar_len
+            sql_type["location"] = varchar_len
 
     elif database.lower() == "postgres":
         if varchar_len is None:
