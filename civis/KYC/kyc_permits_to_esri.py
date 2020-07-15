@@ -34,5 +34,5 @@ def update_geohub_layer(user, pw, layer, update_data):
 
 
 if __name__ == "__main__":
-    prep_311_data(OUTPUT_FILE)
+    prep_permit_data(OUTPUT_FILE)
     update_geohub_layer(lahub_user, lahub_pass, permit_layer, OUTPUT_FILE)
