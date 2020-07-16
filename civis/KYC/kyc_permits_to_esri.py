@@ -12,6 +12,7 @@ from arcgis.gis import GIS
 from shapely.geometry import Point
 import geopandas as gpd
 from arcgis.features import FeatureLayerCollection
+import intake_civis
 
 lahub_user = os.environ["LAHUB_ACC_USERNAME"]
 lahub_pass = os.environ["LAHUB_ACC_PASSWORD"]
