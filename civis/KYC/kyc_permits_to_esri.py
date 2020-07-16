@@ -16,7 +16,7 @@ import intake_civis
 
 lahub_user = os.environ["LAHUB_ACC_USERNAME"]
 lahub_pass = os.environ["LAHUB_ACC_PASSWORD"]
-socrata_token = 'LJ60SFL7ZqoC4IWosLhEmJV2a'
+socrata_token = os.environ["SOCRATA_KEY_PASSWORD"]
 socrata_user = os.environ["SOCRATA_ACC_USERNAME"]
 socrata_pass = os.environ["SOCRATA_ACC_PASSWORD"]
 permit_layer = '48fca217dd5a410bbfd6ce0abcdd3a26'
