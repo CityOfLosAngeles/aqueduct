@@ -1,8 +1,6 @@
 """
 An Import Socrata Template for Deployment on Civis Platform
 Author: @sherryshenker, @snassef, @akoebs
-
-Setup as a template job for 311, LADBS, more
 """
 
 from sodapy import Socrata
@@ -11,11 +9,13 @@ import logging
 import os
 from datetime import datetime
 import civis
+from collections import OrderedDict
 
 from socrata_helpers import (
     _store_and_attach_dataset_csv,
     write_and_attach_jsonvalue,
     _store_and_attach_metadata,
+    write_csv,
     create_col_type_dict,
     _read_paginated,
 )
@@ -36,6 +36,7 @@ def main(
 ):
     """
     Read in dataset from Socrata and write output to Platform
+
     Parameters
     --------
     dataset_id: str
@@ -51,17 +52,15 @@ def main(
     socrata_password: str, optional
         password for socrata account, required for private data sets
     grant_group: str
-        string of group(s) that are passed to civis API to be granted
-        select table access
+        string of group(s) that are passed to civis API to be granted select table access
     varchar_len: str
-        sets the varchar length when datatypes are passed to civis API,
-        256 is defualt
+        sets the varchar length when datatypes are passed to civis API, 256 is defualt
     action_existing_table_rows: str, optional
         options to pass to dataframe_to_civis command
+
     Outputs
     ------
-    Adds data as file output and, if table_name and database are specified,
-    writes data to Platform
+    Adds data as file output and, if table_name and database are specified, writes data to Platform
     """
 
     socrata_client = Socrata(
@@ -72,12 +71,17 @@ def main(
 
     raw_metadata = socrata_client.get_metadata(dataset_id)
 
-    table_columns, point_columns = create_col_type_dict(
-        raw_metadata, database_type, varchar_len
+    table_columns, point_columns, pandas_column_order = create_col_type_dict(
+        socrata_client, dataset_id, raw_metadata, database_type, varchar_len
     )
+    # defines three vars that will be used to map socrata datatype
+    # to civis database
 
     consolidated_csv_path = _read_paginated(
-        client=socrata_client, dataset_id=dataset_id, point_columns=point_columns
+        client=socrata_client,
+        dataset_id=dataset_id,
+        point_columns=point_columns,
+        column_order=pandas_column_order,
     )
     # this will read in socrata data in chunks (using offset and page_limit), and
     # append all to one csv and output path here
@@ -97,6 +101,7 @@ def main(
         uploaded_file_id = _store_and_attach_dataset_csv(
             client=civis_client, csv_path=consolidated_csv_path, filename=data_file_name
         )
+        print(uploaded_file_id)
         LOG.info(f"add the {uploaded_file_id}")
 
         if civis_table_name:
@@ -105,7 +110,7 @@ def main(
                 f"Storing data in table {civis_table_name} on database {civis_database}"
             )
             print("writing table")
-            # takes in file id and writes to table
+            ##takes in file id and writes to table
             table_upload = civis.io.civis_file_to_table(
                 file_id=uploaded_file_id,
                 database=civis_database,
@@ -123,9 +128,7 @@ def main(
     )
 
     upload_metadata_paths = {
-        "Proposed access level": (
-            "metadata.custom_fields.Proposed Access Level.Proposed Access Level"
-        ),
+        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",
         "Description": "description",
         "Data updated at": "rowsUpdatedAt",
         "Data provided by": "tableAuthor.screenName",
@@ -139,8 +142,7 @@ def main(
     )
 
     if civis_table_name:
-        sql = f"""COMMENT ON TABLE {civis_table_name} IS
-              \'{clean_metadata["Description"]}\'"""
+        sql = f'COMMENT ON TABLE {civis_table_name} IS \'{clean_metadata["Description"]}\''
         civis.io.query_civis(
             sql, database=civis_database, polling_interval=2, client=civis_client
         ).result()
