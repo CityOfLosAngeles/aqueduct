@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  civis-lab:
+    environment:
+      - CIVIS_API_KEY=${CIVIS_API_KEY:?Missing civis API key}
+      - GITHUB_TOKEN_PASSWORD=${GITHUB_TOKEN_PASSWORD:?Missing GitHub token}
+    command: papermill --cwd /app/civis/meta/ /app/civis/meta/civis-catalog.ipynb /dev/null
