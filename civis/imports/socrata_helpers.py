@@ -1,19 +1,21 @@
 """
-Helpers functions for the socrata import.
+Helpers functions for the socrata import
 """
 import pandas as pd
 import os
 import civis
-from typing import Tuple
+from typing import Optional, Tuple
 from datetime import datetime
 from civis import APIClient
 import logging
 import json
 from functools import reduce
 import numpy as np
+import re
 from collections import OrderedDict
 
-from civis.io import file_to_civis
+
+from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, query_civis
 
 LOG = logging.getLogger(__name__)
 
