@@ -47,6 +47,7 @@ def _store_and_attach_dataset_csv(
     """
     Given an APIClient object, a csv path, and a filename, write the csv
     to a file, attach the file as a script output, and return the file_id.
+
     Parameters
     ----------
     client: APIClient
@@ -55,9 +56,11 @@ def _store_and_attach_dataset_csv(
         A string containg the path of CSV
     filename: str
         The name of the file to which data should be written.
+
     Returns
     -------
     int: file_id of the file stored in S3
+
     Side Effects
     ------------
     - Stores object passed to df argument as a .csv file in S3
@@ -84,6 +87,7 @@ def _store_and_attach_metadata(
         (3) attaches both to the current script as outputs, and
         (4) returns the file_id of the raw metadata and the cleaned metadata
         as a dictionary.
+
     Parameters
     ----------
     client: APIClient
@@ -95,11 +99,13 @@ def _store_and_attach_metadata(
         This should be the value of ddl_metadata_paths in configs.constants.
     filename: str
         The name of the file to which raw metadata should be written.
+
     Returns
     -------
     Tuple[int, dict]:
         file_id (int) of the raw metadata stored in S3, and
         cleaned_metadata (dict)
+
     Side Effects
     ------------
     - Stores object passed to metadata argument as a .json file in S3
@@ -130,6 +136,7 @@ def _read_paginated(
     client,
     dataset_id: int,
     point_columns,
+    column_order,
     page_limit: int = 90000,
     size_limit: int = None,
 ):
@@ -139,11 +146,11 @@ def _read_paginated(
         (2) Starting at offset=0, pulls in number of rows specified by page_limit
             (a) if the import is to PostGres database, pandas string comands will
                 convert socrata defined point datatype to format required by PostGres
-            (b) For chunk of data, writes pandas df to .csv and notes csv name in array
-        (3) Adjusts offset by page_limit and repeats until either size_limit
-            or end of dataset reached
+            (b) For each chunk of data writes pandas df to .csv and notes csv name in array
+        (3) Adjusts offset by page_limit and repeats until either size_limit or end of dataset reached
         (4) Appends all .csvs using python functions
         (5) Outputs path to appended .csv
+
     Parameters
     ----------
     client:
@@ -153,18 +160,29 @@ def _read_paginated(
     point_columns
         An index of columns that are point types, this is used to edit the string
         of columns to be compatible with PostGres import
+    column_order
+        Order of columns to match metadata
     page_limit: int
         Number of records that can be pulled in chunk
     size_limit: int
         Desired max number of records
+
     Returns
     -------
     str:
         Path of appended .csv
+
     """
+
     df = pd.DataFrame()
+    # create empty dataframe that will be used as transitionary data store
+
     offset = 0
+    # set offset cunter to zero
+
     paths = []
+    # create empty set that .csv paths will be appended to
+
     while True:
         LOG.debug(f"Downloading data at offset {offset} of {dataset_id}")
         results = client.get(
