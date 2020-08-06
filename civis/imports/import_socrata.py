@@ -94,11 +94,23 @@ def main(
         write_and_attach_jsonvalue(json_value=msg, name="Error", client=civis_client)
         os._exit(1)
     # provides exit if no rows avalible in dataset
-    raw_metadata = socrata_client.get_metadata(dataset_id)
 
-    table_columns, point_columns = create_col_type_dict(
-        raw_metadata, database_type, varchar_len
+    raw_metadata = socrata_client.get_metadata(dataset_id)
+    # calls for raw metadata
+
+    sql_type = select_sql_map(database_type, varchar_len)
+    # defines apropriate sql types for datatype mapping depending on specifications
+
+    civis_table_columns, point_columns, pandas_column_order, extra_columns = create_col_type_dict(
+        raw_metadata, sample_data_df, sql_type
     )
+    # creates civis specific array of dicts that maps column name to datatype using
+    # socrata metadata as guidence. Also, provides point columns that are used to
+    # clean point column formatting during import. And, provides array of columns that
+    # corresponds to order of the mapping dict (civis_file_to_table is sensitive
+    # to order.
+
+    print("Columns present in Metadata but not in data:" , extra_columns)
 
     consolidated_csv_path = _read_paginated(
         client=socrata_client, dataset_id=dataset_id, point_columns=point_columns
