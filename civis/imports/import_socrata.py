@@ -80,6 +80,20 @@ def main(
 
     socrata_client.timeout = 50
 
+    sample_data = socrata_client.get(
+            dataset_id, limit=5, content_type="csv", exclude_system_fields=False, offset=0
+        )
+    # collects sample data from dataset
+
+    sample_data_df = results_to_df(sample_data)
+    # writes sample data to dataframe
+
+    if sample_data_df.empty:
+        msg = f"No rows returned for dataset {dataset_id}."
+        LOG.warning(msg)
+        write_and_attach_jsonvalue(json_value=msg, name="Error", client=civis_client)
+        os._exit(1)
+    # provides exit if no rows avalible in dataset
     raw_metadata = socrata_client.get_metadata(dataset_id)
 
     table_columns, point_columns = create_col_type_dict(
