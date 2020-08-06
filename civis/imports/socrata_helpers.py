@@ -331,12 +331,19 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
     socdict = OrderedDict(zip(cols, datatypes))
 
     soct_type_map = OrderedDict({k: sql_type[v] for k, v in socdict.items()})
+def results_to_df(results):
 
-    soct_type_map = Merge(soct_type_map, system_fields)
+    df = pd.DataFrame(results[1:], columns=results[0])
+    """
+    Writes socrata get returns to a pandas dataframe. Also cleans header names
+    and standardizes 'id'/'sid' system column name to 'id'.
+    """
+    df.columns = (
+            df.columns.str.strip()
+            .str.lower()
+        )
 
-    table_columns = [{"name": n, "sql_type": t} for n, t in soct_type_map.items()]
-    point_columns = [
-        col for col, col_type in soct_type_map.items() if col_type == "POINT"
-    ]
+    df.rename(columns=lambda x: re.sub(r'[^a-zA-Z0-9_]','',x), inplace=True)
+    df.rename(columns=lambda x: re.sub(r'sid','id',x), inplace=True)
 
-    return table_columns, point_columns
+    return df
