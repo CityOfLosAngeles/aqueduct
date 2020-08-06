@@ -217,11 +217,8 @@ def _read_paginated(
                 df[column] = df[column].str.replace("POINT ", "")
                 df[column] = df[column].str.replace(" ", ", ")
                 df.to_csv(path, header=False, index=False)
-
-        df.columns = map(
-            str.lower, df.columns
-        )  # converting headers to lower and pulling
-        headers = df.columns.str.cat(sep=",")
+        # check if there are any point columns in dataset, an if there are
+        # edit formating to be readable by PostGres
 
         if len(results) - 1 < page_limit:
             LOG.debug(f"All available results read from dataset {dataset_id}.")
@@ -239,18 +236,21 @@ def _read_paginated(
             break
 
         offset += page_limit
+        # move counter
 
-    csv_out = write_csv(paths, headers)
+    headers = ','.join(column_order)
+    # use column_order to create headers for the .csv
 
-    return csv_out
+    path = write_csv(paths, headers)
+    # use write_csv to merge all csvs together
+
+    return path
 
 
 def write_csv(paths, headers):
     """
-    Takes in an array of .csv paths and appends them all together
-     using python fucntions.
-    This allows us to pull in a large dataset, relying  on disk space,
-    while preserving limited system memory.
+    Takes in an array of .csv paths and appends them all together using python fucntions.
+    This allows us to pull in a large dataset, relying  on disk space, while preserving limited system memory.
     """
     csv_out = "consolidated.csv"
     csv_merge = open(csv_out, "w")
@@ -272,7 +272,6 @@ def Merge(dict1, dict2):
     return res
 
 
-def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
 def create_col_type_dict(
     raw_metadata, sample_data, sql_type
 ):
