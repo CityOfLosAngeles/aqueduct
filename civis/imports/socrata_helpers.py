@@ -192,7 +192,7 @@ def _read_paginated(
             limit=page_limit,
             content_type="csv",
             exclude_system_fields=False,
-            offset=offset,
+            offset=offset
         )
 
         if not results[1:]:
@@ -201,7 +201,11 @@ def _read_paginated(
 
         path = "df" + str(offset) + ".csv"
         paths = np.append(path, paths)
-        df = pd.DataFrame(results[1:], columns=results[0])
+        # note path for chuck of data and append to paths
+
+        df = results_to_df(results)
+        # write chuck of data to pandas df
+
 
         if len(point_columns) == 0:
             df.to_csv(path, header=False, index=False)
