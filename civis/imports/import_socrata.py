@@ -71,9 +71,12 @@ def main(
     """
 
     socrata_client = Socrata(
-        "data.lacity.org", None, username=socrata_username, password=socrata_password
         socrata_client_url, None, username=socrata_username, password=socrata_password
     )
+    # define socrata cleint
+
+    civis_client = civis.APIClient()
+    # define civis cleint
 
     socrata_client.timeout = 50
 
