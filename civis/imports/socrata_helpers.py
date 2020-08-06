@@ -247,33 +247,146 @@ def Merge(dict1, dict2):
 
 
 def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
+def create_col_type_dict(
+    raw_metadata, sample_data, sql_type
+):
     """
     Uses socrata metadata to set SQL datatypes
-        (1) creates two dictionaries, one that maps socrata data type
-            to database sql_type and another that maps socrata system_feilds
-            to database sql_type
-        (2) runs through metadata and creates dictonary of current socrata column
-            names and datatypes.
-            Then transfomrs dict to map socrata datatypes to specified
-            database datatypes.
+        (1) creates two dictionaries, one that maps socrata data type to database
+            sql_type and another that maps socrata system_feilds to database sql_type
+        (2) runs through metadata and creates dictonary of current socrata column names and datatypes.
+            Then transfomrs dict to map socrata datatypes to specified database datatypes.
                 (a) For Redshift, points are mapped to varchar
                 (b) For PostGres, points are mapped to points
-                (c) All varchar data types are set to 256, but can be changed when
+                (c) All varchar data types are set to 1024, but can be changed when
                     varchar_len is passed in.
         (3) If destination is PostGres, notes all columns that are points in an index.
+        (4) column order is stored in index
         (4) converts dict to array of dicts to be readable by civis API
+
     Parameters
     ----------
     raw_metadata : Dict
+
     varchar_len: str
-        Length of varchar to be passed in - defualts to 256
+        Length of varchar to be passed in - defualts to 1024
+
+    sql_type: Dict
+        Dict of socrata to sql mappings
+
     returns
     -------
     table_columns
         Array of dicts to be passed to civis.io.civis_file_to_table()
+
     point_columns
         If PostGres import an index of columns that are point types
+
+    column_order
+        array of columns that corresponds to same order as table_columns
+
+    extra_columns
+        array of columns that are present in metadata but not in data pull. This gets noted in
+        run logs.
+
     """
+
+    system_fields = OrderedDict(
+        {"id": "VARCHAR(2048)", "created_at": "TIMESTAMP", "updated_at": "TIMESTAMP"}
+    )
+
+    column_dict, metadata_columns = metadata_pull_cols_datatypes(raw_metadata)
+    # parses raw metadata and outputs array of columns and array of datatypes
+
+    sql_map = map_to_sql(sql_type, column_dict)
+    # map sql type to socrata data type
+
+    extra_columns = diff_metadata_columns(metadata_columns, list(sample_data.columns))
+    # compares metadata columns to columns in sample pull and notes differences in array
+
+    remove_columns(extra_columns, sql_map)
+    # removes columns found in metadata (sql_map) but not dataset
+
+    soct_type_map = Merge(sql_map, system_fields)
+    # merges metadata columns with system columns
+
+    column_order = list(OrderedDict(soct_type_map).keys())
+    # notes column order of soct_type_map
+
+    table_columns = civis_api_formatting(soct_type_map)
+    # re-writes dict in correct formatting to pass into civis file to table API call
+
+    point_columns = find_point_columns(soct_type_map)
+    # parses datatype_map for point columns types and notes it
+
+    return table_columns, point_columns, column_order, extra_columns
+
+def find_point_columns(datatype_map):
+    """
+    parses through datatype_map and outputs array containing all columns of data type Point
+    """
+    point_columns = [col for col, col_type in datatype_map.items() if col_type == "POINT"]
+    return point_columns
+
+def civis_api_formatting(soct_type_map):
+    """
+    Converts soct_type_map to be readable by Civis API.
+    """
+    table_columns = [{"name": n, "sql_type": t} for n, t in soct_type_map.items()]
+    return table_columns
+
+def map_to_sql(sql_type, column_dict):
+    """
+    Converts soct_type_map to be readable by Civis API.
+    """
+    sql_map = OrderedDict({k: sql_type[v] for k, v in column_dict.items()})
+    return sql_map
+
+def metadata_pull_cols_datatypes(raw_metadata):
+    """
+    Parses through raw_metadata and outputs two arrays
+        (1) zipped: a dict of column_name and associated socrata data types
+        (2) metadata_columns: an array of the metadata_columns names
+    """
+    metadata_columns = []
+    socrata_datatypes = []
+
+    for i in np.arange(len(raw_metadata["columns"])):
+        metadata_columns.append(raw_metadata["columns"][i]["name"])
+        socrata_datatypes.append(raw_metadata["columns"][i]["dataTypeName"])
+
+    metadata_columns = [
+        i.strip()
+        .lower()
+        for i in metadata_columns
+    ]
+
+    metadata_columns = [
+        re.sub(r'[^a-zA-Z0-9_]', '', i)
+        for i in metadata_columns
+    ]
+    # uses regex function to remove all non-alphanumeric characters
+
+    zipped = OrderedDict(zip(metadata_columns, socrata_datatypes))
+
+    return zipped, metadata_columns
+
+
+def diff_metadata_columns(li1, li2):
+    """
+    Compares two lists and returns differnce
+    """
+    diff = list(set(li1) - set(li2))
+    return diff
+
+
+def remove_columns(entries, the_dict):
+    """
+    Removes specified entries from a dict
+    """
+    for key in entries:
+        if key in the_dict:
+            del the_dict[key]
 
 def select_sql_map(database, varchar_len: str = None):
     """
