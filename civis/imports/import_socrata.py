@@ -179,6 +179,7 @@ def main(
 if __name__ == "__main__":
     DATASET_ID = os.environ["dataset_id"]
     EXISTING_TABLE_ROWS = "drop"
+    CLIENT_URL = os.environ["client_url"]
     if "table_name" in list(os.environ.keys()) and "database" in list(
         os.environ.keys()
     ):
