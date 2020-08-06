@@ -206,6 +206,7 @@ if __name__ == "__main__":
     else:
         VARCHAR = None
     main(
+        CLIENT_URL,
         DATASET_ID,
         TABLE_NAME,
         CIVIS_DATABASE,
