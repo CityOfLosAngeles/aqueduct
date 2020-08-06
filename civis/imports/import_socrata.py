@@ -11,6 +11,7 @@ import logging
 import os
 from datetime import datetime
 import civis
+from collections import OrderedDict
 
 from socrata_helpers import (
     _store_and_attach_dataset_csv,
