@@ -4,7 +4,7 @@ Helpers functions for the socrata import
 import pandas as pd
 import os
 import civis
-from typing import Optional, Tuple
+from typing import Tuple
 from datetime import datetime
 from civis import APIClient
 import logging
@@ -15,7 +15,7 @@ import re
 from collections import OrderedDict
 
 
-from civis.io import dataframe_to_file, file_to_civis, civis_file_to_table, query_civis
+from civis.io import file_to_civis
 
 LOG = logging.getLogger(__name__)
 
@@ -144,12 +144,16 @@ def _read_paginated(
 ):
     """
     Pulls in Socrata data using API Client
-        (1) Creates while loop that runs for records retrieved <= size_limitwith
-        (2) Starting at offset=0, pulls in number of rows specified by page_limit
-            (a) if the import is to PostGres database, pandas string comands will
-                convert socrata defined point datatype to format required by PostGres
-            (b) For each chunk of data writes pandas df to .csv and notes csv name in array
-        (3) Adjusts offset by page_limit and repeats until either size_limit or end of dataset reached
+        (1) Creates while loop that runs for records retrieved<= size_limitwith
+        (2) Starting at offset=0, pulls in number of rows specified by
+            page_limit
+            (a) if the import is to PostGres database, pandas string comands
+                will convert socrata defined point datatype to format required
+                by PostGres
+            (b) For each chunk of data writes pandas df to .csv and notes csv
+                name in array
+        (3) Adjusts offset by page_limit and repeats until either size_limit or
+            end of dataset reached
         (4) Appends all .csvs using python functions
         (5) Outputs path to appended .csv
 
@@ -160,8 +164,8 @@ def _read_paginated(
     dataset_id: str
         Socrata dataset identifier
     point_columns
-        An index of columns that are point types, this is used to edit the string
-        of columns to be compatible with PostGres import
+        An index of columns that are point types, this is used to edit the
+        string of columns to be compatible with PostGres import
     column_order
         Order of columns to match metadata
     page_limit: int
@@ -192,7 +196,7 @@ def _read_paginated(
             limit=page_limit,
             content_type="csv",
             exclude_system_fields=False,
-            offset=offset
+            offset=offset,
         )
 
         if not results[1:]:
@@ -226,11 +230,11 @@ def _read_paginated(
 
         if size_limit and offset >= size_limit:
             LOG.info(
-                f"Reached requested row count limit, {size_limit}, for dataset "
+                f"Reached requested row count limit, {size_limit}, for dataset"
                 f"{dataset_id}."
             )
             LOG.debug(
-                f"Pulled {offset} rows, in increments of {page_limit}, up to "
+                f"Pulled {offset} rows, in increments of {page_limit}, up to"
                 f"specified limit of {size_limit} rows."
             )
             break
@@ -238,7 +242,7 @@ def _read_paginated(
         offset += page_limit
         # move counter
 
-    headers = ','.join(column_order)
+    headers = ",".join(column_order)
     # use column_order to create headers for the .csv
 
     path = write_csv(paths, headers)
@@ -249,8 +253,9 @@ def _read_paginated(
 
 def write_csv(paths, headers):
     """
-    Takes in an array of .csv paths and appends them all together using python fucntions.
-    This allows us to pull in a large dataset, relying  on disk space, while preserving limited system memory.
+    Takes in an array of .csv paths and appends them all together using
+    python fucntions. This allows us to pull in a large dataset, relying
+    on disk space, while preserving limited system memory.
     """
     csv_out = "consolidated.csv"
     csv_merge = open(csv_out, "w")
@@ -272,20 +277,21 @@ def Merge(dict1, dict2):
     return res
 
 
-def create_col_type_dict(
-    raw_metadata, sample_data, sql_type
-):
+def create_col_type_dict(raw_metadata, sample_data, sql_type):
     """
     Uses socrata metadata to set SQL datatypes
-        (1) creates two dictionaries, one that maps socrata data type to database
-            sql_type and another that maps socrata system_feilds to database sql_type
-        (2) runs through metadata and creates dictonary of current socrata column names and datatypes.
-            Then transfomrs dict to map socrata datatypes to specified database datatypes.
+        (1) creates two dictionaries, one that maps socrata data type to
+            database sql_type and another that maps socrata system_feilds
+            to database sql_type
+        (2) runs through metadata and creates dictonary of current socrata
+            column names and datatypes. Then transfomrs dict to map socrata
+            datatypes to specified database datatypes.
                 (a) For Redshift, points are mapped to varchar
                 (b) For PostGres, points are mapped to points
-                (c) All varchar data types are set to 1024, but can be changed when
-                    varchar_len is passed in.
-        (3) If destination is PostGres, notes all columns that are points in an index.
+                (c) All varchar data types are set to 1024, but can be changed
+                    when varchar_len is passed in.
+        (3) If destination is PostGres, notes all columns that are points in
+            an index.
         (4) column order is stored in index
         (4) converts dict to array of dicts to be readable by civis API
 
@@ -311,8 +317,8 @@ def create_col_type_dict(
         array of columns that corresponds to same order as table_columns
 
     extra_columns
-        array of columns that are present in metadata but not in data pull. This gets noted in
-        run logs.
+        array of columns that are present in metadata but not in data pull.
+        This gets noted in run logs.
 
     """
 
@@ -327,7 +333,8 @@ def create_col_type_dict(
     # map sql type to socrata data type
 
     extra_columns = diff_metadata_columns(metadata_columns, list(sample_data.columns))
-    # compares metadata columns to columns in sample pull and notes differences in array
+    # compares metadata columns to columns in sample pull and notes
+    # differences in array
 
     remove_columns(extra_columns, sql_map)
     # removes columns found in metadata (sql_map) but not dataset
@@ -339,19 +346,25 @@ def create_col_type_dict(
     # notes column order of soct_type_map
 
     table_columns = civis_api_formatting(soct_type_map)
-    # re-writes dict in correct formatting to pass into civis file to table API call
+    # re-writes dict in correct formatting to pass into civis file to
+    # table API call
 
     point_columns = find_point_columns(soct_type_map)
     # parses datatype_map for point columns types and notes it
 
     return table_columns, point_columns, column_order, extra_columns
 
+
 def find_point_columns(datatype_map):
     """
-    parses through datatype_map and outputs array containing all columns of data type Point
+    parses through datatype_map and outputs array containing all columns of
+    data type Point
     """
-    point_columns = [col for col, col_type in datatype_map.items() if col_type == "POINT"]
+    point_columns = [
+        col for col, col_type in datatype_map.items() if col_type == "POINT"
+    ]
     return point_columns
+
 
 def civis_api_formatting(soct_type_map):
     """
@@ -360,12 +373,14 @@ def civis_api_formatting(soct_type_map):
     table_columns = [{"name": n, "sql_type": t} for n, t in soct_type_map.items()]
     return table_columns
 
+
 def map_to_sql(sql_type, column_dict):
     """
     Converts soct_type_map to be readable by Civis API.
     """
     sql_map = OrderedDict({k: sql_type[v] for k, v in column_dict.items()})
     return sql_map
+
 
 def metadata_pull_cols_datatypes(raw_metadata):
     """
@@ -380,16 +395,9 @@ def metadata_pull_cols_datatypes(raw_metadata):
         metadata_columns.append(raw_metadata["columns"][i]["name"])
         socrata_datatypes.append(raw_metadata["columns"][i]["dataTypeName"])
 
-    metadata_columns = [
-        i.strip()
-        .lower()
-        for i in metadata_columns
-    ]
+    metadata_columns = [i.strip().lower() for i in metadata_columns]
 
-    metadata_columns = [
-        re.sub(r'[^a-zA-Z0-9_]', '', i)
-        for i in metadata_columns
-    ]
+    metadata_columns = [re.sub(r"[^a-zA-Z0-9_]", "", i) for i in metadata_columns]
     # uses regex function to remove all non-alphanumeric characters
 
     zipped = OrderedDict(zip(metadata_columns, socrata_datatypes))
@@ -412,6 +420,7 @@ def remove_columns(entries, the_dict):
     for key in entries:
         if key in the_dict:
             del the_dict[key]
+
 
 def select_sql_map(database, varchar_len: str = None):
     """
@@ -496,6 +505,7 @@ def select_sql_map(database, varchar_len: str = None):
 
     return sql_type
 
+
 def results_to_df(results):
 
     df = pd.DataFrame(results[1:], columns=results[0])
@@ -503,12 +513,9 @@ def results_to_df(results):
     Writes socrata get returns to a pandas dataframe. Also cleans header names
     and standardizes 'id'/'sid' system column name to 'id'.
     """
-    df.columns = (
-            df.columns.str.strip()
-            .str.lower()
-        )
+    df.columns = df.columns.str.strip().str.lower()
 
-    df.rename(columns=lambda x: re.sub(r'[^a-zA-Z0-9_]','',x), inplace=True)
-    df.rename(columns=lambda x: re.sub(r'sid','id',x), inplace=True)
+    df.rename(columns=lambda x: re.sub(r"[^a-zA-Z0-9_]", "", x), inplace=True)
+    df.rename(columns=lambda x: re.sub(r"sid", "id", x), inplace=True)
 
     return df
