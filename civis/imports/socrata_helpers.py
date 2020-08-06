@@ -275,39 +275,77 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
         If PostGres import an index of columns that are point types
     """
 
+def select_sql_map(database, varchar_len: str = None):
+    """
+    Selects Socrata to SQL mapping based on database that is passed in and
+    optional varchar_len argument.
+    """
     if database.lower() == "redshift":
         if varchar_len is None:
             sql_type = {
                 "number": "DOUBLE PRECISION",
-                "text": "VARCHAR(256)",
+                "double": "DOUBLE PRECISION",
+                "money": "DOUBLE PRECISION",
+                "checkbox": "boolean",
+                "text": "VARCHAR(1024)",
+                "location": "VARCHAR(1024)",
+                "multiline": "VARCHAR(1024)",
+                "multipoint": "VARCHAR(1024)",
+                "multipolygon": "VARCHAR(1024)",
+                "polygon": "VARCHAR(1024)",
                 "calendar_date": "TIMESTAMP",
-                "point": "VARCHAR(256)",
+                "point": "VARCHAR(1024)",
             }
         else:
             sql_type = {
                 "number": "DOUBLE PRECISION",
-                "text": "VARCHAR(256)",
+                "double": "DOUBLE PRECISION",
+                "money": "DOUBLE PRECISION",
+                "checkbox": "boolean",
+                "text": "VARCHAR(1024)",
+                "location": "VARCHAR(1024)",
+                "multiline": "VARCHAR(1024)",
+                "multipoint": "VARCHAR(1024)",
+                "multipolygon": "VARCHAR(1024)",
+                "polygon": "VARCHAR(1024)",
                 "calendar_date": "TIMESTAMP",
-                "point": "VARCHAR(256)",
+                "point": "VARCHAR(1024)",
             }
 
             varchar_len = "VARCHAR(" + varchar_len + ")"
 
             sql_type["point"] = varchar_len
             sql_type["text"] = varchar_len
+            sql_type["location"] = varchar_len
 
     elif database.lower() == "postgres":
         if varchar_len is None:
             sql_type = {
                 "number": "DOUBLE PRECISION",
-                "text": "VARCHAR(256)",
+                "double": "DOUBLE PRECISION",
+                "money": "DOUBLE PRECISION",
+                "checkbox": "boolean",
+                "text": "VARCHAR(1024)",
+                "location": "VARCHAR(1024)",
+                "multiline": "VARCHAR(1024)",
+                "multipoint": "VARCHAR(1024)",
+                "multipolygon": "VARCHAR(1024)",
+                "polygon": "VARCHAR(1024)",
                 "calendar_date": "TIMESTAMP",
                 "point": "POINT",
             }
         else:
             sql_type = {
                 "number": "DOUBLE PRECISION",
-                "text": "VARCHAR(256)",
+                "double": "DOUBLE PRECISION",
+                "money": "DOUBLE PRECISION",
+                "checkbox": "boolean",
+                "text": "VARCHAR(1024)",
+                "location": "VARCHAR(1024)",
+                "multiline": "VARCHAR(1024)",
+                "multipoint": "VARCHAR(1024)",
+                "multipolygon": "VARCHAR(1024)",
+                "polygon": "VARCHAR(1024)",
                 "calendar_date": "TIMESTAMP",
                 "point": "POINT",
             }
@@ -316,21 +354,10 @@ def create_col_type_dict(raw_metadata, database, varchar_len: str = None):
 
             sql_type["point"] = varchar_len
             sql_type["text"] = varchar_len
+            sql_type["location"] = varchar_len
 
-    system_fields = OrderedDict(
-        {":id": "VARCHAR(2048)", ":created_at": "TIMESTAMP", ":updated_at": "TIMESTAMP"}
-    )
+    return sql_type
 
-    cols = []
-    datatypes = []
-
-    for i in np.arange(len(raw_metadata["columns"])):
-        cols.append(raw_metadata["columns"][i]["fieldName"])
-        datatypes.append(raw_metadata["columns"][i]["dataTypeName"])
-
-    socdict = OrderedDict(zip(cols, datatypes))
-
-    soct_type_map = OrderedDict({k: sql_type[v] for k, v in socdict.items()})
 def results_to_df(results):
 
     df = pd.DataFrame(results[1:], columns=results[0])
