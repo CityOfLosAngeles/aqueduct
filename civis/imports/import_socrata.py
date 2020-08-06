@@ -1,8 +1,6 @@
 """
 An Import Socrata Template for Deployment on Civis Platform
 Author: @sherryshenker, @snassef, @akoebs
-
-Setup as a template job for 311, LADBS, more
 """
 
 from sodapy import Socrata
@@ -113,55 +111,46 @@ def main(
     print("Columns present in Metadata but not in data:" , extra_columns)
 
     consolidated_csv_path = _read_paginated(
-        client=socrata_client, dataset_id=dataset_id, point_columns=point_columns
+        client=socrata_client,
+        dataset_id=dataset_id,
+        point_columns=point_columns,
+        column_order=pandas_column_order,
     )
-    # this will read in socrata data in chunks (using offset and page_limit), and
-    # append all to one csv and output path here
+    # reads in socrata data in chunks (using offset and page_limit), and
+    # appenda all to one csv and outputs path here
 
-    civis_client = civis.APIClient()
+    data_file_name = (
+        f"{dataset_id}_extract_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    )
+    uploaded_file_id = _store_and_attach_dataset_csv(
+        client=civis_client, csv_path=consolidated_csv_path, filename=data_file_name
+    )
+    print("file_id:" , uploaded_file_id)
+    LOG.info(f"add the {uploaded_file_id}")
 
-    dataset = pd.read_csv(consolidated_csv_path, nrows=5)
-    # only putting a couple rows in memory for logging
-    if dataset.empty:
-        msg = f"No rows returned for dataset {dataset_id}."
-        LOG.warning(msg)
-        write_and_attach_jsonvalue(json_value=msg, name="Error", client=civis_client)
-    else:
-        data_file_name = (
-            f"{dataset_id}_extract_{datetime.now().strftime('%Y-%m-%d')}.csv"
-        )
-        uploaded_file_id = _store_and_attach_dataset_csv(
-            client=civis_client, csv_path=consolidated_csv_path, filename=data_file_name
-        )
-        LOG.info(f"add the {uploaded_file_id}")
+    LOG.info(
+        f"Storing data in table {civis_table_name} on database {civis_database}"
+    )
 
-        if civis_table_name:
-            # Optionally start table upload
-            LOG.info(
-                f"Storing data in table {civis_table_name} on database {civis_database}"
-            )
-            print("writing table")
-            # takes in file id and writes to table
-            table_upload = civis.io.civis_file_to_table(
-                file_id=uploaded_file_id,
-                database=civis_database,
-                table=civis_table_name,
-                table_columns=table_columns,
-                existing_table_rows=action_existing_table_rows,
-                headers=True,
-            ).result()
-            LOG.info(f"using {table_upload}")
+    table_upload = civis.io.civis_file_to_table(
+        file_id=uploaded_file_id,
+        database=civis_database,
+        table=civis_table_name,
+        table_columns=civis_table_columns,
+        existing_table_rows=action_existing_table_rows,
+        headers=True,
+    ).result()
+    LOG.info(f"using {table_upload}")
+    # takes in file id and writes to table
 
-    # Parse raw_metadata to extract useful fields and attach both raw and
-    # cleaned metadata as script outputs
     metadata_file_name = (
         f"{dataset_id}_metadata_{datetime.now().strftime('%Y-%m-%d')}.json"
     )
+    # parse raw_metadata to extract useful fields and attach both raw and
+    # cleaned metadata as script outputs
 
     upload_metadata_paths = {
-        "Proposed access level": (
-            "metadata.custom_fields.Proposed Access Level.Proposed Access Level"
-        ),
+        "Proposed access level": "metadata.custom_fields.Proposed Access Level.Proposed Access Level",
         "Description": "description",
         "Data updated at": "rowsUpdatedAt",
         "Data provided by": "tableAuthor.screenName",
