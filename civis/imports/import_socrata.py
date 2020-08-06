@@ -164,8 +164,7 @@ def main(
     )
 
     if civis_table_name:
-        sql = f"""COMMENT ON TABLE {civis_table_name} IS
-              \'{clean_metadata["Description"]}\'"""
+        sql = f'COMMENT ON TABLE {civis_table_name} IS \'{clean_metadata["Description"]}\''
         civis.io.query_civis(
             sql, database=civis_database, polling_interval=2, client=civis_client
         ).result()
