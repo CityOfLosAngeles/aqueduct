@@ -27,6 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 def main(
+    socrata_client_url: str,
     dataset_id: str,
     civis_table_name: str,
     civis_database: str,
@@ -39,8 +40,11 @@ def main(
 ):
     """
     Read in dataset from Socrata and write output to Platform
+
     Parameters
     --------
+    socrata_client_url: str
+        url of socrata portal being referenced
     dataset_id: str
         Socrata dataset identifier
     civis_table_name: str
@@ -69,6 +73,7 @@ def main(
 
     socrata_client = Socrata(
         "data.lacity.org", None, username=socrata_username, password=socrata_password
+        socrata_client_url, None, username=socrata_username, password=socrata_password
     )
 
     socrata_client.timeout = 50
