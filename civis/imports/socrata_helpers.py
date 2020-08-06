@@ -206,6 +206,8 @@ def _read_paginated(
         df = results_to_df(results)
         # write chuck of data to pandas df
 
+        df = df[column_order]
+        # rearage columns to be in same order at metadata_columns
 
         if len(point_columns) == 0:
             df.to_csv(path, header=False, index=False)
