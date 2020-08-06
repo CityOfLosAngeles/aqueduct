@@ -59,17 +59,15 @@ def main(
     socrata_password: str, optional
         password for socrata account, required for private data sets
     grant_group: str
-        string of group(s) that are passed to civis API to be granted
-        select table access
+        string of group(s) that are passed to civis API to be granted select table access
     varchar_len: str
-        sets the varchar length when datatypes are passed to civis API,
-        256 is defualt
+        sets the varchar length when datatypes are passed to civis API, 256 is defualt
     action_existing_table_rows: str, optional
         options to pass to dataframe_to_civis command
+
     Outputs
     ------
-    Adds data as file output and, if table_name and database are specified,
-    writes data to Platform
+    Adds data as file output and, if table_name and database are specified, writes data to Platform
     """
 
     socrata_client = Socrata(
