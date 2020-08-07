@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+#--Pulling Last 6 Months of Commercial & Apartment Data
+
+
 import os
 pwd=os.getcwd()
 import sys
@@ -13,6 +16,7 @@ from shapely.geometry import Point
 import geopandas as gpd
 from arcgis.features import FeatureLayerCollection
 import intake_civis
+import datetime
 
 lahub_user = os.environ["LAHUB_ACC_USERNAME"]
 lahub_pass = os.environ["LAHUB_ACC_PASSWORD"]
@@ -28,6 +32,13 @@ def prep_permit_data(file,token,user,pas):
     df = pd.DataFrame(client.get('n9nq-vewq', limit=10000000))
     df2=df[((df.permit_sub_type == 'Apartment')|(df.permit_sub_type == 'Commercial'))&(
         (df.permit_type == 'Bldg-Addition')|(df.permit_type == 'Bldg-New')|(df.permit_type == 'Bldg-Demolition'))]
+    df2['issue_date']= pd.to_datetime(df2['issue_date'])
+    mask = df2['issue_date'] <= datetime.datetime.now()
+    df2 = df2.loc[mask]
+    range_max = df2['issue_date'].max()
+    range_min = range_max - pd.DateOffset(months=6)
+    df2 = df2[(df2['issue_date'] >= range_min) & 
+               (df2['issue_date'] <= range_max)]
     df2.to_csv(file, index=False)
 
 def update_geohub_layer(user, pw, layer, update_data):
