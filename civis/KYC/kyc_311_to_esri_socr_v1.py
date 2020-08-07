@@ -27,6 +27,12 @@ def prep_311_data(file,token,user,pas):
     client = Socrata("data.lacity.org", token, username=user, password=pas)
     df = pd.DataFrame(client.get('rq3b-xjk8', limit=10000000))
     df2=df[(df.requesttype != 'Homeless Encampment')]
+    df2['createddate']= pd.to_datetime(df2['createddate'])
+    mask = df2['createddate'] <= datetime.datetime.now()
+    df2 = df2.loc[mask]
+    range_max = df2['createddate'].max()
+    range_min = range_max - pd.DateOffset(months=6)
+    df2 = df2[(df2['createddate'] >= range_min)]
     df2.to_csv(file, index=False)
 
 def update_geohub_layer(user, pw, layer, update_data):
