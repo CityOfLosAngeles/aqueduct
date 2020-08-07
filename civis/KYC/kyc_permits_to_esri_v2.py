@@ -35,6 +35,7 @@ def prep_permit_data(file,token,user,pas):
     df2['issue_date']= pd.to_datetime(df2['issue_date'])
     mask = df2['issue_date'] <= datetime.datetime.now()
     df2 = df2.loc[mask]
+    range_max = df2['issue_date'].max()
     range_min = range_max - pd.DateOffset(months=6)
     df2 = df2[(df2['issue_date'] >= range_min)]
     df2.to_csv(file, index=False)
