@@ -1,19 +1,15 @@
 import datetime
 import functools
-import os
 from urllib.parse import urljoin
 
-import arcgis
 import geopandas
 import numpy
 import pandas
 import requests
 from airflow import DAG
-from airflow.hooks.base_hook import BaseHook
 from airflow.models import Variable
 from airflow.operators.python_operator import PythonOperator
 from airflow.utils.email import send_email
-from arcgis.gis import GIS
 
 API_BASE_URL = "https://api2.gethelp.com/v1/"
 
@@ -55,29 +51,6 @@ def coerce_integer(df):
         )
 
     return df.transform(numeric_column_to_int, axis=0)
-
-
-def upload_to_esri(df, layer_id, filename="/tmp/df.csv"):
-    """
-    A quick helper function to upload a data frame
-    to ESRI as a featurelayer backed CSV
-
-    recommend: no geometries, lat/long columns
-    remember ESRI is UTC only.
-    """
-    df.to_csv(filename, index=False)
-    # Login to ArcGIS
-    arcconnection = BaseHook.get_connection("arcgis")
-    arcuser = arcconnection.login
-    arcpassword = arcconnection.password
-    gis = GIS("http://lahub.maps.arcgis.com", username=arcuser, password=arcpassword)
-
-    gis_item = gis.content.get(layer_id)
-    gis_layer_collection = arcgis.features.FeatureLayerCollection.fromitem(gis_item)
-    gis_layer_collection.manager.overwrite(filename)
-
-    os.remove(filename)
-    return True
 
 
 def make_get_help_request(api_path, token, params={}, paginated=True):
@@ -400,29 +373,8 @@ def assemble_facility_history(facility):
     return history
 
 
-def assemble_get_help_timeseries():
-    """
-    Gets a full timeseries for all facilities managed by the GetHelp system.
-    """
-    df = pandas.DataFrame()
-    facilities = get_facilities()
-    for idx, facility in facilities.iterrows():
-        history = assemble_facility_history(facility)
-        if history is not None:
-            df = df.append(history)
-    df = df.assign(
-        dataDate=pandas.to_datetime(df.dataDate)
-        .dt.tz_localize("US/Pacific")
-        .dt.tz_convert("UTC")
-    ).sort_values(["facility_id", "dataDate"])
-    return df
-
-
 def load_get_help_data(**kwargs):
     facilities = get_facilities().pipe(coerce_integer)
-    upload_to_esri(facilities, FACILITIES_ID, "/tmp/gethelp-facilities-v6.csv")
-    timeseries = assemble_get_help_timeseries()
-    upload_to_esri(timeseries, TIMESERIES_ID, "/tmp/gethelp-timeseries-v2.csv")
 
     # Compute a number of open and reporting shelter beds
     active_facilities = facilities[facilities.status != 0]
@@ -440,7 +392,6 @@ def load_get_help_data(**kwargs):
         stats, orient="index", columns=["Count"]
     ).transpose()
     # TODO: Write an assert to make sure all rows are in resultant GDF
-    upload_to_esri(stats_df, STATS_ID, "/tmp/gethelp-stats.csv")
 
     # push the tables into kwargs for email
     kwargs["ti"].xcom_push(key="facilities", value=active_facilities)
