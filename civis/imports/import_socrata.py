@@ -1,12 +1,9 @@
 """
 An Import Socrata Template for Deployment on Civis Platform
 Author: @sherryshenker, @snassef, @akoebs
-
-Setup as a template job for 311, LADBS, more
 """
 
 from sodapy import Socrata
-import pandas as pd
 import logging
 import os
 from datetime import datetime
@@ -18,12 +15,15 @@ from socrata_helpers import (
     _store_and_attach_metadata,
     create_col_type_dict,
     _read_paginated,
+    select_sql_map,
+    results_to_df,
 )
 
 LOG = logging.getLogger(__name__)
 
 
 def main(
+    socrata_client_url: str,
     dataset_id: str,
     civis_table_name: str,
     civis_database: str,
@@ -36,8 +36,11 @@ def main(
 ):
     """
     Read in dataset from Socrata and write output to Platform
+
     Parameters
     --------
+    socrata_client_url: str
+        url of socrata portal being referenced
     dataset_id: str
         Socrata dataset identifier
     civis_table_name: str
@@ -51,13 +54,14 @@ def main(
     socrata_password: str, optional
         password for socrata account, required for private data sets
     grant_group: str
-        string of group(s) that are passed to civis API to be granted
-        select table access
+        string of group(s) that are passed to civis API to be granted select
+        table access
     varchar_len: str
-        sets the varchar length when datatypes are passed to civis API,
-        256 is defualt
+        sets the varchar length when datatypes are passed to civis API, 256 is
+        defualt
     action_existing_table_rows: str, optional
         options to pass to dataframe_to_civis command
+
     Outputs
     ------
     Adds data as file output and, if table_name and database are specified,
@@ -65,67 +69,87 @@ def main(
     """
 
     socrata_client = Socrata(
-        "data.lacity.org", None, username=socrata_username, password=socrata_password
+        socrata_client_url, None, username=socrata_username, password=socrata_password
     )
+    # define socrata cleint
+
+    civis_client = civis.APIClient()
+    # define civis cleint
 
     socrata_client.timeout = 50
 
-    raw_metadata = socrata_client.get_metadata(dataset_id)
-
-    table_columns, point_columns = create_col_type_dict(
-        raw_metadata, database_type, varchar_len
+    sample_data = socrata_client.get(
+        dataset_id, limit=5, content_type="csv", exclude_system_fields=False, offset=0
     )
+    # collects sample data from dataset
 
-    consolidated_csv_path = _read_paginated(
-        client=socrata_client, dataset_id=dataset_id, point_columns=point_columns
-    )
-    # this will read in socrata data in chunks (using offset and page_limit), and
-    # append all to one csv and output path here
+    sample_data_df = results_to_df(sample_data)
+    # writes sample data to dataframe
 
-    civis_client = civis.APIClient()
-
-    dataset = pd.read_csv(consolidated_csv_path, nrows=5)
-    # only putting a couple rows in memory for logging
-    if dataset.empty:
+    if sample_data_df.empty:
         msg = f"No rows returned for dataset {dataset_id}."
         LOG.warning(msg)
         write_and_attach_jsonvalue(json_value=msg, name="Error", client=civis_client)
-    else:
-        data_file_name = (
-            f"{dataset_id}_extract_{datetime.now().strftime('%Y-%m-%d')}.csv"
-        )
-        uploaded_file_id = _store_and_attach_dataset_csv(
-            client=civis_client, csv_path=consolidated_csv_path, filename=data_file_name
-        )
-        LOG.info(f"add the {uploaded_file_id}")
+        os._exit(1)
+    # provides exit if no rows avalible in dataset
 
-        if civis_table_name:
-            # Optionally start table upload
-            LOG.info(
-                f"Storing data in table {civis_table_name} on database {civis_database}"
-            )
-            print("writing table")
-            # takes in file id and writes to table
-            table_upload = civis.io.civis_file_to_table(
-                file_id=uploaded_file_id,
-                database=civis_database,
-                table=civis_table_name,
-                table_columns=table_columns,
-                existing_table_rows=action_existing_table_rows,
-                headers=True,
-            ).result()
-            LOG.info(f"using {table_upload}")
+    raw_metadata = socrata_client.get_metadata(dataset_id)
+    # calls for raw metadata
 
-    # Parse raw_metadata to extract useful fields and attach both raw and
-    # cleaned metadata as script outputs
+    sql_type = select_sql_map(database_type, varchar_len)
+    # defines apropriate sql types for datatype mapping depending on
+    # specifications
+
+    (
+        civis_table_columns,
+        point_columns,
+        pandas_column_order,
+        extra_columns,
+    ) = create_col_type_dict(raw_metadata, sample_data_df, sql_type)
+    # creates civis specific array of dicts that maps column name to
+    # datatype using socrata metadata as guidence. Also, provides point
+    # columns that are used to clean point column formatting during import.
+    # And, provides array of columns that corresponds to order of the mapping
+    # dict (civis_file_to_table is sensitive to order.
+
+    print("Columns present in Metadata but not in data:", extra_columns)
+
+    consolidated_csv_path = _read_paginated(
+        client=socrata_client,
+        dataset_id=dataset_id,
+        point_columns=point_columns,
+        column_order=pandas_column_order,
+    )
+    # reads in socrata data in chunks (using offset and page_limit), and
+    # appenda all to one csv and outputs path here
+
+    data_file_name = f"{dataset_id}_extract_{datetime.now().strftime('%Y-%m-%d')}.csv"
+    uploaded_file_id = _store_and_attach_dataset_csv(
+        client=civis_client, csv_path=consolidated_csv_path, filename=data_file_name
+    )
+    print("file_id:", uploaded_file_id)
+    LOG.info(f"add the {uploaded_file_id}")
+
+    LOG.info(f"Storing data in table {civis_table_name} on database {civis_database}")
+
+    table_upload = civis.io.civis_file_to_table(
+        file_id=uploaded_file_id,
+        database=civis_database,
+        table=civis_table_name,
+        table_columns=civis_table_columns,
+        existing_table_rows=action_existing_table_rows,
+        headers=True,
+    ).result()
+    LOG.info(f"using {table_upload}")
+    # takes in file id and writes to table
+
     metadata_file_name = (
         f"{dataset_id}_metadata_{datetime.now().strftime('%Y-%m-%d')}.json"
     )
+    # parse raw_metadata to extract useful fields and attach both raw and
+    # cleaned metadata as script outputs
 
     upload_metadata_paths = {
-        "Proposed access level": (
-            "metadata.custom_fields.Proposed Access Level.Proposed Access Level"
-        ),
         "Description": "description",
         "Data updated at": "rowsUpdatedAt",
         "Data provided by": "tableAuthor.screenName",
@@ -139,8 +163,10 @@ def main(
     )
 
     if civis_table_name:
-        sql = f"""COMMENT ON TABLE {civis_table_name} IS
-              \'{clean_metadata["Description"]}\'"""
+        sql = f"""
+                COMMENT ON TABLE {civis_table_name} IS
+                \'{clean_metadata["Description"]}\'
+                 """
         civis.io.query_civis(
             sql, database=civis_database, polling_interval=2, client=civis_client
         ).result()
@@ -155,6 +181,7 @@ def main(
 if __name__ == "__main__":
     DATASET_ID = os.environ["dataset_id"]
     EXISTING_TABLE_ROWS = "drop"
+    CLIENT_URL = os.environ["client_url"]
     if "table_name" in list(os.environ.keys()) and "database" in list(
         os.environ.keys()
     ):
@@ -182,6 +209,7 @@ if __name__ == "__main__":
     else:
         VARCHAR = None
     main(
+        CLIENT_URL,
         DATASET_ID,
         TABLE_NAME,
         CIVIS_DATABASE,
