@@ -3,6 +3,12 @@
 # Run the aws-configure script to try to detect AWS credentials from the environment
 aws-configure || true
 
+# If the app includes a setup.py, install the local package.
+if [ -f "${APP_DIR:-/app}/setup.py" ]; then
+    echo "Installing local repository python packages."
+    pip install -e /app || true
+fi
+
 # Test if CIVIS_SERVICE_ID is defined. If so, we are likely in a deployed
 # service, so start voila. If not, we are likely in a Civis Jupyter notebook
 # context, so start that.
