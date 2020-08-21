@@ -125,13 +125,8 @@ def load_to_s3_pgdb(**kwargs):
     # load company
     client = mds.Client(company, config, version=version)
     execution_date = kwargs["execution_date"]
-    # test is provider is jump, up hours because their ETL is slow.
-    if client.provider.provider_id == "c20e08cf-8488-46a6-a66c-5d8fb827f7e0":
-        end_time = execution_date - timedelta(hours=25)
-        start_time = end_time - timedelta(hours=12)
-    else:
-        end_time = execution_date
-        start_time = end_time - timedelta(hours=12)
+    end_time = execution_date
+    start_time = end_time - timedelta(hours=12)
     status_changes = client.get_status_changes(end_time=end_time, start_time=start_time)
 
     obj = s3.Object(
@@ -296,9 +291,8 @@ task2 = PostgresOperator(
 )
 
 
-providers = ["lyft", "lime", "jump", "bird", "wheels", "spin", "bolt"]
+providers = ["lyft", "lime", "bird", "wheels", "spin", "bolt"]
 
-task_list = []
 for provider in providers:
     provider_to_s3_task = PythonOperator(
         task_id=f"loading_{provider}_data",
