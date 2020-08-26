@@ -6,12 +6,14 @@ RUN apt-get update && apt-get install -y \
   bash-completion \
   gcc \
   graphviz \
+  gnupg2 \
   inkscape \
   openssh-client \
   pandoc \
   texlive-fonts-recommended \
   texlive-generic-recommended \
   texlive-xetex \
+  unixodbc-dev \
   unzip \
   vim
 
@@ -37,6 +39,7 @@ RUN conda install -c conda-forge \
   numpy \
   osmnx \
   pandas \
+  pyodbc \
   python-graphviz \
   s3fs \
   scikit-learn \
@@ -50,7 +53,12 @@ RUN unzip instant_client.zip && mkdir -p /opt/oracle && mv instantclient_19_6 /o
 RUN echo /opt/oracle/instantclient_19_6 > /etc/ld.so.conf.d/oracle-instantclient.conf && ldconfig
 RUN rm instant_client.zip
 
-# Dependencies for altiar_saver, conda packages are currently broken.
+# Install SQL Server ODBC Driver
+RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+RUN curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
+RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
+
+# Dependencies for altair_saver, conda packages are currently broken.
 RUN npm install -g --unsafe vega vega-cli vega-lite canvas
 
 # Install puppeteer-related notebook conversion.
