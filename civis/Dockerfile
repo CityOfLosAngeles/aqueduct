@@ -41,7 +41,7 @@ RUN conda install -c conda-forge \
   pandas \
   pyodbc \
   python-graphviz \
-  s3fs \
+  s3fs==04.2 \
   scikit-learn \
   scipy \
   statsmodels \
