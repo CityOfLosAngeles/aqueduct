@@ -62,8 +62,7 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql17
 RUN npm install -g --unsafe vega vega-cli vega-lite canvas
 
 # Install puppeteer-related notebook conversion.
-# TODO: upstream fix for root user.
-RUN pip install git+https://github.com/ian-r-rose/notebook-as-pdf.git@no-sandbox && pyppeteer-install
+RUN pip install notebook-as-pdf && pyppeteer-install
 
 # Install some python-only packages using pip
 RUN pip install \
