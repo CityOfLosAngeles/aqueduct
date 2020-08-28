@@ -72,6 +72,7 @@ RUN pip install \
   awscli \
   beautifulsoup4 \
   black \
+  boto3 \
   census-data-downloader \
   CensusData \
   contextily \
