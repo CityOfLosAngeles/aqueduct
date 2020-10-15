@@ -17,7 +17,7 @@ Since docker images can do essentially anything, container scripts provide
 the most flexible way to interact with the Civis job scheduling platform.
 
 We provide a [Docker image](./Dockerfile) in this repository,
-which is published [here](https://hub.docker.com/r/irose/citywide-civis-lab).
+which is published [here](https://hub.docker.com/r/cityofla/ita-data-civis-lab).
 This image contains a number of commonly used Python libraries and tools
 which are commonly used by this team, and is intended to be a convenient
 starting place when developing container scripts.
@@ -150,7 +150,7 @@ You can do this with the following steps:
 1. Create a new container script using the `Code` dropdown.
 1. Select the repository to clone into the container. In this case it will likely be `aqueduct`. Remember that it will be cloned as `/app` in the container.
 1. Select the branch/ref to clone (usually, but not always, `master`).
-1. Enter the Docker image and tag to run. To use the one provided in this repository, enter `irose/citywide-civis-lab`. This image does not currently use a `latest` tag, so you should go to the dockerhub repository and select the [most recent tag](https://hub.docker.com/r/irose/citywide-civis-lab/tags).
+1. Enter the Docker image and tag to run. To use the one provided in this repository, enter `cityofla/ita-data-civis-lab`. Consider going to the dockerhub repository and selecting the [most recent tag](https://hub.docker.com/r/cityofla/ita-data-civis-lab/tags).
 1. Choose the resources needed to run the job. You should probably start with the default values, then adjust up and down as necessary.
 1. Specify the credentials needed by setting parameters for the script. For instance, you might need to add "Database" and "AWS" credentials. Once the parameters have been set up, you can populate them with specific values.
 1. Optionally schedule the job by clicking the "Automate" button.
@@ -166,7 +166,7 @@ given [here](./civis-aqueduct-utils/README.md).
 
 The [Dockerfile](./Dockerfile) in this repository is intended to be a convenient
 image for the City of Los Angeles data team.
-It is currently published to [dockerhub](https://hub.docker.com/r/irose/citywide-civis-lab).
+It is currently published to [dockerhub](https://hub.docker.com/r/cityofla/ita-data-civis-lab).
 In order to publish a new version, you can use the `Makefile`:
 ```bash
 make build

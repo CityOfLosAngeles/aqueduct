@@ -6,7 +6,7 @@ services:
     image: civis-lab
     container_name: civis-lab
     volumes:
-     - ../:/app
+     - ./:/app
     ports:
       - "8888:8888"
     environment:
@@ -19,7 +19,7 @@ services:
     image: civis-voila
     container_name: civis-voila
     volumes:
-     - ../:/app
+     - ./:/app
     ports:
       - "3838:3838"
     environment:

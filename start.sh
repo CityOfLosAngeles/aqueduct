@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Start script for the ita-data-civis-lab Docker image.
+# This script does the following:
+#    1) Attempts to auto-configure AWS credentials if they are attached in Civis
+#    2) Installs any local Python packages in the app directory (attached GH repo)
+#    3) Infers based on the presence of a CIVIS_SERVICE_ID whether to launch JupyterLab
+#       or a Voila session.
+
 # Run the aws-configure script to try to detect AWS credentials from the environment
 aws-configure || true
 

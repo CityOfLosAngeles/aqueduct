@@ -2,7 +2,7 @@
 
 BUILDLOG := buildlog.txt
 DOCKER := $(if $(DOCKER),$(DOCKER),docker)
-DOCKERHUB_REPO := irose/citywide-civis-lab
+DOCKERHUB_REPO := cityofla/ita-data-civis-lab
 
 build: Dockerfile
 	$(DOCKER) build . > $(BUILDLOG)
