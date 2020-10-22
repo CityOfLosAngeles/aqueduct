@@ -18,5 +18,4 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: cityofla/ita-data-civis-lab
           tag_with_sha: true
-          path: "civis"
           tags: latest
