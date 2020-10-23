@@ -17,7 +17,7 @@ RIDERSHIP_URL = "http://isotp.metro.net/MetroRidership/IndexSys.aspx"
 ASPX_PARAMETERS = ["__VIEWSTATE", "__EVENTVALIDATION"]
 
 # The S3 bucket into which to load data.
-S3_BUCKET = "s3://tmf-data"
+S3_BUCKET = "s3://tmf-ita-data"
 
 
 def get_form_data():

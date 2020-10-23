@@ -12,7 +12,7 @@ import tableauserverclient
 
 SCHEMA = "transportation"
 TABLE = "bike_trips"
-S3_DATA_PATH = "s3://tmf-data/bikeshare_trips.parquet"
+S3_DATA_PATH = "s3://tmf-ita-data/bikeshare_trips.parquet"
 
 
 if os.environ.get("DEV"):
