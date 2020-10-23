@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Custom behavior to add to the user's bashrc in the Docker image,
+# including bash completion, conda environment, and a nicer PS1.
+
 
 # enable bash completion in interactive shells
 if ! shopt -oq posix; then

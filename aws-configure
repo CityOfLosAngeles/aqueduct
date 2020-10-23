@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-
+"""
+Detect AWS credentials in the Civis environment and use them to configure
+AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.  I'm not sure why Civis doesn't
+do this already.
+"""
 import os
 import subprocess
 
@@ -32,7 +36,7 @@ if not os.environ.get("AWS_ACCESS_KEY_ID") and not os.environ.get(
             print("Unable to find AWS credentials in environment")
     else:
         # If no CIVIS_API_KEY is present, look for credentials that have AWS in the
-        # name. This is less reliable, but and should be considered a hack.
+        # name. This is less reliable, and should be considered a hack.
         for key, value in os.environ.items():
             if "AWS" in key and key.endswith("_USERNAME"):
                 print(f"Configuring AWS with credential {key}")
