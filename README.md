@@ -1,3 +1,10 @@
+This is a shared repository maintain by the City of Los Angeles Data Team for running jobs,
+ETL scripts, utlity functions and more.
+
+Formerly, the codebase was built as a set of DAGs for Apache Airflow. It is now mostly Python scripts
+and other glue code for Civis Platform.
+
+
 # Developing Civis jobs
 
 Civis provides a platform to schedule jobs to run regularly.
