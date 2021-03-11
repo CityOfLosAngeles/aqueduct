@@ -9,7 +9,7 @@ import pandas
 import requests
 import sqlalchemy
 
-S3_BUCKET = "s3://tmf-data/dash"
+S3_BUCKET = "s3://tmf-ita-data/dash"
 SCHEMA = "transportation"
 TABLE = "dash_trips"
 LOCAL_TIMEZONE = "US/Pacific"
