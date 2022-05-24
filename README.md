@@ -1,4 +1,10 @@
-# Developing Civis jobs
+# Aqueduct
+
+This is a shared repository maintain by the City of Los Angeles Data team for running jobs, ETL script, utlity functions and more.
+
+Formerly, the codebase was built as a set of DAGs for Apache Airflow. It is now mostly python scripts and other glue code for Civis Platform.
+
+## Developing Civis jobs
 
 Civis provides a platform to schedule jobs to run regularly.
 This includes a variety of canned data imports/exports,
